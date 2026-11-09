@@ -1,0 +1,273 @@
+package main
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"slices"
+	"strings"
+	"time"
+
+	"github.com/Rin0107/ideas/internal/gh"
+	"github.com/Rin0107/ideas/internal/guard"
+)
+
+const maxDiffBytes = 150_000
+
+// ---- review: 別の Claude に PR を見せる ----
+
+type review struct {
+	Verdict string   `json:"verdict"` // approve / request_changes
+	Issues  []string `json:"issues"`
+	Summary string   `json:"summary"`
+}
+
+func cmdReview(args []string) error {
+	repo, pr, err := repoPR(args)
+	if err != nil {
+		return err
+	}
+	e, err := load()
+	if err != nil {
+		return err
+	}
+	if !e.pf.Repos()[repo] {
+		return fmt.Errorf("%s は portfolio にない", repo)
+	}
+	diff, err := gh.GH("pr", "diff", fmt.Sprint(pr), "--repo", repo)
+	if err != nil {
+		return err
+	}
+	if len(diff) > maxDiffBytes {
+		return fmt.Errorf("差分が大きすぎる (%d バイト)。issue を分ける", len(diff))
+	}
+	view, err := gh.GH("pr", "view", fmt.Sprint(pr), "--repo", repo, "--json", "title,body,closingIssuesReferences")
+	if err != nil {
+		return err
+	}
+	var v struct {
+		Title   string `json:"title"`
+		Body    string `json:"body"`
+		Closing []struct {
+			Number int `json:"number"`
+		} `json:"closingIssuesReferences"`
+	}
+	if err := json.Unmarshal([]byte(view), &v); err != nil {
+		return err
+	}
+	if len(v.Closing) == 0 {
+		return errors.New("PR に Closes #N がない")
+	}
+	var issues strings.Builder
+	for _, c := range v.Closing {
+		body, err := gh.GH("issue", "view", fmt.Sprint(c.Number), "--repo", repo, "--json", "number,title,body",
+			"--jq", `"#\(.number) \(.title)\n\(.body)"`)
+		if err != nil {
+			return err
+		}
+		issues.WriteString(body + "\n\n")
+	}
+	checks, _ := gh.Checks(repo, pr)
+	instr, err := os.ReadFile(filepath.Join(e.cfg.Root, "harness", "reviewer.md"))
+	if err != nil {
+		return err
+	}
+	prompt := fmt.Sprintf("%s\n\n# PR #%d: %s\n%s\n\n# issue と受け入れ条件\n%s\n# CI\n%v\n\n# 差分\n```diff\n%s\n```\n",
+		instr, pr, v.Title, v.Body, issues.String(), checks, diff)
+
+	out, err := runClaude(e, prompt)
+	if err != nil {
+		return err
+	}
+	var r review
+	if err := json.Unmarshal([]byte(extractJSON(out)), &r); err != nil || (r.Verdict != "approve" && r.Verdict != "request_changes") {
+		return fmt.Errorf("reviewer の出力が JSON の形でない: %v\n%s", err, out)
+	}
+	comment := fmt.Sprintf("**wakuwaku reviewer: %s**\n\n%s\n", r.Verdict, r.Summary)
+	for _, is := range r.Issues {
+		comment += "- " + is + "\n"
+	}
+	if _, err := gh.GH("pr", "comment", fmt.Sprint(pr), "--repo", repo, "--body", comment); err != nil {
+		return err
+	}
+	if r.Verdict == "approve" {
+		if _, err := gh.GH("pr", "edit", fmt.Sprint(pr), "--repo", repo, "--add-label", "wk:reviewed"); err != nil {
+			return err
+		}
+	} else {
+		_, _ = gh.GH("pr", "edit", fmt.Sprint(pr), "--repo", repo, "--remove-label", "wk:reviewed")
+	}
+	return printJSON(r)
+}
+
+// runClaude は会話を引き継がない claude -p を、工場の外 (フックが効かない場所) で、道具なしで動かす。
+func runClaude(e *env, prompt string) (string, error) {
+	dir := filepath.Join(e.cfg.RuntimeDir, "claude-p")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	cmd := exec.Command("claude", "-p", "--no-session-persistence", "--tools", "", "--output-format", "text")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "OKUOS_JOURNAL=1")
+	cmd.Stdin = strings.NewReader(prompt)
+	done := make(chan struct{})
+	timer := time.AfterFunc(10*time.Minute, func() {
+		if cmd.Process != nil {
+			_ = cmd.Process.Kill()
+		}
+	})
+	defer func() { timer.Stop(); close(done) }()
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("claude -p: %w", err)
+	}
+	return string(out), nil
+}
+
+// extractJSON は出力の中の最初の { から最後の } までを取り出す (```json で囲まれていても読めるように)。
+func extractJSON(s string) string {
+	i, j := strings.Index(s, "{"), strings.LastIndex(s, "}")
+	if i < 0 || j < i {
+		return s
+	}
+	return s[i : j+1]
+}
+
+// ---- merge: CI 全部 green かつ reviewer の approve のときだけ ----
+
+func cmdMerge(args []string) error {
+	repo, pr, err := repoPR(args)
+	if err != nil {
+		return err
+	}
+	e, err := load()
+	if err != nil {
+		return err
+	}
+	if !e.pf.Repos()[repo] {
+		return fmt.Errorf("%s は portfolio にない", repo)
+	}
+	labels, err := gh.Labels(repo, pr)
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(labels, "wk:reviewed") {
+		return errors.New("wk:reviewed がない (先に wk review で approve をもらう)")
+	}
+	deadline := time.Now().Add(30 * time.Minute)
+	for {
+		cs, err := gh.Checks(repo, pr)
+		if err != nil {
+			return err
+		}
+		pending, failed := 0, []string{}
+		for _, c := range cs {
+			switch c.Bucket {
+			case "pending":
+				pending++
+			case "fail", "cancel":
+				failed = append(failed, c.Name)
+			}
+		}
+		switch {
+		case len(failed) > 0:
+			return fmt.Errorf("CI が赤: %s", strings.Join(failed, ", "))
+		case len(cs) == 0 && time.Now().After(deadline.Add(-25*time.Minute)):
+			return errors.New("CI が 1 つも動いていない (雛形の workflow を確認)")
+		case len(cs) > 0 && pending == 0:
+			if _, err := gh.GH("pr", "merge", fmt.Sprint(pr), "--repo", repo, "--squash", "--delete-branch"); err != nil {
+				return err
+			}
+			fmt.Printf("merge した: %s#%d (チェック %d 件 green)\n", repo, pr, len(cs))
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return errors.New("CI が 30 分で終わらない")
+		}
+		time.Sleep(20 * time.Second)
+	}
+}
+
+func repoPR(args []string) (string, int, error) {
+	if len(args) != 2 {
+		return "", 0, errors.New("使い方: <owner/repo> <pr 番号>")
+	}
+	var pr int
+	if _, err := fmt.Sscan(args[1], &pr); err != nil {
+		return "", 0, err
+	}
+	return args[0], pr, nil
+}
+
+// ---- フック ----
+
+type hookInput struct {
+	ToolName  string `json:"tool_name"`
+	Cwd       string `json:"cwd"`
+	ToolInput struct {
+		Command  string `json:"command"`
+		FilePath string `json:"file_path"`
+	} `json:"tool_input"`
+}
+
+func hookContext() (hookInput, guard.Context, error) {
+	var in hookInput
+	b, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		return in, guard.Context{}, err
+	}
+	if err := json.Unmarshal(b, &in); err != nil {
+		return in, guard.Context{}, err
+	}
+	if in.Cwd != "" {
+		_ = os.Chdir(in.Cwd)
+	}
+	e, err := load()
+	if err != nil {
+		return in, guard.Context{}, err
+	}
+	root := e.cfg.Root
+	protected := e.cfg.ProtectedPaths
+	// アプリ repo の中: 守るのは CI と フックの設定
+	if top, err := gh.Run(in.Cwd, "git", "rev-parse", "--show-toplevel"); err == nil {
+		if t := strings.TrimSpace(top); !strings.HasPrefix(t, e.cfg.Root) && t != e.cfg.MainCheckout && !isFactoryWorktree(t) {
+			root, protected = t, []string{".github/", ".claude/", "scripts/", "src/worker/security.ts", "wk.json"}
+		}
+	}
+	return in, guard.Context{Owner: e.cfg.Owner, Factory: e.factoryRepo(), Owned: e.pf.Repos(), Root: root, Protected: protected}, nil
+}
+
+func isFactoryWorktree(dir string) bool {
+	_, err := os.Stat(filepath.Join(dir, "factory.json"))
+	return err == nil
+}
+
+func deny(reason string) error {
+	return exitError{2, "wakuwaku guard: " + reason}
+}
+
+func cmdGuardBash(args []string) error {
+	in, c, err := hookContext()
+	if err != nil {
+		return deny("判定できないので止める: " + err.Error())
+	}
+	if why := guard.Bash(in.ToolInput.Command, c); why != "" {
+		return deny(why)
+	}
+	return nil
+}
+
+func cmdGuardEdit(args []string) error {
+	in, c, err := hookContext()
+	if err != nil {
+		return deny("判定できないので止める: " + err.Error())
+	}
+	if why := guard.Edit(in.ToolInput.FilePath, c); why != "" {
+		return deny(why)
+	}
+	return nil
+}

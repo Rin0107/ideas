@@ -1,0 +1,45 @@
+{
+  "owner": "Rin0107",
+  "main_checkout": "~/src/okuos/repos/ideas",
+  "apps_dir": "~/src/wakuwaku",
+  "runtime_dir": "~/.local/state/wakuwaku",
+  "ideas_dir": "ideas_wakuwaku",
+
+  "ticks_per_day": 6,
+  "max_ticks_mvp": 30,
+  "max_ticks_iteration": 15,
+  "max_iterations": 2,
+  "max_attempts_per_issue": 3,
+  "max_open_issues": 8,
+  "lock_ttl_minutes": 150,
+  "max_consecutive_failures": 3,
+
+  "intake_every_days": 7,
+  "retro_every_days": 7,
+  "min_untried_ideas": 30,
+
+  "select": {
+    "candidates": 15,
+    "min_free": 3,
+    "min_light": 3
+  },
+  "evaluate": {
+    "ship_min_wakuwaku": 4,
+    "ship_min_quality": 3
+  },
+
+  "allowed_services": ["github", "cloudflare-free", "vercel-hobby", "github-releases"],
+  "deny_packages": ["@supabase/supabase-js", "firebase", "@sentry/browser", "posthog-js", "mixpanel-browser", "@vercel/analytics", "openai", "@anthropic-ai/sdk", "@google/generative-ai", "stripe", "@aws-sdk/client-bedrock-runtime"],
+  "protected_paths": [
+    "factory.json",
+    ".claude/settings.json",
+    "internal/guard/",
+    ".github/workflows/",
+    "docs/DESIGN.md",
+    "harness/reviewer.md",
+    "templates/web/.github/",
+    "templates/web/scripts/",
+    "templates/web/src/worker/security.ts",
+    "templates/go-cli/.github/"
+  ]
+}
