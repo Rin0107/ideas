@@ -18,6 +18,7 @@
     "address",
     "birth",
     "real_name",
+    "ip",
     "ip_address",
     "user_agent",
     "token",

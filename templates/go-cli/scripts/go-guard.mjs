@@ -22,7 +22,7 @@ for (const f of walk(".", [".go"])) {
     if (!allow.has(host)) problems.push(`${f}: 外部の宛先 ${host} (wk.json の egress_allow はユーザーだけが変える)`);
   }
   for (const m of src.matchAll(/^\s+(\w+)\s+[\w.*[\]]+\s+`json:"(\w+)/gm)) {
-    const snake = m[1].replace(/([a-z])([A-Z])/g, "$1_$2");
+    const snake = m[1].replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").replace(/([a-z0-9])([A-Z])/g, "$1_$2");
     if (field.test(snake) || field.test(m[2])) problems.push(`${f}: 欄 ${m[1]} は持ってはいけない情報`);
   }
   if (/"os\/exec"/.test(src) && /"(curl|wget|sh|bash)"/.test(src)) problems.push(`${f}: シェルや curl を呼ばない`);
