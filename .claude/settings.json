@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "wk guard-bash", "timeout": 15 }] },
+      { "matcher": "Edit|Write|MultiEdit|NotebookEdit", "hooks": [{ "type": "command", "command": "wk guard-edit", "timeout": 15 }] }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "wk check >/dev/null 2>&1 || { echo 'wk check が通らない。直してから終える (wk check で内容を確認)' >&2; exit 2; }", "timeout": 60 }] }
+    ]
+  }
+}

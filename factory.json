@@ -33,13 +33,20 @@
   "protected_paths": [
     "factory.json",
     ".claude/settings.json",
-    "internal/guard/",
+    "cmd/",
+    "internal/",
+    "go.mod",
+    "harness/TICK.md",
+    "harness/rubric.md",
     ".github/workflows/",
     "docs/DESIGN.md",
     "harness/reviewer.md",
     "templates/web/.github/",
     "templates/web/scripts/",
     "templates/web/src/worker/security.ts",
+    "templates/web/wk.json",
+    "templates/go-cli/scripts/",
+    "templates/go-cli/wk.json",
     "templates/go-cli/.github/"
   ]
 }
