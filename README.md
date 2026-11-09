@@ -13,6 +13,12 @@ ideas/
   00002-git-sparse-optimizer/
     idea.md
   ...
+ideas_wakuwaku/        # 「わくわくすること」を条件とした別コレクション
+  idea-template/
+    idea-template.md
+  00001-infra-aquarium/
+    idea.md
+  ...
 reviewed/
   round-01.md          # 各ラウンドの不採用アイディア一覧(1行1件)
   ...
@@ -22,6 +28,12 @@ reviewed/
 各アイディアは `ideas/{5桁ID}-{slug}/idea.md` に1つずつ格納する。
 フォーマットは `ideas/idea-template/idea-template.md` を参照。
 IDは検討順の通し番号(欠番あり=不採用分)。不採用分は `reviewed/round-XX.md` に記録。
+
+## ideas_wakuwaku(わくわくコレクション)
+
+`ideas/` の機械的な大量生成・選定とは別軸のコレクション。機械的手法は使わず、1件ずつ個別に発想する。
+採用条件は「わくわくすること」。マネタイズは必須ではない(テンプレートに `わくわくポイント` セクションあり)。
+IDは `ideas_wakuwaku/` 内で独立した通し番号(00001〜)。フォーマットは `ideas_wakuwaku/idea-template/idea-template.md` を参照。
 
 ## 選定プロセス(完了)
 
