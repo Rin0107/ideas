@@ -1,8 +1,46 @@
-# ideas
+# ideas — wakuwaku factory
+
+わくわくするアイディアを貯め、1 つ選んで **無料のサービスだけで作り切って公開し**、評価して磨くか捨てる。
+これを Orca の定期実行で、人の手を介さずに回し続ける工場。
+
+**セキュリティが最優先**: 作るアプリはどれも重要な情報を持たない (アカウントなし・データは端末の中だけ・外部への送信なし)。
+
+- 設計: [docs/DESIGN.md](docs/DESIGN.md)
+- 最初の準備 (人が 1 回): [docs/SETUP.md](docs/SETUP.md)
+- 定期実行の入口: [harness/TICK.md](harness/TICK.md)
+- 制御 CLI: `wk` (`cmd/wk`)。`wk status` で今の状態
+
+## 作ったもの
+| 名前 | URL | 何か | アイディア |
+|---|---|---|---|
+
+## 仕組み (要約)
+```
+ Orca「wakuwaku tick」(1日6回) → wk due (止める条件) → wk next (次の段階を決める)
+   → harness/prompts/<段階>.md に従って 1 ステップ → wk done → wk sync
+ 段階: select → build (issue ごと) → evaluate → iterate / ship / drop、ほかに intake・retro
+```
+- 決めるのは `wk` (ルールと点数)、作るのは LLM。merge・公開・デプロイは wk だけが行う
+- CI (lint・型・テスト・e2e・gitleaks・依存の脆弱性・持たない情報の検査・外部送信の検査) が全部 green で、
+  別の Claude のレビューが approve のときだけ merge
+- 守りの部分 (制御のコード・設定・CI・採点基準) はエージェントが書き換えられない (Claude Code のフックで強制)
+
+| 場所 | 中身 |
+|---|---|
+| `ideas_wakuwaku/` | ループが使うアイディア (501 件〜)。`INDEX.md` が一覧 |
+| `state/` | アプリの一覧と tick の記録 (wk だけが書く) |
+| `reports/` | 評価・週のまとめ |
+| `harness/` | tick の手順書・採点基準・reviewer の指示 |
+| `templates/` | アプリの雛形 (`web`: Cloudflare Workers、`go-cli`: Go の CLI) |
+| `ideas/` ほか | 以前の機械生成のアイディア集 (下に説明。読むだけ) |
+
+---
+
+# 以前のアイディア集
 
 Goでマネタイズ可能なアプリケーションを作るためのアイディア集。
 
-## 構成
+## 構成 (以前のアイディア集)
 
 ```
 ideas/
