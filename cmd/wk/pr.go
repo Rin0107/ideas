@@ -38,6 +38,10 @@ func cmdReview(args []string) error {
 	if !e.pf.Repos()[repo] {
 		return fmt.Errorf("%s は portfolio にない", repo)
 	}
+	headSHA, err := prHead(repo, pr)
+	if err != nil {
+		return err
+	}
 	diff, err := gh.GH("pr", "diff", fmt.Sprint(pr), "--repo", repo)
 	if err != nil {
 		return err
@@ -95,6 +99,9 @@ func cmdReview(args []string) error {
 		return err
 	}
 	if r.Verdict == "approve" {
+		if err := recordApproval(e, repo, pr, headSHA); err != nil {
+			return err
+		}
 		if _, err := gh.GH("pr", "edit", fmt.Sprint(pr), "--repo", repo, "--add-label", "wk:reviewed"); err != nil {
 			return err
 		}
@@ -157,6 +164,17 @@ func cmdMerge(args []string) error {
 	}
 	if !slices.Contains(labels, "wk:reviewed") {
 		return errors.New("wk:reviewed がない (先に wk review で approve をもらう)")
+	}
+	// ラベルは誰でも付けられるので、wk review が記録した「approve した時点のコミット」と今の先頭を比べる
+	if head, err := prHead(repo, pr); err != nil {
+		return err
+	} else if approved(e, repo, pr) != head {
+		return errors.New("今のコミットは reviewer に approve されていない (push したあとは wk review をやり直す)")
+	}
+	if files, err := prFiles(repo, pr); err != nil {
+		return err
+	} else if hit := guard.TouchesProtected(files, appProtected); len(hit) > 0 {
+		return fmt.Errorf("守りの部分を変えている PR は merge しない: %s", strings.Join(hit, ", "))
 	}
 	deadline := time.Now().Add(30 * time.Minute)
 	for {
@@ -235,10 +253,11 @@ func hookContext() (hookInput, guard.Context, error) {
 	// アプリ repo の中: 守るのは CI と フックの設定
 	if top, err := gh.Run(in.Cwd, "git", "rev-parse", "--show-toplevel"); err == nil {
 		if t := strings.TrimSpace(top); !strings.HasPrefix(t, e.cfg.Root) && t != e.cfg.MainCheckout && !isFactoryWorktree(t) {
-			root, protected = t, []string{".github/", ".claude/", "scripts/", "src/worker/security.ts", "wk.json"}
+			root, protected = t, appProtected
 		}
 	}
-	return in, guard.Context{Owner: e.cfg.Owner, Factory: e.factoryRepo(), Owned: e.pf.Repos(), Root: root, Protected: protected}, nil
+	writable := []string{e.cfg.AppsDir, os.TempDir(), "/tmp"}
+	return in, guard.Context{Owner: e.cfg.Owner, Factory: e.factoryRepo(), Owned: e.pf.Repos(), Root: root, Protected: protected, Writable: writable}, nil
 }
 
 func isFactoryWorktree(dir string) bool {
@@ -270,4 +289,52 @@ func cmdGuardEdit(args []string) error {
 		return deny(why)
 	}
 	return nil
+}
+
+// appProtected はアプリ repo の守りの部分 (エージェントは変えられない。雛形から来たまま)。
+var appProtected = []string{".github/", ".claude/", "scripts/", "src/worker/security.ts", "wk.json", "wrangler.jsonc", ".npmrc"}
+
+func prFiles(repo string, pr int) ([]string, error) {
+	out, err := gh.GH("pr", "view", fmt.Sprint(pr), "--repo", repo, "--json", "files", "--jq", ".files[].path")
+	if err != nil {
+		return nil, err
+	}
+	return strings.Split(strings.TrimSpace(out), "\n"), nil
+}
+
+func prHead(repo string, pr int) (string, error) {
+	out, err := gh.GH("pr", "view", fmt.Sprint(pr), "--repo", repo, "--json", "headRefOid", "--jq", ".headRefOid")
+	if err != nil {
+		return "", err
+	}
+	sha := strings.TrimSpace(out)
+	if len(sha) < 40 {
+		return "", fmt.Errorf("PR の先頭のコミットを読めない: %q", sha)
+	}
+	return sha, nil
+}
+
+// approve の記録は runtime_dir に置く (guard でエージェントは触れない)。
+func approvalsPath(e *env) string { return filepath.Join(e.cfg.RuntimeDir, "approvals.json") }
+
+func loadApprovals(e *env) map[string]string {
+	m := map[string]string{}
+	if b, err := os.ReadFile(approvalsPath(e)); err == nil {
+		_ = json.Unmarshal(b, &m)
+	}
+	return m
+}
+
+func recordApproval(e *env, repo string, pr int, sha string) error {
+	m := loadApprovals(e)
+	m[fmt.Sprintf("%s#%d", repo, pr)] = sha
+	b, _ := json.MarshalIndent(m, "", "  ")
+	if err := os.MkdirAll(e.cfg.RuntimeDir, 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(approvalsPath(e), b, 0o600)
+}
+
+func approved(e *env, repo string, pr int) string {
+	return loadApprovals(e)[fmt.Sprintf("%s#%d", repo, pr)]
 }

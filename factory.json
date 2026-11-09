@@ -32,7 +32,7 @@
   "deny_packages": ["@supabase/supabase-js", "firebase", "@sentry/browser", "posthog-js", "mixpanel-browser", "@vercel/analytics", "openai", "@anthropic-ai/sdk", "@google/generative-ai", "stripe", "@aws-sdk/client-bedrock-runtime"],
   "protected_paths": [
     "factory.json",
-    ".claude/settings.json",
+    ".claude/",
     "cmd/",
     "internal/",
     "go.mod",

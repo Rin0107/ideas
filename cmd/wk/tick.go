@@ -12,6 +12,7 @@ import (
 
 	"github.com/Rin0107/ideas/internal/config"
 	"github.com/Rin0107/ideas/internal/gh"
+	"github.com/Rin0107/ideas/internal/guard"
 	"github.com/Rin0107/ideas/internal/ideas"
 	"github.com/Rin0107/ideas/internal/lock"
 	"github.com/Rin0107/ideas/internal/next"
@@ -269,6 +270,11 @@ func cmdSync(args []string) error {
 	}
 	if _, err := gh.Run(main, "git", "pull", "--ff-only", "origin", "main"); err != nil {
 		return err
+	}
+	if out, err := gh.Run(wd, "git", "diff", "--name-only", "origin/main...HEAD"); err != nil {
+		return err
+	} else if hit := guard.TouchesProtected(strings.Split(out, "\n"), e.cfg.ProtectedPaths); len(hit) > 0 {
+		return fmt.Errorf("守りの部分が変わっているので main に入れない (ユーザーが見る): %s", strings.Join(hit, ", "))
 	}
 	if _, err := gh.Run(main, "git", "merge", "--no-edit", br); err != nil {
 		_, _ = gh.Run(main, "git", "merge", "--abort")

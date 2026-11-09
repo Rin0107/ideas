@@ -97,17 +97,40 @@ func deployWeb(e *env, p *state.Project, dir string) error {
 			return fmt.Errorf("%s に %s がない", secretsFile, k)
 		}
 	}
-	envv := append(os.Environ(), "CLOUDFLARE_API_TOKEN="+secrets["CLOUDFLARE_API_TOKEN"],
-		"CLOUDFLARE_ACCOUNT_ID="+secrets["CLOUDFLARE_ACCOUNT_ID"], "WRANGLER_SEND_METRICS=false")
+	// 鍵の通り道を 1 本にする:
+	//  1. アプリのビルドと検査は鍵なしで動かす (アプリのスクリプトはエージェントが書いたものなので信用しない)
+	//  2. install script は動かさない
+	//  3. 鍵を渡すのは、wk が自分で入れた版固定の wrangler だけ。環境変数も最小にする
+	//  4. wrangler の設定にビルドのコマンドがあれば止める (鍵のある環境で任意のコマンドが動くため)
+	if err := checkWranglerConfig(dir); err != nil {
+		return err
+	}
+	wrangler, err := ensureWrangler(e)
+	if err != nil {
+		return err
+	}
 	var out strings.Builder
-	for _, c := range [][]string{{"npm", "ci", "--no-audit", "--no-fund"}, {"npm", "run", "verify"}, {"npx", "wrangler", "deploy"}} {
-		cmd := exec.Command(c[0], c[1:]...)
+	run := func(envv []string, name string, args ...string) error {
+		cmd := exec.Command(name, args...)
 		cmd.Dir, cmd.Env = dir, envv
 		b, err := cmd.CombinedOutput()
 		out.Write(b)
 		if err != nil {
-			return fmt.Errorf("%s が失敗:\n%s", strings.Join(c, " "), tail(redact(out.String(), secrets), 60))
+			return fmt.Errorf("%s %s が失敗:\n%s", name, strings.Join(args, " "), tail(redact(out.String(), secrets), 60))
 		}
+		return nil
+	}
+	noSecrets := scrubEnv(os.Environ())
+	if err := run(noSecrets, "npm", "ci", "--no-audit", "--no-fund", "--ignore-scripts"); err != nil {
+		return err
+	}
+	if err := run(noSecrets, "npm", "run", "verify"); err != nil {
+		return err
+	}
+	deployEnv := []string{"PATH=" + os.Getenv("PATH"), "HOME=" + os.Getenv("HOME"), "WRANGLER_SEND_METRICS=false", "CI=1",
+		"CLOUDFLARE_API_TOKEN=" + secrets["CLOUDFLARE_API_TOKEN"], "CLOUDFLARE_ACCOUNT_ID=" + secrets["CLOUDFLARE_ACCOUNT_ID"]}
+	if err := run(deployEnv, wrangler, "deploy", "--config", "wrangler.jsonc"); err != nil {
+		return err
 	}
 	url := workersURL.FindString(out.String())
 	if url == "" {
@@ -193,4 +216,62 @@ func tail(s string, n int) string {
 		lines = lines[len(lines)-n:]
 	}
 	return strings.Join(lines, "\n")
+}
+
+// wranglerVersion は wk が使う wrangler の版 (雛形の package.json と合わせる)。
+const wranglerVersion = "4.158.0"
+
+// ensureWrangler は runtime_dir/tools に版を固定した wrangler を入れ、その実行ファイルを返す。
+// アプリの node_modules の wrangler は使わない (依存のすり替えで鍵を盗まれないように)。
+func ensureWrangler(e *env) (string, error) {
+	dir := filepath.Join(e.cfg.RuntimeDir, "tools", "wrangler-"+wranglerVersion)
+	bin := filepath.Join(dir, "node_modules", ".bin", "wrangler")
+	if _, err := os.Stat(bin); err == nil {
+		return bin, nil
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	cmd := exec.Command("npm", "install", "--no-audit", "--no-fund", "--ignore-scripts", "--prefix", dir, "wrangler@"+wranglerVersion)
+	cmd.Env = scrubEnv(os.Environ())
+	if b, err := cmd.CombinedOutput(); err != nil {
+		return "", fmt.Errorf("wrangler を入れられない: %w\n%s", err, tail(string(b), 20))
+	}
+	return bin, nil
+}
+
+// checkWranglerConfig は、鍵のある環境で任意のコマンドが動く設定を止める。
+func checkWranglerConfig(dir string) error {
+	b, err := os.ReadFile(filepath.Join(dir, "wrangler.jsonc"))
+	if err != nil {
+		return fmt.Errorf("wrangler.jsonc がない: %w", err)
+	}
+	s := string(b)
+	for _, bad := range []string{`"build"`, `"custom_build"`, `"routes"`, `"route"`, `"secrets"`, `"vars"`} {
+		if strings.Contains(s, bad) {
+			return fmt.Errorf("wrangler.jsonc に %s がある (使わない設定)", bad)
+		}
+	}
+	for _, f := range []string{"wrangler.toml", "wrangler.json"} {
+		if _, err := os.Stat(filepath.Join(dir, f)); err == nil {
+			return fmt.Errorf("%s がある (設定は wrangler.jsonc の 1 つだけ)", f)
+		}
+	}
+	return nil
+}
+
+// scrubEnv は鍵らしい環境変数を取り除く (gh のトークンなど、元から環境にあるものも含めて)。
+func scrubEnv(env []string) []string {
+	var out []string
+	for _, kv := range env {
+		k, _, _ := strings.Cut(kv, "=")
+		u := strings.ToUpper(k)
+		if strings.Contains(u, "TOKEN") || strings.Contains(u, "SECRET") || strings.Contains(u, "KEY") ||
+			strings.Contains(u, "PASSWORD") || strings.Contains(u, "CREDENTIAL") || strings.HasPrefix(u, "CLOUDFLARE_") ||
+			strings.HasPrefix(u, "GH_") || strings.HasPrefix(u, "GITHUB_") || strings.HasPrefix(u, "ANTHROPIC_") || strings.HasPrefix(u, "AWS_") {
+			continue
+		}
+		out = append(out, kv)
+	}
+	return out
 }
