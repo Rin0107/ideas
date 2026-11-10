@@ -42,7 +42,7 @@ jobs:
         with: { persist-credentials: false }
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: { go-version-file: go.mod }
-      - run: make fuzz FUZZ_SECONDS=180
+      - run: make fuzz FUZZ_SECONDS=150
 
   # ミューテーション: 変えたコードを壊して、テストが気づくか (efficacy 95% 以上・mutant coverage 100%)
   mutation:

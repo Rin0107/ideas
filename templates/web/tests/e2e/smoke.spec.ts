@@ -11,12 +11,13 @@ test("トップが開き、守りのヘッダーが付いている", async ({ pa
   await expect(page.getByTestId("goal")).toBeVisible();
 });
 
-test("外部への通信がない", async ({ page }) => {
+test("外部への通信がない", async ({ page, baseURL }) => {
+  // 自分の origin は baseURL から決める (最初の読み込みのときの page.url() は about:blank なので使わない)
+  const own = new URL(baseURL ?? "http://invalid.test").origin;
   const external: string[] = [];
   page.on("request", (r) => {
     const u = new URL(r.url());
-    if (u.origin !== new URL(page.url() || r.url()).origin && !u.protocol.startsWith("data"))
-      external.push(r.url());
+    if (u.origin !== own && u.protocol !== "data:" && u.protocol !== "blob:") external.push(r.url());
   });
   await page.goto("./");
   await page.waitForLoadState("networkidle");
