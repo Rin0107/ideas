@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"slices"
 	"strings"
 
 	"github.com/Rin0107/ideas/internal/next"
@@ -124,4 +125,24 @@ func CreateAndPush(repo, dir, description string) error {
 	}
 	_, err := Run(dir, "git", "push", "-q", "-u", "origin", "main")
 	return err
+}
+
+// OpenWithLabel は、そのラベルの付いた open な issue の番号 (小さい順)。
+func OpenWithLabel(repo, label string) ([]int, error) {
+	out, err := GH("issue", "list", "--repo", repo, "--label", label, "--state", "open", "--limit", "100", "--json", "number")
+	if err != nil {
+		return nil, err
+	}
+	var raw []struct {
+		Number int `json:"number"`
+	}
+	if err := json.Unmarshal([]byte(out), &raw); err != nil {
+		return nil, fmt.Errorf("issue list の出力を読めない: %w", err)
+	}
+	ns := make([]int, 0, len(raw))
+	for _, r := range raw {
+		ns = append(ns, r.Number)
+	}
+	slices.Sort(ns)
+	return ns, nil
 }

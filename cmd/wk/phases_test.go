@@ -41,6 +41,13 @@ func TestPlanValidate(t *testing.T) {
 	tooMany := goodPlan()
 	tooMany.Issues[0].AC = []string{"a", "b", "c", "d", "e", "f"}
 	errHas(t, tooMany.validate(true, 8), "ac は 1〜5")
+	roles := goodPlan()
+	roles.Issues[0].Role, roles.Issues[1].Role, roles.Issues[2].Role = "designer", "sre", "engineer"
+	if err := roles.validate(true, 8); err != nil {
+		t.Fatal("手を動かすロールは通る", err)
+	}
+	roles.Issues[2].Role = "leader"
+	errHas(t, roles.validate(true, 8), "計画の形が不正:\n  issues[2]: role \"leader\" は不正 (engineer / designer / sre)")
 	one := Plan{Goal: "g", Issues: goodPlan().Issues[:1]}
 	if err := one.validate(false, 5); err != nil {
 		t.Fatal("iterate は 1 件から", err)
@@ -122,8 +129,24 @@ func scaffoldFactory(t *testing.T, rules ...fakegh.Rule) *factory {
 
 func TestScaffold(t *testing.T) {
 	f := scaffoldFactory(t)
-	if _, err := capture(t, func() error { return cmdScaffold([]string{"--plan", planJSON(t, goodPlan())}) }); err != nil {
+	plan := goodPlan()
+	plan.Issues[1].Title, plan.Issues[1].Role = "見た目を決める", "designer"
+	if _, err := capture(t, func() error { return cmdScaffold([]string{"--plan", planJSON(t, plan)}) }); err != nil {
 		t.Fatal(err)
+	}
+	log := strings.Join(f.gh.Calls(), "\n")
+	for _, want := range []string{
+		"issue create --repo Tester/alpha --title 星を描く --body " + issueBody(plan.Issues[0]) + " --milestone MVP --label wk:task --label role:engineer",
+		"issue create --repo Tester/alpha --title 見た目を決める --body " + issueBody(plan.Issues[1]) + " --milestone MVP --label wk:task --label role:designer",
+		"label create wk:proposal --repo Tester/alpha --color c5def5 --force",
+		"label create wk:later --repo Tester/alpha --color d4c5f9 --force",
+		"label create role:sre --repo Tester/alpha --color bfdadc --force",
+		"label create role:designer --repo Tester/alpha --color bfdadc --force",
+		"label create role:engineer --repo Tester/alpha --color bfdadc --force",
+	} {
+		if !strings.Contains(log, want) {
+			t.Fatalf("%q がない:\n%s", want, log)
+		}
 	}
 	p := f.portfolio().Active()
 	if p.Status != state.Building || p.Repo != "Tester/alpha" {
@@ -346,7 +369,7 @@ func TestIterate(t *testing.T) {
 	if p.Milestone != "v0.2" || p.Status != state.Iterating || p.Iteration != 1 || p.Verdict != "" {
 		t.Fatalf("%+v", p)
 	}
-	if !f.gh.Called("issue create --repo Tester/alpha --title 音") || !f.gh.Called("title=v0.2") {
+	if !f.gh.Called("issue create --repo Tester/alpha --title 音") || !f.gh.Called("--milestone v0.2 --label wk:task --label role:engineer") || !f.gh.Called("title=v0.2") {
 		t.Fatal(f.gh.Calls())
 	}
 }

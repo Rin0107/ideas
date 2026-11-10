@@ -16,6 +16,7 @@ import (
 	"github.com/Rin0107/ideas/internal/gh"
 	"github.com/Rin0107/ideas/internal/ideas"
 	"github.com/Rin0107/ideas/internal/next"
+	"github.com/Rin0107/ideas/internal/role"
 	"github.com/Rin0107/ideas/internal/state"
 	"github.com/Rin0107/ideas/internal/verdict"
 )
@@ -32,7 +33,8 @@ type Plan struct {
 type PlanIssue struct {
 	Title string   `json:"title"`
 	Body  string   `json:"body"`
-	AC    []string `json:"ac"` // 受け入れ条件。テストにできる文
+	AC    []string `json:"ac"`             // 受け入れ条件。テストにできる文
+	Role  string   `json:"role,omitempty"` // 担当のロール (engineer / designer / sre)。空なら engineer
 }
 
 var repoNameRe = regexp.MustCompile(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`)
@@ -60,7 +62,17 @@ func (p Plan) validate(scaffold bool, maxIssues int) error {
 	if len(p.Issues) < min || len(p.Issues) > maxIssues {
 		errs = append(errs, fmt.Sprintf("issue は %d〜%d 件 (今 %d 件)", min, maxIssues, len(p.Issues)))
 	}
-	for i, is := range p.Issues {
+	errs = append(errs, issueErrors(p.Issues)...)
+	if len(errs) > 0 {
+		return errors.New("計画の形が不正:\n  " + strings.Join(errs, "\n  "))
+	}
+	return nil
+}
+
+// issueErrors は issue の形の誤りを返す (計画でも、ロールの提案でも同じ決まり)。
+func issueErrors(issues []PlanIssue) []string {
+	var errs []string
+	for i, is := range issues {
 		if strings.TrimSpace(is.Title) == "" {
 			errs = append(errs, fmt.Sprintf("issues[%d]: title が空", i))
 		}
@@ -72,11 +84,11 @@ func (p Plan) validate(scaffold bool, maxIssues int) error {
 				errs = append(errs, fmt.Sprintf("issues[%d].ac[%d]: 短すぎる (テストにできる文にする)", i, k))
 			}
 		}
+		if is.Role != "" && !role.Valid(is.Role) {
+			errs = append(errs, fmt.Sprintf("issues[%d]: role %q は不正 (engineer / designer / sre)", i, is.Role))
+		}
 	}
-	if len(errs) > 0 {
-		return errors.New("計画の形が不正:\n  " + strings.Join(errs, "\n  "))
-	}
-	return nil
+	return errs
 }
 
 func issueBody(is PlanIssue) string {
@@ -305,6 +317,10 @@ func copyTemplate(src, dst string, repl map[string]string) error {
 func ensureLabels(repo string, maxAttempts int) error {
 	labels := map[string]string{
 		"wk:task": "0e8a16", "wk:blocked": "b60205", "wk:reviewed": "1d76db", "wk:incident": "d93f0b",
+		labelProposal: "c5def5", labelLater: "d4c5f9",
+	}
+	for _, r := range role.Workers() {
+		labels[role.Label(r)] = "bfdadc"
 	}
 	for i := 1; i <= maxAttempts; i++ {
 		labels[fmt.Sprintf("wk:attempt-%d", i)] = "fbca04"
@@ -334,7 +350,7 @@ func createMilestone(repo, title, desc string) error {
 func createIssues(repo, milestone string, issues []PlanIssue) error {
 	for _, is := range issues {
 		if _, err := gh.GH("issue", "create", "--repo", repo, "--title", is.Title, "--body", issueBody(is),
-			"--milestone", milestone, "--label", "wk:task"); err != nil {
+			"--milestone", milestone, "--label", "wk:task", "--label", role.Label(roleOr(is.Role, role.Engineer))); err != nil {
 			return err
 		}
 	}

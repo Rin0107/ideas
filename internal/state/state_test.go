@@ -44,16 +44,16 @@ func TestRuntimeResetsDaily(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.TicksToday, r.ConsecutiveFailures = 5, 2
+	r.TicksToday, r.ConsecutiveFailures, r.RunWorktree, r.RunSteps = 5, 2, "/wt", 3
 	if err := SaveRuntime(dir, r); err != nil {
 		t.Fatal(err)
 	}
 	r2, _ := LoadRuntime(dir, d1.Add(time.Hour)) // 翌日
-	if r2.TicksToday != 0 || r2.ConsecutiveFailures != 2 {
-		t.Fatalf("日付が変わったら tick 数だけ 0 に: %+v", r2)
+	if r2.TicksToday != 0 || r2.ConsecutiveFailures != 2 || r2.RunWorktree != "" || r2.RunSteps != 0 {
+		t.Fatalf("日付が変わったら tick 数と実行の段の数だけ 0 に: %+v", r2)
 	}
 	r3, _ := LoadRuntime(dir, d1)
-	if r3.TicksToday != 5 {
+	if r3.TicksToday != 5 || r3.RunWorktree != "/wt" || r3.RunSteps != 3 {
 		t.Fatalf("同じ日は持ち越す: %+v", r3)
 	}
 }

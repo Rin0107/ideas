@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/Rin0107/ideas/internal/fakegh"
 	"github.com/Rin0107/ideas/internal/lock"
+	"github.com/Rin0107/ideas/internal/next"
 	"github.com/Rin0107/ideas/internal/state"
 )
 
@@ -89,10 +91,10 @@ func TestDue(t *testing.T) {
 // ---- next ----
 
 func TestNextBuildCountsTicks(t *testing.T) {
-	f := newFactory(t, fakegh.Rule{Match: `^issue list --repo Tester/alpha`, Out: `[{"number":3,"title":"a","labels":[]}]`})
+	f := newFactory(t, fakegh.Rule{Match: `^issue list --repo Tester/alpha --milestone`, Out: `[{"number":3,"title":"a","labels":[{"name":"role:designer"}]}]`})
 	f.projects(active())
 	out, err := capture(t, func() error { return cmdNext(nil) })
-	if err != nil || !strings.Contains(out, `"phase": "build"`) || !strings.Contains(out, `"issue": 3`) {
+	if err != nil || !strings.Contains(out, `"phase": "build"`) || !strings.Contains(out, `"issue": 3`) || !strings.Contains(out, `"role": "designer"`) {
 		t.Fatal(out, err)
 	}
 	p := f.portfolio().Active()
@@ -108,7 +110,7 @@ func TestNextIdleReleasesLock(t *testing.T) {
 		f.write("ideas_wakuwaku/"+d+"/idea.md", strings.Replace(f.read("ideas_wakuwaku/"+d+"/idea.md"), "# ", "# ", 1)+"\n## 履歴\n- wk:never\n")
 	}
 	out, err := capture(t, func() error { return cmdNext(nil) })
-	if err != nil || !strings.Contains(out, `"phase": "idle"`) {
+	if err != nil || !strings.Contains(out, `"phase": "idle"`) || !strings.Contains(out, `"role": "leader"`) {
 		t.Fatal(out, err)
 	}
 	if l, _ := lock.Read(f.runtime); l != nil {
@@ -160,7 +162,194 @@ func TestNextErrors(t *testing.T) {
 	}
 }
 
+// nextJSON は wk next を 1 回動かし、出た JSON を読む。動いた段のロックは外す (次の段を続けて試すため)。
+func nextJSON(t *testing.T, f *factory) next.Action {
+	t.Helper()
+	out, err := capture(t, func() error { return cmdNext(nil) })
+	must(t, err)
+	var a next.Action
+	must(t, json.Unmarshal([]byte(out), &a))
+	must(t, lock.Release(f.runtime))
+	return a
+}
+
+func runtimeNow(t *testing.T, f *factory) *state.Runtime {
+	t.Helper()
+	rt, err := state.LoadRuntime(f.runtime, time.Now())
+	must(t, err)
+	return rt
+}
+
+func TestNextIdleWhenNoRoom(t *testing.T) {
+	f := newFactory(t)
+	fakeMachine(t, "MemAvailable: 1048576 kB\n", idleLoad)
+	a := nextJSON(t, f)
+	if a.Phase != state.PhaseIdle || a.Role != "leader" || !strings.HasPrefix(a.Reason, "機械に余裕がない: メモリが足りない") {
+		t.Fatalf("%+v", a)
+	}
+	if rt := runtimeNow(t, f); rt.TicksToday != 0 || rt.RunSteps != 0 {
+		t.Fatalf("始めていないのに数えた: %+v", rt)
+	}
+	if _, err := os.Stat(filepath.Join(f.runtime, "current.json")); err == nil {
+		t.Fatal("始めていないのに今の tick がある")
+	}
+}
+
+func TestNextIdleAtDailyCap(t *testing.T) {
+	f := newFactory(t)
+	day := time.Now().Format(time.DateOnly)
+	// 上限の 1 つ手前 (5/6) は進む
+	f.write(filepath.Join(f.runtime, "runtime.json"), `{"day":"`+day+`","ticks_today":5}`)
+	if a := nextJSON(t, f); a.Phase != state.PhaseSelect {
+		t.Fatalf("%+v", a)
+	}
+	// ちょうど上限 (6/6) で止まる
+	a := nextJSON(t, f)
+	if a.Phase != state.PhaseIdle || a.Role != "leader" || a.Reason != "今日の tick は上限 (6/6)" {
+		t.Fatalf("%+v", a)
+	}
+	if rt := runtimeNow(t, f); rt.TicksToday != 6 {
+		t.Fatalf("%+v", rt)
+	}
+}
+
+func TestNextStepsPerRun(t *testing.T) {
+	f := newFactory(t)
+	f.writeConfig(map[string]any{"steps_per_run": 2})
+	wd, _ := os.Getwd()
+	for i := 1; i <= 2; i++ {
+		if a := nextJSON(t, f); a.Phase != state.PhaseSelect {
+			t.Fatalf("%d 段目: %+v", i, a)
+		}
+		if rt := runtimeNow(t, f); rt.RunSteps != i || rt.RunWorktree != wd || rt.TicksToday != i {
+			t.Fatalf("%d 段目: %+v", i, rt)
+		}
+	}
+	a := nextJSON(t, f)
+	if a.Phase != state.PhaseIdle || a.Role != "leader" || a.Reason != "この実行で進める段の上限 (2/2)" {
+		t.Fatalf("3 段目は止まる: %+v", a)
+	}
+	// 別の worktree (次の実行) は 1 段目から数え直す
+	t.Setenv("WK_FACTORY", f.root)
+	other := t.TempDir()
+	t.Chdir(other)
+	otherWd, _ := os.Getwd()
+	if a := nextJSON(t, f); a.Phase != state.PhaseSelect {
+		t.Fatalf("別の実行: %+v", a)
+	}
+	if rt := runtimeNow(t, f); rt.RunSteps != 1 || rt.RunWorktree != otherWd || rt.TicksToday != 3 {
+		t.Fatalf("別の実行: %+v", rt)
+	}
+}
+
+func TestNextStepsPerRunZeroMeansNoCap(t *testing.T) {
+	f := newFactory(t)
+	f.writeConfig(map[string]any{"steps_per_run": 0})
+	for i := 1; i <= 3; i++ {
+		if a := nextJSON(t, f); a.Phase != state.PhaseSelect {
+			t.Fatalf("%d 段目: %+v", i, a)
+		}
+	}
+	if rt := runtimeNow(t, f); rt.RunSteps != 3 {
+		t.Fatalf("%+v", rt)
+	}
+}
+
+func TestNextTriageAndPatrolUsePhaseTicks(t *testing.T) {
+	t.Run("triage", func(t *testing.T) {
+		f := newFactory(t, fakegh.Rule{Match: `^issue list --repo Tester/alpha --label wk:proposal`, Out: `[{"number":7},{"number":8}]`})
+		f.projects(active())
+		a := nextJSON(t, f)
+		if a.Phase != state.PhaseTriage || a.Role != "leader" || a.Reason != "仕分けていない提案が 2 件" {
+			t.Fatalf("%+v", a)
+		}
+		if p := f.portfolio().Active(); p.Ticks.Total != 1 || p.Ticks.Phase != 1 {
+			t.Fatalf("%+v", p.Ticks)
+		}
+	})
+	t.Run("patrol", func(t *testing.T) {
+		f := newFactory(t)
+		f.writeConfig(map[string]any{"patrol_every_days": 3, "patrol_min_ticks": 0})
+		f.projects(active())
+		a := nextJSON(t, f)
+		if a.Phase != state.PhasePatrol || a.Role != "sre" || a.Repo != "Tester/alpha" {
+			t.Fatalf("%+v", a)
+		}
+		if p := f.portfolio().Active(); p.Ticks.Total != 1 || p.Ticks.Phase != 1 {
+			t.Fatalf("%+v", p.Ticks)
+		}
+	})
+	t.Run("evaluate は数えない", func(t *testing.T) {
+		f := newFactory(t)
+		f.projects(active(func(p *state.Project) { p.Status = state.Evaluating }))
+		if a := nextJSON(t, f); a.Phase != state.PhaseEvaluate {
+			t.Fatalf("%+v", a)
+		}
+		if p := f.portfolio().Active(); p.Ticks.Total != 1 || p.Ticks.Phase != 0 {
+			t.Fatalf("%+v", p.Ticks)
+		}
+	})
+}
+
+func TestNextProposalsUnreadable(t *testing.T) {
+	f := newFactory(t, fakegh.Rule{Match: `^issue list --repo Tester/alpha --label wk:proposal`, Code: 1})
+	f.projects(active())
+	_, err := capture(t, func() error { return cmdNext(nil) })
+	errHas(t, err, "wk:proposal")
+	if l, _ := lock.Read(f.runtime); l != nil {
+		t.Fatal("読めないのにロックを取った")
+	}
+}
+
 // ---- done ----
+
+func TestDoneAfterPatrol(t *testing.T) {
+	today := time.Now().Format(time.DateOnly)
+	for name, c := range map[string]struct{ meta, designer string }{
+		"記録がまだない":   {`{"last_intake":"2999-01-01","last_retro":"2999-01-01"}`, ""},
+		"ほかのロールの記録": {`{"last_intake":"2999-01-01","last_retro":"2999-01-01","last_patrol":{"designer":"2026-01-01","sre":"2026-01-02"}}`, "2026-01-01"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFactory(t)
+			f.write("state/meta.json", c.meta)
+			e, err := load()
+			must(t, err)
+			_, err = lock.Acquire(f.runtime, lock.Info{Since: time.Now(), Phase: state.PhasePatrol}, time.Hour)
+			must(t, err)
+			must(t, writeCurrent(e, next.Action{Phase: state.PhasePatrol, Repo: "Tester/alpha", Role: "sre", Reason: "テスト"}))
+			if _, err := capture(t, func() error { return cmdDone([]string{"--result", "ok", "--note", "提案 1 件"}) }); err != nil {
+				t.Fatal(err)
+			}
+			m, _ := state.LoadMeta(f.root)
+			if m.LastPatrol["sre"] != today || m.LastPatrol["designer"] != c.designer || m.LastPatrol["engineer"] != "" ||
+				m.LastIntake != "2999-01-01" || m.LastRetro != "2999-01-01" {
+				t.Fatalf("%+v", m)
+			}
+			ts, _ := state.ReadTicks(f.root)
+			if len(ts) != 1 || ts[0].Role != "sre" || ts[0].Phase != state.PhasePatrol || ts[0].Note != "提案 1 件" {
+				t.Fatalf("%+v", ts)
+			}
+			if !strings.Contains(f.read("state/ticks.jsonl"), `"role":"sre"`) {
+				t.Fatal(f.read("state/ticks.jsonl"))
+			}
+		})
+	}
+}
+
+func TestDonePatrolFailKeepsDate(t *testing.T) {
+	f := newFactory(t)
+	e, err := load()
+	must(t, err)
+	_, err = lock.Acquire(f.runtime, lock.Info{Since: time.Now(), Phase: state.PhasePatrol}, time.Hour)
+	must(t, err)
+	must(t, writeCurrent(e, next.Action{Phase: state.PhasePatrol, Role: "designer", Reason: "テスト"}))
+	if _, err := capture(t, func() error { return cmdDone([]string{"--result", "fail"}) }); err != nil {
+		t.Fatal(err)
+	}
+	if m, _ := state.LoadMeta(f.root); len(m.LastPatrol) != 0 {
+		t.Fatalf("失敗した見回りを記録した: %+v", m)
+	}
+}
 
 func startTick(t *testing.T, f *factory, phase string) {
 	t.Helper()

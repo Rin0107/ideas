@@ -48,6 +48,12 @@ type Config struct {
 	RetroEveryDays  int `json:"retro_every_days"`
 	MinUntriedIdeas int `json:"min_untried_ideas"`
 
+	// ロールのループ (docs/ROLES.md)
+	StepsPerRun     int `json:"steps_per_run"`     // 1 回の実行で leader が進めてよい段の数 (0 以下は上限なし。1 日の上限は効く)
+	PatrolEveryDays int `json:"patrol_every_days"` // ロールごとの見回りの間隔 (0 以下は見回りをしない)
+	PatrolMinTicks  int `json:"patrol_min_ticks"`  // アプリにこの tick 数を使うまでは見回らない (見るものがまだない)
+	MaxProposals    int `json:"max_proposals"`     // 1 回の見回りで出せる提案の数
+
 	Select   Select   `json:"select"`
 	Evaluate Evaluate `json:"evaluate"`
 

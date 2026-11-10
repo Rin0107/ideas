@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Rin0107/ideas/internal/fakegh"
+	"github.com/Rin0107/ideas/internal/role"
 )
 
 const sha = "0123456789abcdef0123456789abcdef01234567"
@@ -37,7 +38,9 @@ func reviewRules(extra ...fakegh.Rule) []fakegh.Rule {
 func reviewFactory(t *testing.T, extra ...fakegh.Rule) *factory {
 	f := newFactory(t, reviewRules(extra...)...)
 	f.projects(active())
-	f.write("harness/reviewer.md", "# reviewer\n")
+	for _, r := range role.Reviewers([]string{"src/app.tsx"}) {
+		f.write("harness/reviewers/"+r+".md", "# reviewer:"+r+"\n")
+	}
 	return f
 }
 
@@ -88,7 +91,8 @@ func TestReviewErrors(t *testing.T) {
 		"PR の JSON が壊れている": {rules: []fakegh.Rule{{Match: `--json title`, Out: "{"}}, want: "JSON"},
 		"Closes がない":       {rules: []fakegh.Rule{{Match: `--json title`, Out: `{"title":"t"}`}}, want: "Closes"},
 		"issue が読めない":      {rules: []fakegh.Rule{{Match: `^issue view`, Code: 1}}, want: "issue view"},
-		"reviewer.md がない":  {setup: func(f *factory) { os.Remove(filepath.Join(f.root, "harness", "reviewer.md")) }, want: "reviewer.md"},
+		"reviewer の指示がない":  {setup: func(f *factory) { os.Remove(filepath.Join(f.root, "harness", "reviewers", "engineer.md")) }, want: "engineer.md"},
+		"変えたファイルが読めない":     {rules: []fakegh.Rule{{Match: `--json files`, Code: 1}}, want: "files"},
 		"claude が失敗":       {claude: ok, code: 1, want: "claude -p"},
 		"claude の作業場所がない":  {setup: func(f *factory) { must(t, os.RemoveAll(f.runtime)); f.write(f.runtime, "") }, want: "runtime"},
 		"出力が JSON でない":     {claude: "わかりません", want: "JSON の形でない"},
@@ -291,4 +295,98 @@ func TestGuardHooksFailClosed(t *testing.T) {
 	if code(cmdGuardBash(nil)) != 2 {
 		t.Fatal("工場が読めないのに通した")
 	}
+}
+
+// fakeClaudeBy は、プロンプトの先頭の「# reviewer:<ロール>」ごとに違う答えを返す偽物の claude を置く。
+// 呼ばれた順は calls に残る。
+func fakeClaudeBy(t *testing.T, answers map[string]string) (calls string) {
+	t.Helper()
+	d := t.TempDir()
+	calls = filepath.Join(d, "calls")
+	sh := "#!/bin/sh\ncat > " + filepath.Join(d, "in") + "\n"
+	for r, out := range answers {
+		must(t, os.WriteFile(filepath.Join(d, r), []byte(out), 0o644))
+		sh += "if head -1 " + filepath.Join(d, "in") + " | grep -qx '# reviewer:" + r + "'; then echo " + r + " >> " + calls + "; cat " + filepath.Join(d, r) + "; exit 0; fi\n"
+	}
+	sh += "exit 1\n"
+	must(t, os.WriteFile(filepath.Join(d, "claude"), []byte(sh), 0o755))
+	t.Setenv("PATH", d+string(os.PathListSeparator)+os.Getenv("PATH"))
+	return calls
+}
+
+const (
+	approveJSON = `{"verdict":"approve","issues":[],"summary":"よい"}`
+	changesJSON = `{"role":"leader","verdict":"request_changes","issues":["直す所"],"summary":"直す"}`
+)
+
+// ロールごとのレビュー: UI に触れていなければ SRE → engineer の 2 人。全員 approve で記録される。
+func TestReviewRolesNoUI(t *testing.T) {
+	f := reviewFactory(t, fakegh.Rule{Match: `--json files`, Out: "internal/app/a.go\nREADME.md\n"})
+	calls := fakeClaudeBy(t, map[string]string{"sre": approveJSON, "engineer": approveJSON, "designer": changesJSON})
+	out, err := capture(t, func() error { return cmdReview([]string{"Tester/alpha", "5"}) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(mustRead(t, calls)); got != "sre\nengineer\n" {
+		t.Fatalf("レビューの順: %q", got)
+	}
+	if !strings.Contains(out, `"verdict": "approve"`) || !strings.Contains(out, `"role": "sre"`) || !strings.Contains(out, `"role": "engineer"`) ||
+		strings.Contains(out, `"role": "designer"`) {
+		t.Fatal(out)
+	}
+	if !f.gh.Called("wakuwaku reviewer (sre): approve") || !f.gh.Called("wakuwaku reviewer (engineer): approve") || !f.gh.Called("--add-label wk:reviewed") {
+		t.Fatal(f.gh.Calls())
+	}
+	e, _ := load()
+	if approved(e, "Tester/alpha", 5) != sha {
+		t.Fatal("approve の SHA が記録されていない")
+	}
+}
+
+// UI に触れたら designer も見る。1 人でも request_changes なら通らないが、全員の指摘は出る。
+func TestReviewRolesUI(t *testing.T) {
+	for name, c := range map[string]struct {
+		answers map[string]string
+		ok      bool
+	}{
+		"全員 approve":  {map[string]string{"sre": approveJSON, "engineer": approveJSON, "designer": approveJSON}, true},
+		"designer だけ": {map[string]string{"sre": approveJSON, "engineer": approveJSON, "designer": changesJSON}, false},
+		"SRE だけ":      {map[string]string{"sre": changesJSON, "engineer": approveJSON, "designer": approveJSON}, false},
+		"engineer だけ": {map[string]string{"sre": approveJSON, "engineer": changesJSON, "designer": approveJSON}, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := reviewFactory(t, fakegh.Rule{Match: `--json files`, Out: "src/app.tsx\n"})
+			calls := fakeClaudeBy(t, c.answers)
+			out, err := capture(t, func() error { return cmdReview([]string{"Tester/alpha", "5"}) })
+			if err != nil {
+				t.Fatal(err)
+			}
+			// 途中で request_changes が出ても、全員が見る
+			if got := string(mustRead(t, calls)); got != "sre\nengineer\ndesigner\n" {
+				t.Fatalf("レビューの順: %q", got)
+			}
+			e, _ := load()
+			if c.ok {
+				if !strings.Contains(out, "{\n  \"verdict\": \"approve\"") || !f.gh.Called("--add-label wk:reviewed") || approved(e, "Tester/alpha", 5) != sha {
+					t.Fatal(out, f.gh.Calls())
+				}
+				return
+			}
+			if !strings.Contains(out, "{\n  \"verdict\": \"request_changes\"") || f.gh.Called("--add-label wk:reviewed") ||
+				!f.gh.Called("--remove-label wk:reviewed") || approved(e, "Tester/alpha", 5) != "" {
+				t.Fatal(out, f.gh.Calls())
+			}
+			// 出力に書かれた role (leader) は信じず、割り当てたロールで記録する
+			if strings.Contains(out, `"role": "leader"`) || !f.gh.Called("- 直す所") {
+				t.Fatal(out)
+			}
+		})
+	}
+}
+
+func mustRead(t *testing.T, p string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(p)
+	must(t, err)
+	return b
 }

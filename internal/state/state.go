@@ -37,6 +37,8 @@ const (
 	PhaseDrop     = "drop"
 	PhaseIntake   = "intake"
 	PhaseSelect   = "select"
+	PhasePatrol   = "patrol" // ロールが自分の持ち場を見回り、仕事の提案を出す
+	PhaseTriage   = "triage" // leader が提案を仕分ける (今やる・あとで・やらない)
 )
 
 var validStatus = map[string]bool{Selected: true, Building: true, Evaluating: true, Iterating: true, Shipped: true, Dropped: true}
@@ -142,10 +144,11 @@ func (pf *Portfolio) Validate() []string {
 	return errs
 }
 
-// Meta は intake・retro の最終日。
+// Meta は intake・retro・ロールごとの見回りの最終日。
 type Meta struct {
-	LastIntake string `json:"last_intake"`
-	LastRetro  string `json:"last_retro"`
+	LastIntake string            `json:"last_intake"`
+	LastRetro  string            `json:"last_retro"`
+	LastPatrol map[string]string `json:"last_patrol,omitempty"` // ロール → 日付
 }
 
 // Runtime は worktree をまたいで共有する、その日の数え上げ。
@@ -153,6 +156,9 @@ type Runtime struct {
 	Day                 string `json:"day"`
 	TicksToday          int    `json:"ticks_today"`
 	ConsecutiveFailures int    `json:"consecutive_failures"`
+	// 1 回の実行 (run) で進めた段の数。run は worktree で見分ける (Orca は毎回新しい worktree を作る)
+	RunWorktree string `json:"run_worktree,omitempty"`
+	RunSteps    int    `json:"run_steps,omitempty"`
 }
 
 // Tick は 1 tick の記録。
@@ -162,7 +168,8 @@ type Tick struct {
 	Phase  string    `json:"phase"`
 	Repo   string    `json:"repo,omitempty"`
 	Issue  int       `json:"issue,omitempty"`
-	Result string    `json:"result"` // ok / fail / aborted / skipped
+	Role   string    `json:"role,omitempty"` // 担当したロール
+	Result string    `json:"result"`         // ok / fail / aborted / skipped
 	Note   string    `json:"note,omitempty"`
 }
 
@@ -222,7 +229,7 @@ func SaveMeta(root string, m *Meta) error {
 	return writeJSON(filepath.Join(root, "state", "meta.json"), m)
 }
 
-// LoadRuntime は今日の分を返す。日付が変わっていれば tick 数を 0 に戻す (連続失敗数は持ち越す)。
+// LoadRuntime は今日の分を返す。日付が変わっていれば tick 数と実行の段の数を 0 に戻す (連続失敗数は持ち越す)。
 func LoadRuntime(dir string, now time.Time) (*Runtime, error) {
 	r := &Runtime{}
 	if err := readJSON(filepath.Join(dir, "runtime.json"), r); err != nil {
@@ -230,6 +237,7 @@ func LoadRuntime(dir string, now time.Time) (*Runtime, error) {
 	}
 	if today := now.Format(time.DateOnly); r.Day != today {
 		r.Day, r.TicksToday = today, 0
+		r.RunWorktree, r.RunSteps = "", 0
 	}
 	return r, nil
 }

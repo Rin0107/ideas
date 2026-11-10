@@ -17,6 +17,7 @@ import (
 	"github.com/Rin0107/ideas/internal/ideas"
 	"github.com/Rin0107/ideas/internal/lock"
 	"github.com/Rin0107/ideas/internal/next"
+	"github.com/Rin0107/ideas/internal/role"
 	"github.com/Rin0107/ideas/internal/room"
 	"github.com/Rin0107/ideas/internal/state"
 )
@@ -75,6 +76,11 @@ func (e *env) snapshot() (next.Snapshot, error) {
 		if s.Issues, err = gh.OpenIssues(p.Repo, p.Milestone); err != nil {
 			return next.Snapshot{}, err
 		}
+		proposals, err := gh.OpenWithLabel(p.Repo, labelProposal)
+		if err != nil {
+			return next.Snapshot{}, err
+		}
+		s.Proposals = len(proposals)
 	}
 	return s, nil
 }
@@ -115,17 +121,22 @@ func cmdNext(args []string) error {
 	if p := e.stopFile(); p != "" {
 		return errors.New("STOP がある (" + p + ")")
 	}
+	wd, _ := os.Getwd()
+	rt, err := state.LoadRuntime(e.cfg.RuntimeDir, e.now)
+	if err != nil {
+		return err
+	}
+	// leader は 1 回の実行で何段か続けて進める (docs/ROLES.md)。進めてよいかは毎回ここで決める。
+	// だめなら idle を返す (エラーではない。leader はそこで終わる)
+	if why := stepLimit(e, rt, wd); why != "" {
+		return printJSON(next.Action{Phase: state.PhaseIdle, Role: role.Leader, Reason: why})
+	}
 	s, err := e.snapshot()
 	if err != nil {
 		return err
 	}
 	a := next.Decide(s)
-	wd, _ := os.Getwd()
 	stale, err := lock.Acquire(e.cfg.RuntimeDir, lock.Info{Since: e.now, Phase: a.Phase, Worktree: wd}, e.ttl())
-	if err != nil {
-		return err
-	}
-	rt, err := state.LoadRuntime(e.cfg.RuntimeDir, e.now)
 	if err != nil {
 		return err
 	}
@@ -139,12 +150,17 @@ func cmdNext(args []string) error {
 		return printJSON(a)
 	}
 	rt.TicksToday++
+	if rt.RunWorktree != wd {
+		rt.RunWorktree, rt.RunSteps = wd, 0
+	}
+	rt.RunSteps++
 	if err := state.SaveRuntime(e.cfg.RuntimeDir, rt); err != nil {
 		return err
 	}
 	if p := e.pf.Active(); p != nil && a.Repo == p.Repo {
 		p.Ticks.Total++
-		if a.Phase == state.PhaseBuild {
+		// 作る・見回る・仕分けるは、この段階の tick を使う (だから時間切れが必ず来る。spec/Factory.tla)
+		if a.Phase == state.PhaseBuild || a.Phase == state.PhasePatrol || a.Phase == state.PhaseTriage {
 			p.Ticks.Phase++
 		}
 		if err := state.SavePortfolio(e.cfg.Root, e.pf); err != nil {
@@ -155,6 +171,20 @@ func cmdNext(args []string) error {
 		return err
 	}
 	return printJSON(a)
+}
+
+// stepLimit は、いま次の段に進んではいけない理由を返す (空なら進んでよい)。
+func stepLimit(e *env, rt *state.Runtime, wd string) string {
+	if why := room.Problems(sysRoot, runtime.NumCPU(), room.Default()); len(why) > 0 {
+		return "機械に余裕がない: " + strings.Join(why, " / ")
+	}
+	if rt.TicksToday >= e.cfg.TicksPerDay {
+		return fmt.Sprintf("今日の tick は上限 (%d/%d)", rt.TicksToday, e.cfg.TicksPerDay)
+	}
+	if e.cfg.StepsPerRun > 0 && rt.RunWorktree == wd && rt.RunSteps >= e.cfg.StepsPerRun {
+		return fmt.Sprintf("この実行で進める段の上限 (%d/%d)", rt.RunSteps, e.cfg.StepsPerRun)
+	}
+	return ""
 }
 
 // 今の tick の段階を runtime_dir に残す (done が読む)
@@ -203,15 +233,22 @@ func cmdDone(args []string) error {
 	}
 	if *result == "ok" {
 		rt.ConsecutiveFailures = 0
-		if a.Phase == state.PhaseIntake || a.Phase == state.PhaseRetro {
+		if a.Phase == state.PhaseIntake || a.Phase == state.PhaseRetro || a.Phase == state.PhasePatrol {
 			m, err := state.LoadMeta(e.cfg.Root)
 			if err != nil {
 				return err
 			}
 			if a.Phase == state.PhaseIntake {
 				m.LastIntake = e.today()
-			} else {
+			}
+			if a.Phase == state.PhaseRetro {
 				m.LastRetro = e.today()
+			}
+			if a.Phase == state.PhasePatrol {
+				if m.LastPatrol == nil {
+					m.LastPatrol = map[string]string{}
+				}
+				m.LastPatrol[a.Role] = e.today()
 			}
 			if err := state.SaveMeta(e.cfg.Root, m); err != nil {
 				return err
@@ -221,7 +258,7 @@ func cmdDone(args []string) error {
 		rt.ConsecutiveFailures++
 	}
 	if err := state.AppendTick(e.cfg.Root, state.Tick{Start: start, End: e.now, Phase: a.Phase, Repo: a.Repo,
-		Issue: a.Issue, Result: *result, Note: *note}); err != nil {
+		Issue: a.Issue, Role: a.Role, Result: *result, Note: *note}); err != nil {
 		return err
 	}
 	if err := state.SaveRuntime(e.cfg.RuntimeDir, rt); err != nil {

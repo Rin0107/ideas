@@ -189,3 +189,28 @@ func TestLabels(t *testing.T) {
 		t.Fatal("失敗を通した")
 	}
 }
+
+func TestOpenWithLabel(t *testing.T) {
+	f := fakegh.Install(t,
+		fakegh.Rule{Match: `--repo o/ok `, Out: `[{"number":7},{"number":3},{"number":5}]`},
+		fakegh.Rule{Match: `--repo o/none `, Out: `[]`},
+		fakegh.Rule{Match: `--repo o/bad `, Out: `{`},
+		fakegh.Rule{Match: `--repo o/err `, Code: 1},
+	)
+	ns, err := OpenWithLabel("o/ok", "wk:proposal")
+	if err != nil || len(ns) != 3 || ns[0] != 3 || ns[1] != 5 || ns[2] != 7 {
+		t.Fatal(ns, err)
+	}
+	if !f.Called("issue list --repo o/ok --label wk:proposal --state open --limit 100 --json number") {
+		t.Fatal(f.Calls())
+	}
+	if ns, err := OpenWithLabel("o/none", "x"); err != nil || len(ns) != 0 {
+		t.Fatal(ns, err)
+	}
+	if _, err := OpenWithLabel("o/bad", "x"); err == nil || !strings.Contains(err.Error(), "読めない") {
+		t.Fatal("壊れた JSON を通した", err)
+	}
+	if _, err := OpenWithLabel("o/err", "x"); err == nil {
+		t.Fatal("gh の失敗を通した")
+	}
+}

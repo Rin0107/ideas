@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Rin0107/ideas/internal/config"
+	"github.com/Rin0107/ideas/internal/role"
 	"github.com/Rin0107/ideas/internal/state"
 )
 
@@ -40,6 +41,8 @@ type Snapshot struct {
 	Issues  []Issue // Active の今のマイルストーンの open な issue
 	Meta    *state.Meta
 	Untried int
+	// Proposals は Active の repo にある、まだ仕分けていない提案 (wk:proposal) の数
+	Proposals int
 }
 
 type Action struct {
@@ -47,10 +50,20 @@ type Action struct {
 	Repo   string `json:"repo,omitempty"`
 	Idea   string `json:"idea,omitempty"`
 	Issue  int    `json:"issue,omitempty"`
+	Role   string `json:"role"` // 担当のロール (docs/ROLES.md)
 	Reason string `json:"reason"`
 }
 
+// Decide は次の段階と、その担当のロールを決める。
 func Decide(s Snapshot) Action {
+	a := decide(s)
+	if a.Role == "" {
+		a.Role = role.ForPhase(a.Phase)
+	}
+	return a
+}
+
+func decide(s Snapshot) Action {
 	c := s.Cfg
 	if state.DaysSince(s.Meta.LastRetro, s.Now) >= c.RetroEveryDays && s.Meta.LastRetro != "" ||
 		s.Meta.LastRetro == "" && s.Active != nil && s.Active.Ticks.Total >= c.MaxTicksMVP {
@@ -85,9 +98,19 @@ func Decide(s Snapshot) Action {
 			a.Phase, a.Reason = state.PhaseEvaluate, fmt.Sprintf("時間切れ (%d/%d tick)", p.Ticks.Phase, limit)
 			return a
 		}
+		// ロールのループ: 提案があれば先に仕分ける。なければ、見回りの番のロールが見回る。
+		// どちらもこの段階の tick に数える (wk next)。だから時間切れは必ず来て、アプリは必ず評価に進む
+		if s.Proposals > 0 {
+			a.Phase, a.Reason = state.PhaseTriage, fmt.Sprintf("仕分けていない提案が %d 件", s.Proposals)
+			return a
+		}
+		if r := patrolDue(s); r != "" {
+			a.Phase, a.Role, a.Reason = state.PhasePatrol, r, fmt.Sprintf("%s の見回りから %d 日以上", r, c.PatrolEveryDays)
+			return a
+		}
 		for _, is := range sorted(s.Issues) {
 			if !is.Blocked() {
-				a.Phase, a.Issue = state.PhaseBuild, is.Number
+				a.Phase, a.Issue, a.Role = state.PhaseBuild, is.Number, role.ForIssue(is.Labels)
 				a.Reason = fmt.Sprintf("未完了の issue #%d (%d/%d tick)", is.Number, p.Ticks.Phase, limit)
 				return a
 			}
@@ -111,6 +134,21 @@ func Decide(s Snapshot) Action {
 		return Action{Phase: state.PhaseIdle, Reason: "選べるアイディアがない"}
 	}
 	return Action{Phase: state.PhaseSelect, Reason: "作っているアプリがない"}
+}
+
+// patrolDue は見回りの番のロールを返す (なければ空)。
+// 見回るのは、アプリがある程度進んでから (見るものがない)。順番は role.Workers (安全が先)。
+func patrolDue(s Snapshot) string {
+	c := s.Cfg
+	if c.PatrolEveryDays <= 0 || s.Active.Ticks.Total < c.PatrolMinTicks {
+		return ""
+	}
+	for _, r := range role.Workers() {
+		if state.DaysSince(s.Meta.LastPatrol[r], s.Now) >= c.PatrolEveryDays {
+			return r
+		}
+	}
+	return ""
 }
 
 func sorted(is []Issue) []Issue {

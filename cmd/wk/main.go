@@ -34,7 +34,10 @@ var commands = map[string]command{
 	"ship":     {"[--url <url>]: 公開の点検をして本番に出し public にする (Web は URL を wk が決める。CLI は release の URL)", cmdShip},
 	"drop":     {"--reason ... [--never]: 本番から消し、archive して捨てる (status=dropped)", cmdDrop},
 	// PR
-	"review": {"<repo> <pr>: 別の Claude に PR を見せ、approve なら wk:reviewed を付ける", cmdReview},
+	"propose": {"--plan <json>: 見回り (patrol) の中で、ロールの提案を issue にする (wk:proposal)", cmdPropose},
+	"triage":  {"--decisions <json>: leader が提案を仕分ける (now / later / reject)", cmdTriage},
+
+	"review": {"<repo> <pr>: ロールごとに別の Claude が PR を見る (SRE・engineer・UI なら designer)。全員 approve なら wk:reviewed", cmdReview},
 	"merge":  {"<repo> <pr>: CI 全部 green かつ wk:reviewed のときだけ squash merge", cmdMerge},
 	"deploy": {"作っているアプリを出す: Web はプレビュー (配信用 repo の preview)、CLI はタグとリリース", cmdDeploy},
 	"site":   {"init: 配信用の repo を作る (人が 1 回だけ。docs/SETUP.md)", cmdSite},

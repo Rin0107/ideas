@@ -15,6 +15,7 @@ import (
 
 	"github.com/Rin0107/ideas/internal/gh"
 	"github.com/Rin0107/ideas/internal/guard"
+	"github.com/Rin0107/ideas/internal/role"
 )
 
 const maxDiffBytes = 150_000
@@ -22,9 +23,16 @@ const maxDiffBytes = 150_000
 // ---- review: 別の Claude に PR を見せる ----
 
 type review struct {
+	Role    string   `json:"role"`    // レビューしたロール (sre / engineer / designer)
 	Verdict string   `json:"verdict"` // approve / request_changes
 	Issues  []string `json:"issues"`
 	Summary string   `json:"summary"`
+}
+
+// reviews は wk review の結果。verdict は全員が approve のときだけ approve。
+type reviews struct {
+	Verdict string   `json:"verdict"`
+	Reviews []review `json:"reviews"`
 }
 
 func cmdReview(args []string) error {
@@ -77,29 +85,44 @@ func cmdReview(args []string) error {
 		issues.WriteString(body + "\n\n")
 	}
 	checks, _ := gh.Checks(repo, pr)
-	instr, err := os.ReadFile(filepath.Join(e.cfg.Root, "harness", "reviewer.md"))
+	files, err := prFiles(repo, pr)
 	if err != nil {
 		return err
 	}
-	prompt := fmt.Sprintf("%s\n\n# PR #%d: %s\n%s\n\n# issue と受け入れ条件\n%s\n# CI\n%v\n\n# 差分\n```diff\n%s\n```\n",
-		instr, pr, v.Title, v.Body, issues.String(), checks, diff)
+	material := fmt.Sprintf("# PR #%d: %s\n%s\n\n# issue と受け入れ条件\n%s\n# CI\n%v\n\n# 差分\n```diff\n%s\n```\n",
+		pr, v.Title, v.Body, issues.String(), checks, diff)
 
-	out, err := runClaude(e, prompt)
-	if err != nil {
-		return err
+	// ロールごとに、会話を引き継がない別の Claude が自分の持ち場の目で見る (docs/ROLES.md)。
+	// 途中で request_changes が出ても全員に見せる (直す側が 1 回で全部の指摘を受け取れるように)。
+	result := reviews{Verdict: "approve"}
+	for _, who := range role.Reviewers(files) {
+		instr, err := os.ReadFile(filepath.Join(e.cfg.Root, "harness", "reviewers", who+".md"))
+		if err != nil {
+			return err
+		}
+		out, err := runClaude(e, string(instr)+"\n\n"+material)
+		if err != nil {
+			return err
+		}
+		var r review
+		if err := json.Unmarshal([]byte(extractJSON(out)), &r); err != nil || (r.Verdict != "approve" && r.Verdict != "request_changes") {
+			return fmt.Errorf("%s の reviewer の出力が JSON の形でない: %v\n%s", who, err, out)
+		}
+		r.Role = who // 出力に role が書かれていても信じない
+		comment := fmt.Sprintf("**wakuwaku reviewer (%s): %s**\n\n%s\n", who, r.Verdict, r.Summary)
+		for _, is := range r.Issues {
+			comment += "- " + is + "\n"
+		}
+		if _, err := gh.GH("pr", "comment", fmt.Sprint(pr), "--repo", repo, "--body", comment); err != nil {
+			return err
+		}
+		if r.Verdict != "approve" {
+			result.Verdict = "request_changes"
+		}
+		result.Reviews = append(result.Reviews, r)
 	}
-	var r review
-	if err := json.Unmarshal([]byte(extractJSON(out)), &r); err != nil || (r.Verdict != "approve" && r.Verdict != "request_changes") {
-		return fmt.Errorf("reviewer の出力が JSON の形でない: %v\n%s", err, out)
-	}
-	comment := fmt.Sprintf("**wakuwaku reviewer: %s**\n\n%s\n", r.Verdict, r.Summary)
-	for _, is := range r.Issues {
-		comment += "- " + is + "\n"
-	}
-	if _, err := gh.GH("pr", "comment", fmt.Sprint(pr), "--repo", repo, "--body", comment); err != nil {
-		return err
-	}
-	if r.Verdict == "approve" {
+	// 全員が approve したときだけ、approve として記録する (wk merge はこの記録を見る)
+	if result.Verdict == "approve" {
 		if err := recordApproval(e, repo, pr, headSHA); err != nil {
 			return err
 		}
@@ -109,7 +132,7 @@ func cmdReview(args []string) error {
 	} else {
 		_, _ = gh.GH("pr", "edit", fmt.Sprint(pr), "--repo", repo, "--remove-label", "wk:reviewed")
 	}
-	return printJSON(r)
+	return printJSON(result)
 }
 
 // runClaude は会話を引き継がない claude -p を、工場の外 (フックが効かない場所) で、道具なしで動かす。

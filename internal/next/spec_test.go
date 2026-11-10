@@ -8,12 +8,15 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/Rin0107/ideas/internal/role"
 	"github.com/Rin0107/ideas/internal/state"
 	"pgregory.net/rapid"
 )
 
 var phases = []string{state.PhaseIdle, state.PhaseRetro, state.PhaseBuild, state.PhaseEvaluate, state.PhaseIterate,
-	state.PhaseShip, state.PhaseDrop, state.PhaseIntake, state.PhaseSelect}
+	state.PhaseShip, state.PhaseDrop, state.PhaseIntake, state.PhaseSelect, state.PhasePatrol, state.PhaseTriage}
+
+var roles = []string{role.Leader, role.SRE, role.Designer, role.Engineer}
 
 // genSnapshot はでたらめな状態を作る (ありえない組み合わせも含めて、Decide が決まった形で答えるか)。
 func genSnapshot(t *rapid.T) Snapshot {
@@ -21,9 +24,17 @@ func genSnapshot(t *rapid.T) Snapshot {
 	c.MaxTicksMVP = rapid.IntRange(1, 40).Draw(t, "mvp")
 	c.MaxTicksIteration = rapid.IntRange(1, 20).Draw(t, "iter")
 	c.MinUntriedIdeas = rapid.IntRange(0, 40).Draw(t, "minUntried")
+	c.PatrolEveryDays = rapid.IntRange(-1, 5).Draw(t, "patrolEvery")
+	c.PatrolMinTicks = rapid.IntRange(0, 10).Draw(t, "patrolMin")
 	m := &state.Meta{
 		LastIntake: rapid.SampledFrom([]string{"", "2026-11-01", "2026-11-09"}).Draw(t, "intake"),
 		LastRetro:  rapid.SampledFrom([]string{"", "2026-11-01", "2026-11-09"}).Draw(t, "retro"),
+		LastPatrol: map[string]string{},
+	}
+	for _, r := range role.Workers() {
+		if d := rapid.SampledFrom([]string{"", "2026-11-01", "2026-11-08", "2026-11-10"}).Draw(t, "patrol-"+r); d != "" {
+			m.LastPatrol[r] = d
+		}
 	}
 	s := Snapshot{Now: now, Cfg: c, Meta: m, Untried: rapid.IntRange(0, 60).Draw(t, "untried")}
 	if rapid.Bool().Draw(t, "active") {
@@ -34,11 +45,15 @@ func genSnapshot(t *rapid.T) Snapshot {
 		p.Ticks.Phase = rapid.IntRange(0, 45).Draw(t, "phaseTicks")
 		p.Ticks.Total = p.Ticks.Phase + rapid.IntRange(0, 30).Draw(t, "earlier")
 		s.Active = p
+		s.Proposals = rapid.IntRange(0, 3).Draw(t, "proposals")
 		n := rapid.IntRange(0, 8).Draw(t, "issues")
 		for i := 0; i < n; i++ {
 			is := Issue{Number: rapid.IntRange(1, 50).Draw(t, fmt.Sprint("num", i))}
 			if rapid.Bool().Draw(t, fmt.Sprint("blocked", i)) {
 				is.Labels = []string{LabelBlocked}
+			}
+			if r := rapid.SampledFrom([]string{"", "sre", "designer", "engineer"}).Draw(t, fmt.Sprint("role", i)); r != "" {
+				is.Labels = append(is.Labels, role.Label(r))
 			}
 			s.Issues = append(s.Issues, is)
 		}
@@ -46,25 +61,33 @@ func genSnapshot(t *rapid.T) Snapshot {
 	return s
 }
 
-// TypeOK: Decide はいつも決まった段階のどれかを返し、build なら blocked でない一番小さい issue を選ぶ。
+// TypeOK: Decide はいつも決まった段階と担当のロールを返し、build なら blocked でない一番小さい issue を、その issue の担当に渡す。
 func TestSpec_TypeOK(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		s := genSnapshot(t)
 		a := Decide(s)
-		if !slices.Contains(phases, a.Phase) || a.Reason == "" {
+		if !slices.Contains(phases, a.Phase) || !slices.Contains(roles, a.Role) || a.Reason == "" {
 			t.Fatalf("知らない段階 %+v", a)
 		}
 		if a.Phase != state.PhaseBuild {
 			return
 		}
-		lowest := 0
+		lowest, owner := 0, ""
 		for _, is := range s.Issues {
 			if !is.Blocked() && (lowest == 0 || is.Number < lowest) {
-				lowest = is.Number
+				lowest, owner = is.Number, role.ForIssue(is.Labels)
 			}
 		}
 		if a.Issue != lowest {
 			t.Fatalf("issue #%d を選んだ (一番小さい未 blocked は #%d)", a.Issue, lowest)
+		}
+		// 同じ番号の issue が 2 つ引かれることがあるので、担当は「その番号のどれかの担当」であればよい
+		ok := a.Role == owner
+		for _, is := range s.Issues {
+			ok = ok || is.Number == lowest && !is.Blocked() && role.ForIssue(is.Labels) == a.Role
+		}
+		if !ok {
+			t.Fatalf("issue #%d の担当が %s", a.Issue, a.Role)
 		}
 	})
 }
@@ -83,7 +106,7 @@ func TestSpec_VerdictOnlyWhenEvaluated(t *testing.T) {
 	})
 }
 
-// NoBuildPastLimit: その段階の tick の上限に達したら、build しない。
+// NoBuildPastLimit: その段階の tick の上限に達したら、tick を使う仕事 (build・patrol・triage) をしない。
 func TestSpec_NoBuildPastLimit(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		s := genSnapshot(t)
@@ -94,8 +117,10 @@ func TestSpec_NoBuildPastLimit(t *testing.T) {
 		if s.Active.Status == state.Iterating {
 			limit = s.Cfg.MaxTicksIteration
 		}
-		if a := Decide(s); a.Phase == state.PhaseBuild && s.Active.Ticks.Phase >= limit {
-			t.Fatalf("上限 %d に達しているのに build (%d tick)", limit, s.Active.Ticks.Phase)
+		a := Decide(s)
+		working := a.Phase == state.PhaseBuild || a.Phase == state.PhasePatrol || a.Phase == state.PhaseTriage
+		if working && s.Active.Ticks.Phase >= limit {
+			t.Fatalf("上限 %d に達しているのに %s (%d tick)", limit, a.Phase, s.Active.Ticks.Phase)
 		}
 	})
 }
@@ -106,4 +131,25 @@ func TestIdleWhenNothingToChoose(t *testing.T) {
 	if a := Decide(Snapshot{Now: now, Cfg: c, Meta: meta(), Untried: 0}); a.Phase != state.PhaseIdle {
 		t.Fatal(a)
 	}
+}
+
+// TriageFirst (spec の PROPERTY): 仕分けていない提案があるあいだは、build も patrol もしない。
+// また、patrol と triage は作っている途中 (building / iterating) にだけ起きる。
+func TestSpec_TriageFirst(t *testing.T) {
+	rapid.Check(t, func(t *rapid.T) {
+		s := genSnapshot(t)
+		a := Decide(s)
+		if s.Proposals > 0 && (a.Phase == state.PhaseBuild || a.Phase == state.PhasePatrol) {
+			t.Fatalf("提案が %d 件あるのに %s", s.Proposals, a.Phase)
+		}
+		if a.Phase != state.PhasePatrol && a.Phase != state.PhaseTriage {
+			return
+		}
+		if s.Active == nil || s.Active.Status != state.Building && s.Active.Status != state.Iterating || s.Active.Verdict != "" {
+			t.Fatalf("作っている途中でないのに %s", a.Phase)
+		}
+		if a.Phase == state.PhasePatrol && !role.Valid(a.Role) {
+			t.Fatalf("見回りの担当が %s", a.Role)
+		}
+	})
 }
