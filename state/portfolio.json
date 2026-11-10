@@ -1,3 +1,30 @@
 {
-  "projects": []
+  "projects": [
+    {
+      "idea": "00003-terminal-planetarium",
+      "repo": "Rin0107/terminal-sky",
+      "status": "building",
+      "stack": "go-cli",
+      "started": "2026-11-10",
+      "milestone": "MVP",
+      "iteration": 0,
+      "ticks": {
+        "total": 0,
+        "phase": 0
+      },
+      "url": "",
+      "history": [
+        {
+          "date": "2026-11-10",
+          "event": "selected",
+          "note": "合計 23/25 (わくわく4・軽さ4・無料5・自分ごと5・Findy5) Go のワンバイナリで完結し、座標変換と端末への投影描画はコードの見どころになる。sky tonight の毎晩の習慣が作れる"
+        },
+        {
+          "date": "2026-11-10",
+          "event": "scaffolded",
+          "note": "Rin0107/terminal-sky / issue 5 件"
+        }
+      ]
+    }
+  ]
 }
