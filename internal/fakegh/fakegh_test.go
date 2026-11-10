@@ -62,3 +62,26 @@ func TestMustReportsErrors(t *testing.T) {
 	}
 	must(tb, nil)
 }
+
+func TestTimes(t *testing.T) {
+	Install(t, Rule{Match: `^run`, Out: "pending", Times: 2}, Rule{Match: `^run`, Out: "done"})
+	var got []string
+	for i := 0; i < 3; i++ {
+		out, _ := run("run")
+		got = append(got, out)
+	}
+	if strings.Join(got, ",") != "pending,pending,done" {
+		t.Fatal(got)
+	}
+}
+
+func TestShell(t *testing.T) {
+	mark := t.TempDir() + "/ran"
+	Install(t, Rule{Match: `^x`, Shell: "touch " + mark, Out: "ok"})
+	if out, _ := run("x"); out != "ok" {
+		t.Fatal(out)
+	}
+	if _, err := exec.Command("test", "-e", mark).Output(); err != nil {
+		t.Fatal("Shell が動いていない")
+	}
+}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +18,14 @@ import (
 )
 
 const maxDiffBytes = 150_000
+
+// 待ち時間 (テストでは短くする)
+var (
+	claudeTimeout = 10 * time.Minute // reviewer の claude -p
+	mergePoll     = 20 * time.Second // CI の結果を見に行く間隔
+	mergeWait     = 30 * time.Minute // CI を待つ長さ
+	mergeNoCI     = 5 * time.Minute  // CI が 1 つも出てこないと判断するまで
+)
 
 // ---- review: 別の Claude に PR を見せる ----
 
@@ -117,17 +126,13 @@ func runClaude(e *env, prompt string) (string, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", err
 	}
-	cmd := exec.Command("claude", "-p", "--no-session-persistence", "--tools", "", "--output-format", "text")
+	ctx, cancel := context.WithTimeout(context.Background(), claudeTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "claude", "-p", "--no-session-persistence", "--tools", "", "--output-format", "text")
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(), "OKUOS_JOURNAL=1")
 	cmd.Stdin = strings.NewReader(prompt)
-	done := make(chan struct{})
-	timer := time.AfterFunc(10*time.Minute, func() {
-		if cmd.Process != nil {
-			_ = cmd.Process.Kill()
-		}
-	})
-	defer func() { timer.Stop(); close(done) }()
+	cmd.WaitDelay = time.Second // 時間切れで止めたあと、子のプロセスが出力を握ったままでも待ち続けない
 	out, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("claude -p: %w", err)
@@ -176,7 +181,7 @@ func cmdMerge(args []string) error {
 	} else if hit := guard.TouchesProtected(files, appProtected); len(hit) > 0 {
 		return fmt.Errorf("守りの部分を変えている PR は merge しない: %s", strings.Join(hit, ", "))
 	}
-	deadline := time.Now().Add(30 * time.Minute)
+	start := time.Now()
 	for {
 		cs, err := gh.Checks(repo, pr)
 		if err != nil {
@@ -194,7 +199,7 @@ func cmdMerge(args []string) error {
 		switch {
 		case len(failed) > 0:
 			return fmt.Errorf("CI が赤: %s", strings.Join(failed, ", "))
-		case len(cs) == 0 && time.Now().After(deadline.Add(-25*time.Minute)):
+		case len(cs) == 0 && time.Since(start) > mergeNoCI:
 			return errors.New("CI が 1 つも動いていない (雛形の workflow を確認)")
 		case len(cs) > 0 && pending == 0:
 			if _, err := gh.GH("pr", "merge", fmt.Sprint(pr), "--repo", repo, "--squash", "--delete-branch"); err != nil {
@@ -203,10 +208,10 @@ func cmdMerge(args []string) error {
 			fmt.Printf("merge した: %s#%d (チェック %d 件 green)\n", repo, pr, len(cs))
 			return nil
 		}
-		if time.Now().After(deadline) {
-			return errors.New("CI が 30 分で終わらない")
+		if time.Since(start) > mergeWait {
+			return errors.New("CI が " + mergeWait.String() + " で終わらない")
 		}
-		time.Sleep(20 * time.Second)
+		time.Sleep(mergePoll)
 	}
 }
 
@@ -331,9 +336,6 @@ func recordApproval(e *env, repo string, pr int, sha string) error {
 	m := loadApprovals(e)
 	m[fmt.Sprintf("%s#%d", repo, pr)] = sha
 	b, _ := json.MarshalIndent(m, "", "  ")
-	if err := os.MkdirAll(e.cfg.RuntimeDir, 0o755); err != nil {
-		return err
-	}
 	return os.WriteFile(approvalsPath(e), b, 0o600)
 }
 

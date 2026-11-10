@@ -569,7 +569,7 @@ func publishCheck(repo, url string, web bool) []string {
 }
 
 func httpStatus(url string) int {
-	c := http.Client{Timeout: 20 * time.Second}
+	c := http.Client{Timeout: 20 * time.Second, Transport: httpTransport}
 	r, err := c.Get(url)
 	if err != nil {
 		return 0

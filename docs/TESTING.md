@@ -58,5 +58,7 @@
   「どのアプリもいつか必ず終わって次に移る」(生きていること) を TLC が調べる
 - `spec/verdict.smt2`: 評価の結論の性質 (iterate は回数が残っているときだけ・核が動かなければ ship しない など) を Z3 で証明
 - 雛形そのものも CI で検査する (`template-go`・`template-web`・`template-web-e2e`): 雛形からアプリを作り、アプリの CI と同じ検査を流す
-- カバレッジ: `internal/` は 100% を CI で必須。`cmd/wk` は 100% にする途中 (gh を偽物にしたテストで全部の道を通す作業が残っている)。
-  ミューテーションも、今は `internal/` だけ
+- カバレッジ: 工場全体 (`cmd/wk` と `internal/`、S と M を合わせて、実行ファイルの main も含む) で 100% を CI で必須
+- 外の道具の代わり: gh は `internal/fakegh` (決まりで答える・最初の N 回だけ・途中でシェルを動かす)、git は本物 (https://github.com/ を手元の bare repo に向ける)、
+  Cloudflare は「push された中身を返す手元の TLS サーバー」、npm と claude は偽物の実行ファイル。git の失敗は「合った呼び出しだけ失敗させる」包みで起こす
+- ミューテーション: `internal/` と `cmd/wk` を別のジョブで (変えたコードだけ)

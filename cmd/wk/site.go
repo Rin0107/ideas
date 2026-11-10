@@ -120,14 +120,14 @@ func (s *site) waitChecks(sha string) error {
 			if done {
 				return errors.New("Cloudflare のビルドが失敗:\n  " + strings.Join(lines, "\n  "))
 			}
-			if len(lines) == 0 && time.Since(start) > 5*time.Minute {
+			if len(lines) == 0 && time.Since(start) > checkNoRun {
 				return errors.New("check run が出ない (Cloudflare と " + s.repo + " の連携を確かめる。docs/SETUP.md)")
 			}
 		}
-		if time.Since(start) > 20*time.Minute {
-			return errors.New("Cloudflare のビルドが 20 分で終わらない")
+		if time.Since(start) > checkWait {
+			return errors.New("Cloudflare のビルドが " + checkWait.String() + " で終わらない")
 		}
-		time.Sleep(20 * time.Second)
+		time.Sleep(checkPoll)
 	}
 }
 
@@ -272,3 +272,10 @@ func cmdSite(args []string) error {
 	fmt.Printf("作った: https://github.com/%s\n次: Cloudflare でこの repo を連携し、出た URL を factory.json の site.url に書く (docs/SETUP.md)\n", repo)
 	return nil
 }
+
+// Cloudflare のビルドを待つ時間 (テストでは短くする)
+var (
+	checkPoll  = 20 * time.Second
+	checkNoRun = 5 * time.Minute  // check run が 1 つも出ないと判断するまで
+	checkWait  = 20 * time.Minute // ビルドを待つ長さ
+)

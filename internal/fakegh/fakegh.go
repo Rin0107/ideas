@@ -16,6 +16,10 @@ type Rule struct {
 	Match string
 	Out   string
 	Code  int
+	// Times が 1 以上なら、合った最初の Times 回だけ使う (待ちの繰り返しを試すため。例: 1 回目は pending、次から pass)
+	Times int
+	// Shell は合ったときに先に動かすシェルのコマンド (途中で状態を壊して、あとの失敗の道を試すため)
+	Shell string
 }
 
 // Fake は PATH の先頭に置いた偽物の gh。
@@ -31,6 +35,12 @@ for re in %q/r*.re; do
   [ -e "$re" ] || continue
   if printf '%%s' "$args" | grep -Eq -f "$re"; then
     b=${re%%.re}
+    if [ -e "$b.times" ]; then
+      n=$(cat "$b.used" 2>/dev/null || echo 0)
+      [ "$n" -ge "$(cat "$b.times")" ] && continue
+      echo $((n + 1)) > "$b.used"
+    fi
+    [ -e "$b.sh" ] && sh "$b.sh"
     cat "$b.out"
     exit "$(cat "$b.code")"
   fi
@@ -59,6 +69,12 @@ func (f *Fake) Add(t testing.TB, rules ...Rule) {
 		must(t, os.WriteFile(b+".re", []byte(r.Match+"\n"), 0o644))
 		must(t, os.WriteFile(b+".out", []byte(r.Out), 0o644))
 		must(t, os.WriteFile(b+".code", []byte(fmt.Sprint(r.Code)), 0o644))
+		if r.Shell != "" {
+			must(t, os.WriteFile(b+".sh", []byte(r.Shell+"\n"), 0o644))
+		}
+		if r.Times > 0 {
+			must(t, os.WriteFile(b+".times", []byte(fmt.Sprint(r.Times)), 0o644))
+		}
 	}
 }
 

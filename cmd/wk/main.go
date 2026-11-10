@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"sort"
 )
@@ -42,29 +43,33 @@ var commands = map[string]command{
 	"guard-edit": {"PreToolUse(Edit|Write) フック", cmdGuardEdit},
 }
 
-func main() {
-	if len(os.Args) < 2 || commands[os.Args[1]].run == nil {
-		usage()
-		os.Exit(2)
+func main() { os.Exit(run(os.Args[1:], os.Stderr)) }
+
+// run は main の中身。終了コードを返す (0: 成功、1: 失敗、2: 使い方の誤り、exitError はその code)。
+func run(args []string, stderr io.Writer) int {
+	if len(args) == 0 || commands[args[0]].run == nil {
+		usage(stderr)
+		return 2
 	}
-	if err := commands[os.Args[1]].run(os.Args[2:]); err != nil {
-		fmt.Fprintln(os.Stderr, "wk "+os.Args[1]+":", err)
+	if err := commands[args[0]].run(args[1:]); err != nil {
+		fmt.Fprintln(stderr, "wk "+args[0]+":", err)
 		if e, ok := err.(exitError); ok {
-			os.Exit(e.code)
+			return e.code
 		}
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
 
-func usage() {
-	fmt.Fprintln(os.Stderr, "使い方: wk <コマンド>")
+func usage(w io.Writer) {
+	fmt.Fprintln(w, "使い方: wk <コマンド>")
 	names := make([]string, 0, len(commands))
 	for n := range commands {
 		names = append(names, n)
 	}
 	sort.Strings(names)
 	for _, n := range names {
-		fmt.Fprintf(os.Stderr, "  %-11s %s\n", n, commands[n].usage)
+		fmt.Fprintf(w, "  %-11s %s\n", n, commands[n].usage)
 	}
 }
 

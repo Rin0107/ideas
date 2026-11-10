@@ -142,7 +142,7 @@ func publishWeb(e *env, p *state.Project) (string, error) {
 
 // unpublishWeb は本番からアプリを消す (drop のとき)。置いていなければ何もしない。
 func unpublishWeb(e *env, p *state.Project) error {
-	if e.cfg.Site.Repo == "" {
+	if e.cfg.Site.Repo == "" || e.cfg.Site.URL == "" { // 配信の準備前なら、出したものはない
 		return nil
 	}
 	s, err := openSite(e)
@@ -231,7 +231,8 @@ func copyDist(src, dst string) error {
 
 // smoke は URL が動いていて、守りのヘッダーが付き、中身が want (いま置いた index.html) と同じかを見る。
 func smoke(url string, want []byte) []string {
-	c := http.Client{Timeout: 20 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	c := http.Client{Timeout: 20 * time.Second, Transport: httpTransport,
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Accept", "text/html")
 	r, err := c.Do(req)
@@ -322,7 +323,13 @@ func scrubEnv(env []string) []string {
 }
 
 // previewE2EWait は L のテストの結果を待つ長さ (ジョブは 5 分で打ち切られる)。
-var previewE2EWait = 10 * time.Minute
+var (
+	previewE2EWait = 10 * time.Minute
+	previewPoll    = 15 * time.Second
+)
+
+// httpTransport は本番・プレビューの検査で使う (テストでは手元のサーバーに向ける)。
+var httpTransport http.RoundTripper = http.DefaultTransport
 
 // previewE2E はアプリの repo の preview-e2e.yml を起動し、終わるのを待つ。
 func previewE2E(repo, url string, wait time.Duration) error {
@@ -346,7 +353,7 @@ func previewE2E(repo, url string, wait time.Duration) error {
 		if time.Now().After(deadline) {
 			return errors.New("プレビューの e2e が終わらない (" + wait.String() + ")")
 		}
-		time.Sleep(15 * time.Second)
+		time.Sleep(previewPoll)
 	}
 }
 
