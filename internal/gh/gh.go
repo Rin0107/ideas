@@ -116,10 +116,10 @@ func CreateAndPush(repo, dir, description string) error {
 	} else if _, err := GH("api", "repos/"+repo+"/commits?per_page=1", "--jq", ".[0].sha"); err == nil {
 		return fmt.Errorf("%s はすでにあり、中身もある", repo)
 	}
-	if _, err := Run(dir, "git", "remote", "add", "origin", "https://github.com/"+repo+".git"); err != nil {
+	if err := SetupAuth(dir); err != nil {
 		return err
 	}
-	if err := SetupAuth(dir); err != nil {
+	if _, err := Run(dir, "git", "remote", "add", "origin", "https://github.com/"+repo+".git"); err != nil {
 		return err
 	}
 	_, err := Run(dir, "git", "push", "-q", "-u", "origin", "main")

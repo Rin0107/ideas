@@ -3,7 +3,7 @@
 # 守りの部分 (wakuwaku guard で書き換え禁止)。
 set -eu
 budget="${1:-150}"
-list=$(for p in $(go list ./...); do
+list=$(for p in $(go list ${PKGS:-./...}); do
   for f in $(go test -list '^Fuzz' "$p" | grep '^Fuzz' || true); do echo "$p $f"; done
 done)
 n=$(printf '%s\n' "$list" | grep -c . || true)

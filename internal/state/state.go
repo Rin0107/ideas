@@ -180,11 +180,16 @@ func readJSON(path string, v any) error {
 	return nil
 }
 
-func writeJSON(path string, v any) error {
-	b, err := json.MarshalIndent(v, "", "  ")
+// mustJSON: 工場の型は必ず JSON にできる (失敗するならプログラムの誤りなので止める)。
+func mustJSON(b []byte, err error) []byte {
 	if err != nil {
-		return err
+		panic(err)
 	}
+	return b
+}
+
+func writeJSON(path string, v any) error {
+	b := mustJSON(json.MarshalIndent(v, "", "  "))
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
@@ -243,11 +248,7 @@ func AppendTick(root string, t Tick) error {
 		return err
 	}
 	defer f.Close()
-	b, err := json.Marshal(t)
-	if err != nil {
-		return err
-	}
-	_, err = f.Write(append(b, '\n'))
+	_, err = f.Write(append(mustJSON(json.Marshal(t)), '\n'))
 	return err
 }
 

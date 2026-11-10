@@ -1,4 +1,5 @@
-# 守りの部分。工場の制御 (wk) のテストと、状態・アイディアの検査、秘密情報の検査。
+# 守りの部分。工場の制御 (wk) と雛形の検査。docs/TESTING.md
+# 速さ: どのジョブも 5 分で打ち切る (超えたら失敗)。ジョブは並んで走る。
 name: ci
 on:
   pull_request:
@@ -8,25 +9,146 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CGO_ENABLED: "0"
+  PKGS: ./cmd/... ./internal/...
+
 jobs:
+  # S のテスト・カバレッジ・lint・状態とアイディアの検査・依存の脆弱性
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env: { CGO_ENABLED: "0" }
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: { go-version-file: go.mod }
       - run: test -z "$(gofmt -l cmd internal)"
-      - run: go vet ./cmd/... ./internal/...
-      - run: go test ./cmd/... ./internal/...
+      - run: go vet $PKGS
+      - name: テストとカバレッジ (全部のテストを合わせて数える)
+        run: |
+          mkdir -p .cover
+          go test -count=1 -cover -coverpkg=./cmd/...,./internal/... $PKGS -args -test.gocoverdir=$PWD/.cover
+          go tool covdata textfmt -i=.cover -o cover.out
+          # internal/ は 100% (1 文でも通らなければ落ちる)。cmd/wk は 100% にする途中 (docs/TESTING.md)
+          grep -E '^mode:|/internal/' cover.out > internal.out
+          sh scripts/cover-check.sh internal.out
+          go tool cover -func=cover.out | tail -1
       - run: go run ./cmd/wk check
-      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./cmd/... ./internal/...
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 $PKGS
+
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: { go-version-file: go.mod }
+      - run: sh scripts/fuzz.sh 180
+
+  # ミューテーション: internal/ の変えたコードだけ (efficacy 95% 以上・mutant coverage 100%)
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0, persist-credentials: false }
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: { go-version-file: go.mod }
+      - run: go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
+      - name: gremlins
+        env: { BASE: "${{ github.event.pull_request.base.sha || github.event.before }}" }
+        run: |
+          case "$BASE" in ""|0000000000000000000000000000000000000000) BASE=$(git hash-object -t tree /dev/null) ;; esac
+          if [ -z "$(git diff --name-only "$BASE" -- 'internal/*.go' ':!*_test.go')" ]; then echo "ok: internal/ の変更なし"; exit 0; fi
+          gremlins unleash --diff "$BASE" --threshold-efficacy 95 --threshold-mcover 100 --timeout-coefficient 3 \
+            --invert-logical --invert-loopctrl -E 'internal/fakegh/' ./internal/...
+
+  # 仕様: spec/ (工場の流れ・評価の結論) を TLA+ と Z3 で検査し、TestSpec_ とのつながりを確かめる
+  formal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: 道具を入れる (tla2tools 1.7.4・z3 5.1.0)
+        run: |
+          curl -sSfL -o /tmp/tla2tools.jar https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
+          echo "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88  /tmp/tla2tools.jar" | sha256sum -c
+          curl -sSfL -o /tmp/z3.zip https://github.com/Z3Prover/z3/releases/download/z3-5.1.0/z3-5.1.0-x64-glibc-2.39.zip
+          echo "f47be8d27d3230e823bf1eeede2fe0abaca55bb78d0b59974370e6689a92284a  /tmp/z3.zip" | sha256sum -c
+          unzip -q /tmp/z3.zip -d /tmp/z3
+      - run: sh scripts/formal.sh
+        env: { TLA2TOOLS: /tmp/tla2tools.jar, Z3: /tmp/z3/z3-5.1.0-x64-glibc-2.39/bin/z3 }
+      - name: 雛形の仕様も
+        run: |
+          for t in go-cli web; do (cd templates/$t && sh ../../scripts/formal.sh); done
+        env: { TLA2TOOLS: /tmp/tla2tools.jar, Z3: /tmp/z3/z3-5.1.0-x64-glibc-2.39/bin/z3 }
+
+  # 雛形そのものを検査する: 雛形からアプリを作り、アプリの CI と同じ検査を流す
+  template-go:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: { go-version-file: templates/go-cli/go.mod }
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with: { version: v2.15.0, install-only: true }
+      - run: sh scripts/instantiate.sh templates/go-cli /tmp/app wk-template-go
+      - run: make verify
+        working-directory: /tmp/app
+      - run: make fuzz FUZZ_SECONDS=40
+        working-directory: /tmp/app
+      - run: go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
+      - run: sh scripts/mutate.sh ""
+        working-directory: /tmp/app
+
+  template-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 24 }
+      - run: sh scripts/instantiate.sh templates/web /tmp/app wk-template-web
+      - run: npm ci --no-audit --no-fund
+        working-directory: /tmp/app
+      - run: npm run verify
+        working-directory: /tmp/app
+      - run: npm run fuzz
+        working-directory: /tmp/app
+        env: { FUZZ_MS: "30000" }
+      - run: npm run mutate -- ""
+        working-directory: /tmp/app
+
+  template-web-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 24 }
+      - run: sh scripts/instantiate.sh templates/web /tmp/app wk-template-web
+      - run: npm ci --no-audit --no-fund
+        working-directory: /tmp/app
+      - run: npx playwright install --with-deps chromium
+        working-directory: /tmp/app
+      - run: npm run e2e
+        working-directory: /tmp/app
+        env: { CI: "1", WRANGLER_SEND_METRICS: "false" }
 
   security:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }

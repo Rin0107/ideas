@@ -15,6 +15,8 @@ gh issue view $N --repo <repo>
 
 ## 2. 実装する
 - issue の範囲だけ。AC ごとにテストを書き、テスト名に `AC-<N>-<k>` を入れる
+- **仕様が先** (docs/TESTING.md・アプリの CLAUDE.md): 振る舞いを変えるなら、先に `spec/` (TLA+・Z3) を書き換え、
+  不変条件ごとの `TestSpec_` で実装を確かめる。境界値・全件ループ・PBT・fuzz をそろえ、カバレッジは 100%
   - web: 画面の動きは `tests/e2e/`、ロジックは `tests/unit/`
   - go-cli: `_test.go` のテスト名かコメント
 - **重要な情報を持たない**。サーバーに何かを置く・外と通信するなら、まず DATA.md を更新し、本当に要るかを考え直す
@@ -26,6 +28,8 @@ npm ci && npm run verify          # web
 make verify                       # go-cli
 ```
 通るまで直す。web で Playwright が動くなら `npm run e2e` も (動かなければ CI に任せる)。
+仕様 (TLA+・Z3) とミューテーションは手元に道具がないことがある。そのときは CI の formal・mutation を見て直す
+(PR の CI が赤なら手順 4 の CI の扱いに従う)。
 **テストを消す・弱める・skip して通すのは禁止**。どうしても通らなければ手順 6。
 
 ## 4. PR → レビュー → merge

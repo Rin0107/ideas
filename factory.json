@@ -54,7 +54,9 @@
     "templates/web/spec/README.md",
     "templates/go-cli/Makefile",
     "templates/go-cli/spec/README.md",
-    "docs/TESTING.md"
+    "docs/TESTING.md",
+    "scripts/",
+    "spec/"
   ],
 
   "site": {
