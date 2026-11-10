@@ -126,6 +126,19 @@ func TestProblems(t *testing.T) {
 			s.cg["u/memory.current"], s.cg["u/memory.high"] = n(3*gib+512<<20), n(4*gib)
 		}, "テストなどの枠の残りが少ない: 512MB < 1024MB"},
 		{"枠にも親にも上限なし", func(s *sys) { s.cg["u/memory.current"] = n(3 * gib) }, ""},
+		// ファイルのキャッシュは使っている量に数えない (捨てられるので)
+		{"キャッシュは数えない", func(s *sys) {
+			s.cg["non-systemd/memory.current"] = n(4 * gib)
+			s.cg["non-systemd/memory.stat"] = "anon 1\nfile " + n(2*gib) + "\nfile_mapped 5\n"
+		}, ""},
+		{"キャッシュを引いても足りない (境界)", func(s *sys) {
+			s.cg["non-systemd/memory.current"] = n(4*gib + 1<<20)
+			s.cg["non-systemd/memory.stat"] = "file " + n(1*gib) + "\n"
+		}, "cgroup の残りが少ない: 2047MB < 2048MB"},
+		{"memory.stat の file が読めない (引かない)", func(s *sys) {
+			s.cg["non-systemd/memory.current"] = n(4 * gib)
+			s.cg["non-systemd/memory.stat"] = "file x\nfile -5\n"
+		}, "cgroup の残りが少ない: 1024MB < 2048MB"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

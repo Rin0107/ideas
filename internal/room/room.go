@@ -110,6 +110,7 @@ func selfCgroup(root string) string {
 
 // cgroupRoomMB は rel の cgroup から根までたどり、上限までの残りの一番小さいものを返す。
 // まだない cgroup (heavy.slice は最初の重いコマンドで作られる) は飛ばして親を見る。上限がどこにもなければ false。
+// 使っている量からファイルのキャッシュ (memory.stat の file) は引く: 足りなくなれば捨てられるので、上限を超える原因にならない。
 func cgroupRoomMB(root, rel string) (int, bool) {
 	best, found := 0, false
 	for dir := filepath.Clean("/" + rel); dir != "/"; dir = filepath.Dir(dir) {
@@ -118,6 +119,7 @@ func cgroupRoomMB(root, rel string) (int, bool) {
 		if !ok {
 			continue
 		}
+		cur -= statFile(filepath.Join(d, "memory.stat"))
 		for _, name := range []string{"memory.high", "memory.max"} {
 			lim, ok := readInt(filepath.Join(d, name))
 			if !ok {
@@ -129,6 +131,20 @@ func cgroupRoomMB(root, rel string) (int, bool) {
 		}
 	}
 	return best, found
+}
+
+// statFile は memory.stat の file (ファイルのキャッシュ、バイト) を返す。読めなければ 0 (引かない = 安全側)。
+func statFile(p string) int {
+	b, _ := os.ReadFile(p)
+	for line := range strings.SplitSeq(string(b), "\n") {
+		if v, ok := strings.CutPrefix(line, "file "); ok {
+			n, err := strconv.Atoi(v)
+			if err == nil && n > 0 {
+				return n
+			}
+		}
+	}
+	return 0
 }
 
 func readInt(p string) (int, bool) {
