@@ -64,6 +64,11 @@ func TestDecide(t *testing.T) {
 		{"verdict drop → drop",
 			Snapshot{Active: func() *state.Project { p := building(10); p.Status = state.Evaluating; p.Verdict = "drop"; return p }()},
 			state.PhaseDrop, 0},
+		// PBT (spec_test) だけに任せると、引かない回にカバレッジが欠ける (2026-11-10 に CI で起きた)
+		{"評価の途中 (結論まだ) → evaluate を再開",
+			Snapshot{Active: func() *state.Project { p := building(3); p.Status = state.Evaluating; return p }(),
+				Issues: []Issue{{Number: 9}}},
+			state.PhaseEvaluate, 0},
 		{"selected のまま → select を再開",
 			Snapshot{Active: func() *state.Project { p := building(0); p.Status = state.Selected; return p }()},
 			state.PhaseSelect, 0},
