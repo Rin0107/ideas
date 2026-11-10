@@ -14,6 +14,14 @@ wakuwaku factory が作るアプリ。工場の設計: `~/src/okuos/repos/ideas/
 - 生の HTML を差し込まない。入力は zod で検査し、サイズの上限をかける
 - 秘密情報を repo に置かない。鍵の要るものを作らない (鍵はどこにも用意しない)
 
+## 正しさの決まり (CI が全部検査する。docs/TESTING.md)
+- **仕様が先**: 振る舞いを変えるときは、先に `spec/` (TLA+ の状態の流れ・Z3 の性質) を書き換える。cfg の INVARIANT ごとに `"Spec_<名前>: …"` のテストで実装を検査する
+- **カバレッジ 100%** (src/ の全部、行・分岐・関数・文)。`npm test` が下回ると落ちる
+- **テストの種類をそろえる**: 境界値 (端とその 1 つ外)・全件ループ (小さな範囲は全部)・PBT (fast-check、回数は `tests/unit/fc.ts` の `runs()`)・fuzz (名前に `fuzz` を含むテスト。入力を受け取る関数ごとに)・M (`tests/e2e`、手元の Worker をブラウザで)・L (プレビューの URL で同じ e2e。wk deploy が起動)
+- **ミューテーション** (変えたファイルだけ、Stryker): score 95% 以上。生き残った変異は、テストが足りない印 (エラーの文言・境界・分岐を確かめる)
+- **速さ**: CI のジョブはどれも 5 分で打ち切り。遅いテストは小さな範囲に絞り、大きな範囲は PBT と fuzz に任せる
+- 例 (`src/counter.ts`・`spec/Counter.*`) は本物を作るときに消す
+
 ## 進め方
 
 - 1 issue = 1 ブランチ = 1 PR (`Closes #N`)。main に直接 push しない
@@ -23,4 +31,4 @@ wakuwaku factory が作るアプリ。工場の設計: `~/src/okuos/repos/ideas/
 
 ## 変えてはいけないもの (guard が止める)
 
-`.github/` `.claude/` `scripts/` `src/worker/security.ts` `wk.json`
+`.github/` `.claude/` `scripts/` `src/worker/security.ts` `wk.json` `vitest.config.ts` `stryker.config.json` `spec/README.md`

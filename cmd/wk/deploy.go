@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -93,7 +94,8 @@ func deployPreview(e *env, p *state.Project, dir string) error {
 				}
 			}
 			fmt.Println("プレビューに出した:", url)
-			return nil
+			// L のテスト: 本物のプレビューをブラウザで e2e する (アプリの repo の Actions で。落ちたらデプロイも失敗)
+			return previewE2E(p.Repo, url, previewE2EWait)
 		}
 		tried = append(tried, url+": "+strings.Join(probs, " / "))
 	}
@@ -317,4 +319,56 @@ func scrubEnv(env []string) []string {
 		out = append(out, kv)
 	}
 	return out
+}
+
+// previewE2EWait は L のテストの結果を待つ長さ (ジョブは 5 分で打ち切られる)。
+var previewE2EWait = 10 * time.Minute
+
+// previewE2E はアプリの repo の preview-e2e.yml を起動し、終わるのを待つ。
+func previewE2E(repo, url string, wait time.Duration) error {
+	since := time.Now().UTC().Add(-time.Minute)
+	if _, err := gh.GH("workflow", "run", "preview-e2e.yml", "--repo", repo, "--ref", "main", "-f", "base_url="+url); err != nil {
+		return fmt.Errorf("プレビューの e2e を起動できない: %w", err)
+	}
+	deadline := time.Now().Add(wait)
+	for {
+		out, err := gh.GH("run", "list", "--repo", repo, "--workflow", "preview-e2e.yml", "--event", "workflow_dispatch",
+			"--limit", "5", "--json", "createdAt,status,conclusion,url")
+		if err == nil {
+			if r, ok := latestRun(out, since); ok && r.Status == "completed" {
+				if r.Conclusion != "success" {
+					return fmt.Errorf("プレビューの e2e が %s: %s", r.Conclusion, r.URL)
+				}
+				fmt.Println("プレビューの e2e が通った:", r.URL)
+				return nil
+			}
+		}
+		if time.Now().After(deadline) {
+			return errors.New("プレビューの e2e が終わらない (" + wait.String() + ")")
+		}
+		time.Sleep(15 * time.Second)
+	}
+}
+
+type runInfo struct {
+	CreatedAt  time.Time `json:"createdAt"`
+	Status     string    `json:"status"`
+	Conclusion string    `json:"conclusion"`
+	URL        string    `json:"url"`
+}
+
+// latestRun は since より後に作られた、いちばん新しい実行を返す。
+func latestRun(out string, since time.Time) (runInfo, bool) {
+	var rs []runInfo
+	if json.Unmarshal([]byte(out), &rs) != nil {
+		return runInfo{}, false
+	}
+	var best runInfo
+	found := false
+	for _, r := range rs {
+		if !r.CreatedAt.Before(since) && (!found || r.CreatedAt.After(best.CreatedAt)) {
+			best, found = r, true
+		}
+	}
+	return best, found
 }

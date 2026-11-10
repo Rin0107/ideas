@@ -48,7 +48,13 @@
     "templates/go-cli/scripts/",
     "templates/go-cli/wk.json",
     "templates/go-cli/.github/",
-    "templates/site/"
+    "templates/site/",
+    "templates/web/vitest.config.ts",
+    "templates/web/stryker.config.json",
+    "templates/web/spec/README.md",
+    "templates/go-cli/Makefile",
+    "templates/go-cli/spec/README.md",
+    "docs/TESTING.md"
   ],
 
   "site": {

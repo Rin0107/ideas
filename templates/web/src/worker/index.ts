@@ -1,5 +1,5 @@
-// Cloudflare Worker: 静的ファイルを返し、必要なら小さな API を持つ。
-// 原則: 個人と結びつく情報は受け取らない・残さない (DATA.md)。ログに IP や本文を出さない。
+// 手元の確認用の Worker (npm run e2e が wrangler dev で動かす)。本番は配信用の repo の Worker が同じヘッダーで配る。
+// 静的ファイルを返し、守りのヘッダーを付けるだけ。サーバーの処理・保存は持たない (DATA.md)。
 import { harden } from "./security";
 
 export interface Env {
@@ -8,14 +8,6 @@ export interface Env {
 
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
-    const url = new URL(req.url);
-
-    if (url.pathname === "/api/health") {
-      return harden(Response.json({ ok: true }));
-    }
-    if (url.pathname.startsWith("/api/")) {
-      return harden(Response.json({ error: "not found" }, { status: 404 }));
-    }
     return harden(await env.ASSETS.fetch(req));
   },
 } satisfies ExportedHandler<Env>;

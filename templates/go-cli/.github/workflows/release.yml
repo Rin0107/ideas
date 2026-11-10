@@ -11,7 +11,7 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     permissions:
       contents: write
     steps:
@@ -26,3 +26,21 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # L のテスト: 配った実行ファイルを、利用者と同じように落として動かす
+  large:
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Releases から落として動かす
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh release download "$TAG" --repo "$REPO" --pattern '*linux_amd64.tar.gz' --pattern checksums.txt --dir /tmp/rel
+          cd /tmp/rel && sha256sum -c --ignore-missing checksums.txt
+          tar -xzf ./*linux_amd64.tar.gz
+          got=$(./"{{NAME}}" -version)
+          test "$got" = "${TAG#v}" || { echo "版が違う: $got"; exit 1; }

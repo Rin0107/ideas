@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestScrubEnv(t *testing.T) {
@@ -116,4 +117,29 @@ func TestSmoke(t *testing.T) {
 	if p := smoke(srv.URL+"/cookie", nil); len(p) != 1 {
 		t.Fatal("Cookie を見逃した", p)
 	}
+}
+
+func TestLatestRun(t *testing.T) {
+	since := mustTime("2026-11-10T03:00:00Z")
+	out := `[{"createdAt":"2026-11-10T02:59:00Z","status":"completed","conclusion":"success","url":"old"},
+	{"createdAt":"2026-11-10T03:01:00Z","status":"in_progress","conclusion":"","url":"a"},
+	{"createdAt":"2026-11-10T03:02:00Z","status":"completed","conclusion":"failure","url":"b"}]`
+	r, ok := latestRun(out, since)
+	if !ok || r.URL != "b" {
+		t.Fatal(r, ok)
+	}
+	if _, ok := latestRun(`[{"createdAt":"2026-11-10T02:00:00Z"}]`, since); ok {
+		t.Fatal("古い実行を拾った")
+	}
+	if _, ok := latestRun("not json", since); ok {
+		t.Fatal("壊れた出力を拾った")
+	}
+}
+
+func mustTime(s string) time.Time {
+	tm, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		panic(err)
+	}
+	return tm
 }

@@ -2,15 +2,9 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/{{REPO}}/internal/app"
 )
 
-func main() {
-	if err := app.Run(os.Args[1:], os.Stdout); err != nil {
-		fmt.Fprintln(os.Stderr, "{{NAME}}:", err)
-		os.Exit(1)
-	}
-}
+func main() { os.Exit(app.Main(os.Args[1:], os.Stdout, os.Stderr)) }

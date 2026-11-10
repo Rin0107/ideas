@@ -12,7 +12,7 @@ export default defineConfig({
     ? undefined
     : {
         command: "npm run build && npx wrangler dev --port 8787 --ip 127.0.0.1",
-        url: "http://127.0.0.1:8787/api/health",
+        url: "http://127.0.0.1:8787/",
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
       },

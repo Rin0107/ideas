@@ -9,6 +9,8 @@ const CSP = [
   "font-src 'self'",
   "connect-src 'self'",
   "media-src 'self' blob:",
+  "worker-src 'none'",
+  "manifest-src 'self'",
   "object-src 'none'",
   "frame-src 'none'",
   "frame-ancestors 'none'",
@@ -36,20 +38,4 @@ export function harden(res: Response): Response {
   out.headers.delete("Set-Cookie");
   out.headers.delete("Server");
   return out;
-}
-
-/** 書き込みの API に渡せる本文の上限 (バイト)。 */
-export const MAX_BODY_BYTES = 16 * 1024;
-
-/** JSON の本文を上限つきで読む。上限を超えたら null。 */
-export async function readJsonLimited(req: Request): Promise<unknown | null> {
-  const len = Number(req.headers.get("Content-Length") ?? "0");
-  if (len > MAX_BODY_BYTES) return null;
-  const text = await req.text();
-  if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) return null;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
 }
