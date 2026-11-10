@@ -164,3 +164,30 @@ func Untried(all []*Idea, tried map[string]bool) int {
 	}
 	return n
 }
+
+var indexLine = regexp.MustCompile(`^- (\d{5}) ([a-z0-9-]+) — `)
+
+// IndexProblems は INDEX.md (1 件 1 行の索引) とフォルダの食い違いを返す。
+func IndexProblems(index string, all []*Idea) []string {
+	got := map[string]string{}
+	for _, l := range strings.Split(index, "\n") {
+		if m := indexLine.FindStringSubmatch(l); m != nil {
+			got[m[1]] = m[2]
+		}
+	}
+	var errs []string
+	for _, i := range all {
+		switch s, ok := got[i.ID]; {
+		case !ok:
+			errs = append(errs, "INDEX.md に "+i.Dir+" の行がない")
+		case s != i.Slug:
+			errs = append(errs, fmt.Sprintf("INDEX.md の %s の slug が %s (フォルダは %s)", i.ID, s, i.Slug))
+		}
+		delete(got, i.ID)
+	}
+	for id, s := range got {
+		errs = append(errs, "INDEX.md の "+id+" "+s+" のフォルダがない")
+	}
+	sort.Strings(errs)
+	return errs
+}

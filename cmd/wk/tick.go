@@ -354,6 +354,11 @@ func cmdCheck(args []string) error {
 		return err
 	}
 	errs = append(errs, ideas.Problems(all)...)
+	if b, err := os.ReadFile(filepath.Join(e.cfg.Root, e.cfg.IdeasDir, "INDEX.md")); err != nil {
+		errs = append(errs, "INDEX.md を読めない: "+err.Error())
+	} else {
+		errs = append(errs, ideas.IndexProblems(string(b), all)...)
+	}
 	known := map[string]bool{}
 	for _, i := range all {
 		known[i.Dir] = true

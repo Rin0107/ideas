@@ -73,3 +73,13 @@ func TestLoadProblemsCandidates(t *testing.T) {
 		t.Fatal(Untried(all, tried))
 	}
 }
+
+func TestIndexProblems(t *testing.T) {
+	all := []*Idea{{Dir: "00001-a", ID: "00001", Slug: "a"}, {Dir: "00002-b", ID: "00002", Slug: "b"}}
+	if p := IndexProblems("# x\n- 00001 a — 一言\n- 00002 b — 一言\n", all); len(p) != 0 {
+		t.Fatal(p)
+	}
+	if p := IndexProblems("- 00001 z — 一言\n- 00003 c — 一言\n", all); len(p) != 3 {
+		t.Fatal(p)
+	}
+}
