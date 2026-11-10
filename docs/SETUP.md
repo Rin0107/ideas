@@ -90,9 +90,10 @@ orca-ide repo add --path '\\wsl.localhost\NixOS\home\user\src\okuos\repos\ideas'
 # 出てきた repo の id を使う
 orca-ide automations create --name "wakuwaku tick" --provider claude --timezone Asia/Tokyo \
   --trigger "0 8,11,14,17,20,23 * * *" --repo id:<repo の id> \
-  --precheck "/home/user/go/bin/wk due" \
+  --precheck "wsl.exe -d NixOS -- /home/user/go/bin/wk due" \
   --prompt "harness/TICK.md を読んで、その通りにやって"
 ```
+precheck は Windows の cmd.exe で動くので、`wsl.exe -d NixOS --` を付ける (付けないと毎回 exit 1 で飛ばされる)。
 最初の 1 回は、登録後に手で動かして見届ける: `orca-ide automations run --id <automation の id>`
 
 ---
