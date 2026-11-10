@@ -5,6 +5,12 @@ on:
   pull_request:
   push:
     branches: [main]
+  # 人が手で流すとき: base を渡すと、そこからの変更全部にミューテーションをかける
+  workflow_dispatch:
+    inputs:
+      base:
+        description: "比べる元のコミット (空なら全部)"
+        required: false
 
 permissions:
   contents: read
@@ -64,7 +70,7 @@ jobs:
         with: { go-version-file: go.mod }
       - run: go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
       - name: gremlins
-        env: { BASE: "${{ github.event.pull_request.base.sha || github.event.before }}", DIR: "${{ matrix.dir }}" }
+        env: { BASE: "${{ inputs.base || github.event.pull_request.base.sha || github.event.before }}", DIR: "${{ matrix.dir }}" }
         run: |
           case "$BASE" in 0000000000000000000000000000000000000000) BASE="" ;; esac
           if [ -n "$BASE" ] && [ -z "$(git diff --name-only "$BASE" -- "$DIR/*.go" ':!*_test.go')" ]; then echo "ok: $DIR の変更なし"; exit 0; fi
