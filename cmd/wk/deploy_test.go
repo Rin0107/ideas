@@ -1,6 +1,8 @@
 package main
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"slices"
@@ -17,45 +19,101 @@ func TestScrubEnv(t *testing.T) {
 	}
 }
 
-func TestCheckWranglerConfig(t *testing.T) {
-	// 雛形の設定は通る
-	if err := checkWranglerConfig(filepath.Join("..", "..", "templates", "web")); err != nil {
-		t.Fatal("雛形が止められた:", err)
-	}
-	for _, bad := range []string{`{"name":"x","build":{"command":"curl evil"}}`, `{"name":"x","vars":{"A":"1"}}`, `{"routes":[]}`} {
+func TestCopyDist(t *testing.T) {
+	mk := func(files map[string]string) string {
 		d := t.TempDir()
-		must(t, os.WriteFile(filepath.Join(d, "wrangler.jsonc"), []byte(bad), 0o644))
-		if checkWranglerConfig(d) == nil {
-			t.Errorf("通してはいけない: %s", bad)
+		for name, body := range files {
+			p := filepath.Join(d, name)
+			must(t, os.MkdirAll(filepath.Dir(p), 0o755))
+			must(t, os.WriteFile(p, []byte(body), 0o644))
+		}
+		return d
+	}
+	ok := mk(map[string]string{"index.html": "<p>hi", "assets/a.js": "x"})
+	dst := filepath.Join(t.TempDir(), "out")
+	if err := copyDist(ok, dst); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(dst, "assets", "a.js")); string(b) != "x" {
+		t.Fatal("写せていない")
+	}
+	for name, files := range map[string]map[string]string{
+		"index.html なし":   {"a.js": "x"},
+		"_headers":        {"index.html": "", "_headers": "/* X: y"},
+		"入れ子の _redirects": {"index.html": "", "a/_redirects": "/ https://evil 302"},
+		"_worker.js":      {"index.html": "", "_worker.js": "export default {}"},
+		"Service Worker":  {"index.html": "", "sw.js": ""},
+	} {
+		if copyDist(mk(files), filepath.Join(t.TempDir(), "out")) == nil {
+			t.Errorf("%s を通した", name)
 		}
 	}
-	d := t.TempDir()
-	must(t, os.WriteFile(filepath.Join(d, "wrangler.jsonc"), []byte(`{"name":"x"}`), 0o644))
-	must(t, os.WriteFile(filepath.Join(d, "wrangler.toml"), []byte(`build.command="x"`), 0o644))
-	if checkWranglerConfig(d) == nil {
-		t.Error("wrangler.toml を見逃した")
+	link := mk(map[string]string{"index.html": ""})
+	must(t, os.Symlink("/etc/passwd", filepath.Join(link, "p")))
+	if copyDist(link, filepath.Join(t.TempDir(), "out")) == nil {
+		t.Error("リンクを通した")
 	}
 }
 
-func TestRedact(t *testing.T) {
-	s := redact("token is abcdefgh12345 ok", map[string]string{"T": "abcdefgh12345", "short": "ab"})
-	if strings.Contains(s, "abcdefgh12345") || !strings.Contains(s, "***") {
+func TestCheckRunsState(t *testing.T) {
+	for _, c := range []struct {
+		in       string
+		done, ok bool
+	}{
+		{"", false, false},
+		{"Workers Builds: wakuwaku-site\tin_progress\t", false, true},
+		{"Workers Builds: wakuwaku-site\tcompleted\tsuccess\n", true, true},
+		{"a\tcompleted\tsuccess\nb\tcompleted\tfailure", true, false},
+	} {
+		done, ok, _ := checkRunsState(c.in)
+		if done != c.done || ok != c.ok {
+			t.Errorf("%q: done=%v ok=%v", c.in, done, ok)
+		}
+	}
+}
+
+func TestPreviewCandidates(t *testing.T) {
+	text := "Preview URL: https://0123abcd-wakuwaku-site.rin.workers.dev\n" +
+		"evil: https://x-wakuwaku-site.attacker.workers.dev\nBranch: https://preview-wakuwaku-site.rin.workers.dev"
+	got := previewCandidates("https://wakuwaku-site.rin.workers.dev", text)
+	want := []string{"https://preview-wakuwaku-site.rin.workers.dev", "https://0123abcd-wakuwaku-site.rin.workers.dev"}
+	if !slices.Equal(got, want) {
+		t.Fatal(got)
+	}
+	if got := previewCandidates("https://wakuwaku-site.rin.workers.dev", ""); !slices.Equal(got, want[:1]) {
+		t.Fatal(got)
+	}
+}
+
+func TestRenderIndex(t *testing.T) {
+	s := string(renderIndex([]string{"good-app", "<script>", "../x"}))
+	if !strings.Contains(s, `href="/good-app/"`) || strings.Contains(s, "<script>") || strings.Contains(s, "../x") {
 		t.Fatal(s)
 	}
 }
 
-func TestLoadSecretsRequiresMode600(t *testing.T) {
-	h := t.TempDir()
-	t.Setenv("HOME", h)
-	p := filepath.Join(h, ".config", "wakuwaku", "env")
-	must(t, os.MkdirAll(filepath.Dir(p), 0o700))
-	must(t, os.WriteFile(p, []byte("CLOUDFLARE_API_TOKEN=x\n"), 0o644))
-	if _, err := loadSecrets(); err == nil {
-		t.Fatal("権限 644 を通した")
+func TestSmoke(t *testing.T) {
+	headers := map[string]string{
+		"Content-Security-Policy": "default-src 'self'", "X-Content-Type-Options": "nosniff",
+		"Referrer-Policy": "no-referrer", "Strict-Transport-Security": "max-age=1", "Permissions-Policy": "camera=()",
 	}
-	must(t, os.Chmod(p, 0o600))
-	m, err := loadSecrets()
-	if err != nil || m["CLOUDFLARE_API_TOKEN"] != "x" {
-		t.Fatal(m, err)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for k, v := range headers {
+			w.Header().Set(k, v)
+		}
+		if r.URL.Path == "/cookie" {
+			w.Header().Set("Set-Cookie", "a=b")
+		}
+		w.Write([]byte("<p>v2\n"))
+	}))
+	defer srv.Close()
+	if p := smoke(srv.URL+"/", []byte("<p>v2")); len(p) != 0 {
+		t.Fatal(p)
+	}
+	if p := smoke(srv.URL+"/", []byte("<p>v1")); len(p) != 1 {
+		t.Fatal("古い版を見逃した", p)
+	}
+	if p := smoke(srv.URL+"/cookie", nil); len(p) != 1 {
+		t.Fatal("Cookie を見逃した", p)
 	}
 }

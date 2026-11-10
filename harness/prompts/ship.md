@@ -3,7 +3,7 @@
 public にすると、コードと履歴が誰でも読めるようになる。**秘密情報と重要な情報が無いことを、もう一度確かめる**。
 
 ## 1. 仕上げる (アプリの worktree で、PR にして wk review → wk merge)
-- README.md: `(まだ公開していません)` を本番の URL に、使い方を 30 秒で分かる形に。スクリーンショットは載せない (画像のファイルを足すなら repo に置く)
+- README.md: `(まだ公開していません)` を公開時の URL (`wk status` の「公開時の URL」。CLI はリリースの URL) に、使い方を 30 秒で分かる形に。スクリーンショットは載せない (画像のファイルを足すなら repo に置く)
 - DATA.md: 実際に持っているものと一致しているか、コードを読んで確かめる
 - description と topics (`gh repo view <repo>`)。空なら `gh repo edit <repo> --description … --add-topic …`
 
@@ -13,9 +13,11 @@ public にすると、コードと履歴が誰でも読めるようになる。*
 
 ## 3. 公開する
 ```bash
-wk ship --url <本番の URL>
+wk ship                        # web: URL は wk が決める
+wk ship --url <リリースの URL>   # go-cli
 ```
-wk が README・LICENSE・description・topics・CI・本番の守りのヘッダーを検査してから public にする。
+wk が README (公開時の URL が載っているか)・LICENSE・description・topics・CI を検査し、
+web はプレビューで評価したものを本番に出して、本番の守りのヘッダーと中身を確かめてから public にする。
 通らなければ、言われたものを直して (手順 1) 次の tick で再挑戦 (fail で終える)。
 
 ## 4. 工場の README に足す

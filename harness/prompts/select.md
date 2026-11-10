@@ -12,6 +12,7 @@ wk candidates > /tmp/wk-candidates.json   # 日付で決まる 15 件
 `harness/rubric.md` の select の基準で、**15 件全部** を採点し、JSON の配列にする。
 - `sensitive` は厳しく: 体験の核に、重要な情報をサーバーに持つ必要があるなら true。迷ったら true
 - 「ブラウザの中だけで完結させる形」に変えれば成立するなら、その形で `data_plan` を書き、false にしてよい
+- `needs_server` も同じ: サーバーなしの形 (ブラウザの中・日付から決まる・URL で渡す) で核が成り立つなら false。成り立たないなら true
 ```bash
 wk select --scores /tmp/wk-scores.json
 ```
@@ -29,8 +30,8 @@ wk が足切りと合計点で 1 件選ぶ。全部足切りなら、`wk done --
 ```
 - issue は 3〜8 件。**1 件 = 1 tick で終わる大きさ**。最初の issue で「核の最小の形」が動くようにする
 - AC はテストにできる文で書く (「〜すると〜が表示される」)。1 件 1〜5 個
-- どの issue も、DATA.md の原則を守る形で書く。サーバーに何か置くなら、その issue の AC に「DATA.md に〜が書かれている」を入れる
-- stack が web なら、静的ファイルだけで済まないかを先に考える
+- どの issue も、DATA.md の原則を守る形で書く。ブラウザに何か置くなら、その issue の AC に「DATA.md に〜が書かれている」を入れる
+- stack が web なら、静的ファイルだけで作る (サーバーの処理・API は作らない。本番は `/<名前>/` の下で動く)
 - repo_name は英小文字とハイフン。既存の有名な製品名を使わない
 
 ## 4. 作る

@@ -64,6 +64,7 @@ var denyRules = []rule{
 	r(`/proc/[^\s]*/environ`, "ほかのプロセスの環境変数を読まない"),
 	r(`\bwrangler\s+secret\b`, "アプリに秘密情報を持たせない"),
 	// 工場の守り (wk の差し替え・止める仕組みの解除)
+	r(`\bwk\s+site\b`, "配信用の repo は人だけが作る (wk site init)"),
 	r(`\bgo\s+(install|build\b[^|;&]*-o)\b`, "wk の入れ直し・バイナリの置き換えは人だけが行う"),
 	r(home+`/go/bin|\.local/state/wakuwaku|(\brm\b|\bmv\b|\bunlink\b)[^|;&]*\bSTOP\b`, "wk の実行ファイル・止める仕組みには触れない"),
 	r(`\.claude/settings\.local\.json|disableAllHooks`, "フックを無効にしない"),

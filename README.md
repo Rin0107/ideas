@@ -31,7 +31,7 @@
 | `state/` | アプリの一覧と tick の記録 (wk だけが書く) |
 | `reports/` | 評価・週のまとめ |
 | `harness/` | tick の手順書・採点基準・reviewer の指示 |
-| `templates/` | アプリの雛形 (`web`: Cloudflare Workers、`go-cli`: Go の CLI) |
+| `templates/` | 雛形 (`web`: 静的な Web アプリ、`go-cli`: Go の CLI、`site`: 全 Web アプリを配る Cloudflare Worker) |
 | `ideas/` ほか | 以前の機械生成のアイディア集 (下に説明。読むだけ) |
 
 ---

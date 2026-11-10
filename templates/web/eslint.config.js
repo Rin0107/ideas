@@ -22,6 +22,13 @@ export default tseslint.config(
         "error",
         { object: "document", property: "write", message: "document.write は使わない" },
         { object: "navigator", property: "sendBeacon", message: "外に送らない" },
+        { object: "navigator", property: "serviceWorker", message: "Service Worker は使わない (同じ origin のほかのアプリに効くため)" },
+        { object: "document", property: "cookie", message: "Cookie は使わない" },
+        { object: "window", property: "indexedDB", message: "保存は src/storage.ts (localStorage) だけ" },
+      ],
+      "no-restricted-globals": [
+        "error",
+        { name: "indexedDB", message: "保存は src/storage.ts (localStorage) だけ" },
       ],
       "no-restricted-syntax": [
         "error",

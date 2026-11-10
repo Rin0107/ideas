@@ -47,7 +47,7 @@ CI が赤なら、ログ (`gh run view --repo <repo> --log-failed`) を読んで
 ## 5. デプロイして片付ける
 ```bash
 cd $APP && git pull --ff-only origin main
-wk deploy                      # 本番に出して、守りのヘッダーを検査
+wk deploy                      # プレビューに出して、守りのヘッダーと中身を検査 (鍵は要らない)
 git -C $APP worktree remove ~/src/wakuwaku/.wt/<名前>-$N
 ```
 `wk deploy` が落ちたら fail で終える (次の tick で原因を直す issue を作るか、evaluate に回る)。

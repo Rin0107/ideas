@@ -25,10 +25,13 @@ type SelectScore struct {
 	Hardware bool   `json:"hardware"` // 物・現地・人手が要る (ソフトだけで完結しない)
 	// Sensitive は、体験の核に重要な情報 (個人を特定できる情報・認証情報・支払い・位置の履歴・
 	// 健康・他人の情報・未成年の情報) をサーバーに持つ必要があるか。true なら必ず除外 (セキュリティが最優先)
-	Sensitive bool   `json:"sensitive"`
-	DataPlan  string `json:"data_plan"` // サーバーに置くもの・ブラウザにだけ置くもの (1〜2 文)。何も持たないなら「なし」
-	Stack     string `json:"stack"`     // web / go-cli
-	Reason    string `json:"reason"`
+	Sensitive bool `json:"sensitive"`
+	// NeedsServer は、体験の核にサーバーの処理か保存が要るか (静的ファイルとブラウザだけで成り立たない)。
+	// 工場のアプリはサーバーを持たない (配信は静的ファイルだけ) ので、true なら必ず除外
+	NeedsServer bool   `json:"needs_server"`
+	DataPlan    string `json:"data_plan"` // ブラウザにだけ置くもの (1〜2 文)。何も持たないなら「なし」
+	Stack       string `json:"stack"`     // web / go-cli
+	Reason      string `json:"reason"`
 }
 
 func (s SelectScore) Total() int { return s.Wakuwaku + s.Light + s.Free + s.Own + s.Findy }
@@ -71,6 +74,8 @@ func ChooseIdea(scores []SelectScore, allowed map[string]bool, c config.Select) 
 		switch {
 		case s.Sensitive:
 			log = append(log, s.Idea+": 重要な情報を持つ必要があるので除外")
+		case s.NeedsServer:
+			log = append(log, s.Idea+": サーバーが要るので除外 (アプリは静的ファイルだけ)")
 		case s.Hardware:
 			log = append(log, s.Idea+": 物・現地が要るので除外")
 		case s.Free < c.MinFree:

@@ -1,0 +1,15 @@
+{
+  "name": "wakuwaku-site",
+  "private": true,
+  "type": "module",
+  "description": "わくわく工場が公開したアプリをまとめて配る。public/ は wk が書く。",
+  "scripts": {
+    "dev": "wrangler dev --port 8788 --ip 127.0.0.1"
+  },
+  "devDependencies": {
+    "wrangler": "4.158.0"
+  },
+  "allowScripts": {
+    "workerd@1.20261104.1": true
+  }
+}

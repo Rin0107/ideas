@@ -310,7 +310,23 @@ func cmdStatus(args []string) error {
 	}
 	fmt.Printf("工場: %s\n停止: %v\n今日の tick: %d/%d (連続失敗 %d)\n", e.cfg.Root, stop != "", rt.TicksToday, e.cfg.TicksPerDay, rt.ConsecutiveFailures)
 	if p != nil {
-		fmt.Printf("作っているもの: %s (%s) %s %s tick %d (この段階 %d) %s\n", p.Idea, p.Repo, p.Status, p.Milestone, p.Ticks.Total, p.Ticks.Phase, p.URL)
+		fmt.Printf("作っているもの: %s (%s) %s %s tick %d (この段階 %d)\n", p.Idea, p.Repo, p.Status, p.Milestone, p.Ticks.Total, p.Ticks.Phase)
+		if p.Preview != "" {
+			fmt.Println("プレビューの URL:", p.Preview)
+		}
+		if p.URL != "" {
+			fmt.Println("URL:", p.URL)
+		}
+		if p.Stack == "web" && p.Repo != "" {
+			if e.cfg.Site.URL == "" {
+				fmt.Println("公開時の URL: まだ決まらない (factory.json の site.url が空。docs/SETUP.md)")
+			} else {
+				fmt.Printf("公開時の URL: %s/%s/\n", strings.TrimRight(e.cfg.Site.URL, "/"), filepath.Base(p.Repo))
+			}
+		}
+	}
+	if e.cfg.Site.URL == "" {
+		fmt.Println("配信: 準備がまだ (Web アプリは出せない。docs/SETUP.md の 2)")
 	}
 	n := map[string]int{}
 	for _, q := range e.pf.Projects {

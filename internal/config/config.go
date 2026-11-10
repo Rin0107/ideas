@@ -21,6 +21,13 @@ type Evaluate struct {
 	ShipMinQuality  int `json:"ship_min_quality"`
 }
 
+// Site: Repo は配信用の repo (owner/name)。URL は Cloudflare に連携したあとの本番の URL (https://wakuwaku-site.<sub>.workers.dev)。
+// URL が空のあいだは Web アプリを公開できない。
+type Site struct {
+	Repo string `json:"repo"`
+	URL  string `json:"url"`
+}
+
 type Config struct {
 	Owner        string `json:"owner"`
 	MainCheckout string `json:"main_checkout"`
@@ -47,6 +54,9 @@ type Config struct {
 	AllowedServices []string `json:"allowed_services"`
 	DenyPackages    []string `json:"deny_packages"`
 	ProtectedPaths  []string `json:"protected_paths"`
+
+	// Site は公開した Web アプリをまとめて配る repo (Cloudflare の GitHub 連携で配信する)
+	Site Site `json:"site"`
 
 	// Root は factory.json があるディレクトリ (今の worktree)。読み込み時に入る
 	Root string `json:"-"`

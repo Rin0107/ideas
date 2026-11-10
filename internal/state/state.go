@@ -62,6 +62,7 @@ type Project struct {
 	Iteration int     `json:"iteration"`
 	Ticks     Ticks   `json:"ticks"`
 	URL       string  `json:"url"`
+	Preview   string  `json:"preview,omitempty"` // Web: いま評価に使っているプレビューの URL (wk deploy が書く)
 	Verdict   string  `json:"verdict,omitempty"` // 直近の evaluate の結果 (ship / iterate / drop)。次の段階を決める
 	History   []Event `json:"history"`
 }

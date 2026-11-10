@@ -1,66 +1,27 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
-	"github.com/Rin0107/ideas/internal/config"
 	"github.com/Rin0107/ideas/internal/gh"
 	"github.com/Rin0107/ideas/internal/state"
 )
 
-// 鍵はエージェントに見せない。wk が ~/.config/wakuwaku/env を読み、子プロセスの環境変数にだけ渡す。
-const secretsFile = "~/.config/wakuwaku/env"
-
-func loadSecrets() (map[string]string, error) {
-	p := config.Expand(secretsFile)
-	st, err := os.Stat(p)
-	if err != nil {
-		return nil, fmt.Errorf("%s がない (docs/SETUP.md)", secretsFile)
-	}
-	if st.Mode().Perm()&0o077 != 0 {
-		return nil, fmt.Errorf("%s の権限が広すぎる (chmod 600)", secretsFile)
-	}
-	f, err := os.Open(p)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	m := map[string]string{}
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		line := strings.TrimSpace(sc.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		k, v, ok := strings.Cut(line, "=")
-		if !ok {
-			continue
-		}
-		m[strings.TrimSpace(k)] = strings.Trim(strings.TrimSpace(v), `"'`)
-	}
-	return m, sc.Err()
-}
-
-// redact は出力から鍵の値を消す。
-func redact(s string, secrets map[string]string) string {
-	for _, v := range secrets {
-		if len(v) >= 8 {
-			s = strings.ReplaceAll(s, v, "***")
-		}
-	}
-	return s
-}
-
-var workersURL = regexp.MustCompile(`https://[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev`)
+// 配信の考え方 (docs/DESIGN.md §6・§7.4):
+//   - 鍵はこのマシンに置かない。Web アプリは配信用の repo (factory.json の site.repo) の public/<名前>/ に置き、
+//     Cloudflare の GitHub 連携 (Workers Builds) がそれを配る。鍵は Cloudflare の中にだけある
+//   - アプリのビルドは手元で、鍵らしい環境変数を消してから動かす。Cloudflare 側にビルドのコマンドはなく、
+//     そこで動くのは配信用 repo の版固定の wrangler だけ (エージェントの書いたコードは鍵のある所で動かない)
+//   - wk deploy → preview ブランチ (プレビューの URL で評価する)、wk ship → main (本番)、wk drop → public/<名前>/ を消す
 
 func cmdDeploy(args []string) error {
 	e, err := load()
@@ -80,84 +41,203 @@ func cmdDeploy(args []string) error {
 	}
 	switch p.Stack {
 	case "web":
-		return deployWeb(e, p, dir)
+		return deployPreview(e, p, dir)
 	case "go-cli":
 		return releaseGo(e, p, dir)
 	}
 	return fmt.Errorf("stack %q のデプロイ方法がない", p.Stack)
 }
 
-func deployWeb(e *env, p *state.Project, dir string) error {
-	secrets, err := loadSecrets()
+// deployPreview はアプリをビルドし、配信用 repo の preview ブランチに置いて、プレビューの URL を確かめる。
+func deployPreview(e *env, p *state.Project, dir string) error {
+	s, err := openSite(e)
 	if err != nil {
 		return err
 	}
-	for _, k := range []string{"CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"} {
-		if secrets[k] == "" {
-			return fmt.Errorf("%s に %s がない", secretsFile, k)
-		}
-	}
-	// 鍵の通り道を 1 本にする:
-	//  1. アプリのビルドと検査は鍵なしで動かす (アプリのスクリプトはエージェントが書いたものなので信用しない)
-	//  2. install script は動かさない
-	//  3. 鍵を渡すのは、wk が自分で入れた版固定の wrangler だけ。環境変数も最小にする
-	//  4. wrangler の設定にビルドのコマンドがあれば止める (鍵のある環境で任意のコマンドが動くため)
-	if err := checkWranglerConfig(dir); err != nil {
-		return err
-	}
-	wrangler, err := ensureWrangler(e)
+	slug := filepath.Base(p.Repo)
+	dist, err := buildApp(dir, slug)
 	if err != nil {
 		return err
 	}
-	var out strings.Builder
-	run := func(envv []string, name string, args ...string) error {
-		cmd := exec.Command(name, args...)
-		cmd.Dir, cmd.Env = dir, envv
-		b, err := cmd.CombinedOutput()
-		out.Write(b)
-		if err != nil {
-			return fmt.Errorf("%s %s が失敗:\n%s", name, strings.Join(args, " "), tail(redact(out.String(), secrets), 60))
+	want, err := os.ReadFile(filepath.Join(dist, "index.html"))
+	if err != nil {
+		return err
+	}
+	if err := s.git("checkout", "-q", "-B", previewBranch, "origin/main"); err != nil {
+		return err
+	}
+	if err := s.putApp(slug, dist); err != nil {
+		return err
+	}
+	sha, err := s.commitPush(previewBranch, "preview: "+slug, true)
+	if err != nil {
+		return err
+	}
+	pr, err := s.ensurePR()
+	if err != nil {
+		return err
+	}
+	if err := s.waitChecks(sha); err != nil {
+		return err
+	}
+	var tried []string
+	for _, base := range s.previewBases(pr) {
+		url := base + "/" + slug + "/"
+		probs := smoke(url, want)
+		if len(probs) == 0 {
+			if p.Preview != url {
+				p.Preview = url
+				e.event(p, "preview", url)
+				if err := e.save(); err != nil {
+					return err
+				}
+			}
+			fmt.Println("プレビューに出した:", url)
+			return nil
 		}
-		return nil
+		tried = append(tried, url+": "+strings.Join(probs, " / "))
 	}
-	noSecrets := scrubEnv(os.Environ())
-	if err := run(noSecrets, "npm", "ci", "--no-audit", "--no-fund", "--ignore-scripts"); err != nil {
-		return err
-	}
-	if err := run(noSecrets, "npm", "run", "verify"); err != nil {
-		return err
-	}
-	deployEnv := []string{"PATH=" + os.Getenv("PATH"), "HOME=" + os.Getenv("HOME"), "WRANGLER_SEND_METRICS=false", "CI=1",
-		"CLOUDFLARE_API_TOKEN=" + secrets["CLOUDFLARE_API_TOKEN"], "CLOUDFLARE_ACCOUNT_ID=" + secrets["CLOUDFLARE_ACCOUNT_ID"]}
-	if err := run(deployEnv, wrangler, "deploy", "--config", "wrangler.jsonc"); err != nil {
-		return err
-	}
-	url := workersURL.FindString(out.String())
-	if url == "" {
-		return errors.New("デプロイ先の URL が出力にない:\n" + tail(redact(out.String(), secrets), 30))
-	}
-	if probs := smoke(url); len(probs) > 0 {
-		return fmt.Errorf("%s の検査に通らない:\n  %s", url, strings.Join(probs, "\n  "))
-	}
-	if p.URL != url {
-		p.URL = url
-		e.event(p, "deployed", url)
-		if err := e.save(); err != nil {
-			return err
-		}
-	}
-	fmt.Println("デプロイした:", url)
-	return nil
+	return errors.New("プレビューが確かめられない:\n  " + strings.Join(tried, "\n  "))
 }
 
-// smoke は本番が動いていて、守りのヘッダーが付いているかを見る。
-func smoke(url string) []string {
-	c := http.Client{Timeout: 20 * time.Second}
-	r, err := c.Get(url)
+// publishWeb はプレビューで評価したものを本番 (配信用 repo の main) に出し、本番の URL を返す。
+func publishWeb(e *env, p *state.Project) (string, error) {
+	s, err := openSite(e)
+	if err != nil {
+		return "", err
+	}
+	slug := filepath.Base(p.Repo)
+	if err := s.git("fetch", "-q", "origin", previewBranch); err != nil {
+		return "", fmt.Errorf("preview ブランチがない (先に wk deploy): %w", err)
+	}
+	want, err := s.out("show", "origin/"+previewBranch+":public/"+slug+"/index.html")
+	if err != nil {
+		return "", fmt.Errorf("preview に %s がない (先に wk deploy): %w", slug, err)
+	}
+	if err := s.git("rm", "-r", "-q", "--ignore-unmatch", "public/"+slug); err != nil {
+		return "", err
+	}
+	if err := s.git("checkout", "origin/"+previewBranch, "--", "public/"+slug); err != nil {
+		return "", err
+	}
+	if err := s.writeIndex(e, slug, true); err != nil {
+		return "", err
+	}
+	sha, err := s.commitPush("main", "ship: "+slug, false)
+	if err != nil {
+		return "", err
+	}
+	if err := s.waitChecks(sha); err != nil {
+		return "", err
+	}
+	url := strings.TrimRight(e.cfg.Site.URL, "/") + "/" + slug + "/"
+	if probs := smoke(url, []byte(want)); len(probs) > 0 {
+		return "", fmt.Errorf("%s の検査に通らない:\n  %s", url, strings.Join(probs, "\n  "))
+	}
+	s.closePR()
+	return url, nil
+}
+
+// unpublishWeb は本番からアプリを消す (drop のとき)。置いていなければ何もしない。
+func unpublishWeb(e *env, p *state.Project) error {
+	if e.cfg.Site.Repo == "" {
+		return nil
+	}
+	s, err := openSite(e)
+	if err != nil {
+		return err
+	}
+	defer s.closePR()
+	slug := filepath.Base(p.Repo)
+	if _, err := os.Stat(filepath.Join(s.dir, "public", slug)); err != nil {
+		return nil
+	}
+	if err := s.git("rm", "-r", "-q", "public/"+slug); err != nil {
+		return err
+	}
+	if err := s.writeIndex(e, slug, false); err != nil {
+		return err
+	}
+	_, err = s.commitPush("main", "drop: "+slug, false)
+	return err
+}
+
+// ---- アプリのビルド (鍵なし) ----
+
+// buildApp は鍵らしい環境変数を消した環境で、install script なしで検査とビルドをし、dist のパスを返す。
+func buildApp(dir, slug string) (string, error) {
+	envv := scrubEnv(os.Environ())
+	for _, c := range [][]string{
+		{"npm", "ci", "--no-audit", "--no-fund", "--ignore-scripts"},
+		{"npm", "run", "verify"},
+		{"npm", "run", "build", "--", "--base=/" + slug + "/"},
+	} {
+		cmd := exec.Command(c[0], c[1:]...)
+		cmd.Dir, cmd.Env = dir, envv
+		if b, err := cmd.CombinedOutput(); err != nil {
+			return "", fmt.Errorf("%s が失敗:\n%s", strings.Join(c, " "), tail(string(b), 60))
+		}
+	}
+	return filepath.Join(dir, "dist"), nil
+}
+
+// 配るファイルの上限 (Workers の静的ファイルの無料枠より十分小さく)
+const (
+	maxDistFiles = 1000
+	maxFileBytes = 10 << 20
+	maxDistBytes = 50 << 20
+)
+
+// copyDist は dist を dst に写す。配信の設定を変えるファイル・リンク・大きすぎるものは止める。
+func copyDist(src, dst string) error {
+	if _, err := os.Stat(filepath.Join(src, "index.html")); err != nil {
+		return errors.New("dist/index.html がない")
+	}
+	var files int
+	var total int64
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(src, path)
+		base := info.Name()
+		switch {
+		case info.Mode()&os.ModeSymlink != 0:
+			return fmt.Errorf("dist/%s はリンク (置けない)", rel)
+		case base == "_headers" || base == "_redirects" || base == "_routes.json" || base == ".assetsignore" ||
+			strings.HasPrefix(base, "_worker") || base == "sw.js" || base == "service-worker.js":
+			return fmt.Errorf("dist/%s は配信の設定・Service Worker (置けない)", rel)
+		case info.IsDir():
+			return os.MkdirAll(filepath.Join(dst, rel), 0o755)
+		case !info.Mode().IsRegular():
+			return fmt.Errorf("dist/%s は普通のファイルでない", rel)
+		}
+		files++
+		total += info.Size()
+		if files > maxDistFiles || info.Size() > maxFileBytes || total > maxDistBytes {
+			return fmt.Errorf("dist が大きすぎる (%d ファイル・%d バイトまで)", maxDistFiles, maxDistBytes)
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(dst, rel), b, 0o644)
+	})
+}
+
+// ---- 本番・プレビューの検査 ----
+
+// smoke は URL が動いていて、守りのヘッダーが付き、中身が want (いま置いた index.html) と同じかを見る。
+func smoke(url string, want []byte) []string {
+	c := http.Client{Timeout: 20 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Accept", "text/html")
+	r, err := c.Do(req)
 	if err != nil {
 		return []string{err.Error()}
 	}
-	r.Body.Close()
+	defer r.Body.Close()
+	body, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	var probs []string
 	if r.StatusCode != 200 {
 		probs = append(probs, fmt.Sprintf("ステータス %d", r.StatusCode))
@@ -169,19 +249,24 @@ func smoke(url string) []string {
 	case strings.Contains(csp, "unsafe-inline") || strings.Contains(csp, "unsafe-eval"):
 		probs = append(probs, "CSP に unsafe-inline / unsafe-eval がある")
 	}
-	for h, want := range map[string]string{
+	for h, w := range map[string]string{
 		"X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer",
 		"Strict-Transport-Security": "max-age=", "Permissions-Policy": "camera=()",
 	} {
-		if !strings.Contains(r.Header.Get(h), want) {
-			probs = append(probs, h+" に "+want+" がない")
+		if !strings.Contains(r.Header.Get(h), w) {
+			probs = append(probs, h+" に "+w+" がない")
 		}
 	}
 	if r.Header.Get("Set-Cookie") != "" {
 		probs = append(probs, "Cookie を発行している (持たない設計にする)")
 	}
+	if want != nil && r.StatusCode == 200 && !bytes.Equal(bytes.TrimSpace(body), bytes.TrimSpace(want)) {
+		probs = append(probs, "中身がいま置いたものと違う (古い版が出ている)")
+	}
 	return probs
 }
+
+// ---- Go の CLI ----
 
 // releaseGo はタグを打って push する。リリースは Actions の goreleaser が作る (鍵は GITHUB_TOKEN だけ)。
 func releaseGo(e *env, p *state.Project, dir string) error {
@@ -216,48 +301,6 @@ func tail(s string, n int) string {
 		lines = lines[len(lines)-n:]
 	}
 	return strings.Join(lines, "\n")
-}
-
-// wranglerVersion は wk が使う wrangler の版 (雛形の package.json と合わせる)。
-const wranglerVersion = "4.158.0"
-
-// ensureWrangler は runtime_dir/tools に版を固定した wrangler を入れ、その実行ファイルを返す。
-// アプリの node_modules の wrangler は使わない (依存のすり替えで鍵を盗まれないように)。
-func ensureWrangler(e *env) (string, error) {
-	dir := filepath.Join(e.cfg.RuntimeDir, "tools", "wrangler-"+wranglerVersion)
-	bin := filepath.Join(dir, "node_modules", ".bin", "wrangler")
-	if _, err := os.Stat(bin); err == nil {
-		return bin, nil
-	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", err
-	}
-	cmd := exec.Command("npm", "install", "--no-audit", "--no-fund", "--ignore-scripts", "--prefix", dir, "wrangler@"+wranglerVersion)
-	cmd.Env = scrubEnv(os.Environ())
-	if b, err := cmd.CombinedOutput(); err != nil {
-		return "", fmt.Errorf("wrangler を入れられない: %w\n%s", err, tail(string(b), 20))
-	}
-	return bin, nil
-}
-
-// checkWranglerConfig は、鍵のある環境で任意のコマンドが動く設定を止める。
-func checkWranglerConfig(dir string) error {
-	b, err := os.ReadFile(filepath.Join(dir, "wrangler.jsonc"))
-	if err != nil {
-		return fmt.Errorf("wrangler.jsonc がない: %w", err)
-	}
-	s := string(b)
-	for _, bad := range []string{`"build"`, `"custom_build"`, `"routes"`, `"route"`, `"secrets"`, `"vars"`} {
-		if strings.Contains(s, bad) {
-			return fmt.Errorf("wrangler.jsonc に %s がある (使わない設定)", bad)
-		}
-	}
-	for _, f := range []string{"wrangler.toml", "wrangler.json"} {
-		if _, err := os.Stat(filepath.Join(dir, f)); err == nil {
-			return fmt.Errorf("%s がある (設定は wrangler.jsonc の 1 つだけ)", f)
-		}
-	}
-	return nil
 }
 
 // scrubEnv は鍵らしい環境変数を取り除く (gh のトークンなど、元から環境にあるものも含めて)。

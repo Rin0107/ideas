@@ -50,6 +50,7 @@ func setup(t *testing.T) fixture {
 		"select":          map[string]int{"candidates": 15, "min_free": 3, "min_light": 3},
 		"evaluate":        map[string]int{"ship_min_wakuwaku": 4, "ship_min_quality": 3},
 		"protected_paths": []string{"factory.json"},
+		"site":            map[string]string{"repo": "Tester/wakuwaku-site", "url": "https://wakuwaku-site.tester.workers.dev"},
 	}
 	b, _ := json.Marshal(cfg)
 	must(t, os.MkdirAll(filepath.Join(f.root, "state"), 0o755))

@@ -1,0 +1,18 @@
+// 公開するアプリを全部まとめて配る 1 つの Worker。
+// Cloudflare の GitHub 連携 (Workers Builds) が main への push で本番に、preview ブランチへの push でプレビューに出す。
+// 鍵はこのマシンにも repo にも置かない (Cloudflare の中にだけある)。
+// ビルドのコマンドは使わない: public/ は wk が手元でビルドしたもの。Cloudflare で動くのは版固定の wrangler だけ。
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wakuwaku-site",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+  },
+  "observability": { "enabled": false },
+  "workers_dev": true,
+  "preview_urls": true,
+}

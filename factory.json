@@ -28,7 +28,7 @@
     "ship_min_quality": 3
   },
 
-  "allowed_services": ["github", "cloudflare-free", "vercel-hobby", "github-releases"],
+  "allowed_services": ["github", "cloudflare-free", "github-releases"],
   "deny_packages": ["@supabase/supabase-js", "firebase", "@sentry/browser", "posthog-js", "mixpanel-browser", "@vercel/analytics", "openai", "@anthropic-ai/sdk", "@google/generative-ai", "stripe", "@aws-sdk/client-bedrock-runtime"],
   "protected_paths": [
     "factory.json",
@@ -47,6 +47,12 @@
     "templates/web/wk.json",
     "templates/go-cli/scripts/",
     "templates/go-cli/wk.json",
-    "templates/go-cli/.github/"
-  ]
+    "templates/go-cli/.github/",
+    "templates/site/"
+  ],
+
+  "site": {
+    "repo": "Rin0107/wakuwaku-site",
+    "url": ""
+  }
 }

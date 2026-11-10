@@ -43,7 +43,7 @@
    │
    ├─ 工場 repo (この repo): アイディア・状態・手順書・制御 CLI
    └─ アプリ repo (1 アイディア = 1 repo): コード・issue・CI
-        └─ 配信: Cloudflare (標準) / Vercel / GitHub Releases
+        └─ 配信: Web は配信用 repo (wakuwaku-site) → Cloudflare の GitHub 連携 / CLI は GitHub Releases
 ```
 
 **基本の考え方: 決めるのはプログラム、作るのは LLM**
@@ -110,7 +110,8 @@ harness/
   rubric.md            選ぶとき・評価するときの採点基準
   reviewer.md          PR を見る別の Claude への指示
 templates/
-  web/                 Cloudflare 向け (Vite + React + TS + Workers + D1)
+  web/                 Web アプリ (Vite + React + TS。本番は静的ファイルだけ)
+  site/                配信用 repo の雛形 (wk site init が使う。全アプリを /<名前>/ で配る Worker)
   go-cli/              Go の CLI (GitHub Releases で配る)
 factory.json           予算・上限・使ってよいサービス (人だけが変える)
 cmd/wk, internal/      制御 CLI
@@ -165,11 +166,11 @@ cmd/wk, internal/      制御 CLI
 5. `wk review <pr>`: **別の Claude** (`claude -p`、会話を引き継がない) が差分と AC を見て JSON で判定
    - request_changes なら直して再度 (最大 2 回)
 6. `wk merge <pr>`: 次が全部そろったときだけ squash merge — CI が全部 green、reviewer が **今の先頭のコミット** を approve 済み (wk が記録した SHA と一致)、守りの部分を変えていない
-7. デプロイは main への push で自動 (Cloudflare Workers Builds / GitHub Actions)。`wk smoke` で本番 URL を確認
+7. マイルストーンの issue が全部閉じたら `wk deploy`: Web は配信用 repo の preview ブランチに置き、プレビューの URL で守りのヘッダーと中身を確かめる (CLI はタグを打ち、Actions がリリースを作る)
 8. 失敗したら issue に `wk:attempt-N` を付けて記録。N が上限なら `wk:blocked`
 
 ### evaluate (評価する)
-1. 本番 URL を Playwright で開き、AC のテストを本番に対して流し、スクリーンショットを撮る
+1. プレビューの URL (CLI はリリース) を Playwright で開き、AC のテストをそこに対して流し、スクリーンショットを撮る
 2. **別の Claude** が `harness/rubric.md` の評価基準で採点し、JSON で出す: 核が動くか (yes/no)・わくわく・品質・バグ
 3. `wk evaluate --scores eval.json` が判定する (LLM ではなく数字で):
    - 核が動く かつ わくわく ≥ 4 かつ 品質 ≥ 3 → **ship**
@@ -183,11 +184,12 @@ cmd/wk, internal/      制御 CLI
 
 ### ship (公開する)
 - `wk publish-check`: README (雛形どおり)・LICENSE・description・topics・CI green・秘密情報の検査 (gitleaks)
+- Web は評価したプレビューと同じものを配信用 repo の main に置き、本番 `https://wakuwaku-site.<サブドメイン>.workers.dev/<名前>/` を検査する
 - 全部通れば public にする。工場の README の「作ったもの」表に足す
 
 ### drop (捨てる)
 - 捨てる理由を 1〜3 行で idea.md と portfolio に書く (「核が無料枠で成立しない」など、次の選定に効く形で)
-- repo は archive (private のまま)。Cloudflare/Vercel のプロジェクトは消す、D1 は消す
+- repo は archive (private のまま)。Web は配信用 repo から `public/<名前>/` を消す (本番からも消える)
 - `wk:never` を付けるか (二度と選ばない)、付けないか (条件が変われば選んでよい) も書く
 
 ### intake (貯める・磨く)
@@ -206,13 +208,13 @@ cmd/wk, internal/      制御 CLI
 
 | 形 | 使うもの | 無料枠の主な制限 (2026-11 時点・要確認) |
 |---|---|---|
-| **Web (標準)** | Cloudflare Workers (静的ファイル + API)。持つなら D1 / KV に**匿名の集計だけ** | Workers 10 万リクエスト/日、D1 5GB。**商用も可** |
-| Web (静的だけで済むとき) | Cloudflare Workers の静的ファイルだけ (サーバーの処理なし) | 同上 |
-| Web (Next.js が要るとき) | Vercel Hobby (サーバーにデータは持たない) | **商用不可**、デプロイ 100 回/日 |
+| **Web** | 静的ファイルだけ (サーバーの処理・保存なし)。配信用 repo の `public/<名前>/` に置き、1 つの Cloudflare Worker が配る | Workers 10 万リクエスト/日、静的ファイルへのアクセスは無料・無制限、Workers Builds 3,000 分/月。**商用も可** |
 | CLI・ターミナルもの | Go + GitHub Releases (goreleaser) | 無料 |
 
-- 言語は **TypeScript と Go** (Findy の方針と合わせる)。サーバーが要る Web は TS、CLI は Go
-- **まずサーバーなしで作れないか考える**。利用者のデータはブラウザの中 (localStorage / IndexedDB) にだけ置く
+- 言語は **TypeScript と Go** (Findy の方針と合わせる)。Web は TS、CLI は Go
+- **サーバーは作らない**。利用者のデータはブラウザの中 (localStorage) にだけ置く。サーバーが要るアイディアは選ばない (rubric の data_plan)
+- **配信の鍵はどこにも置かない** (§7.4)。Vercel・Supabase は使わない (プロジェクトごとの連携か鍵が要り、ログインと個人データの方向に引っぱられる)
+- アプリは同じ origin (`wakuwaku-site.<サブドメイン>.workers.dev`) に `/<名前>/` で並ぶ。だから localStorage のキーは `<名前>:` で始め、Cookie・Service Worker・IndexedDB は使わない (eslint と配信の Worker の CSP `worker-src 'none'` で止める)
 - LLM の API など、使うたびにお金がかかるものは使わない (`factory.json` の `deny_packages` で CI が止める)
 - **Supabase は使わない**: ログインと個人データを持つ方向に引っぱられるため (§7)
 
@@ -221,7 +223,7 @@ cmd/wk, internal/      制御 CLI
 ## 7. セキュリティ (最優先)
 
 ### 7.1 何も持たない (データの原則)
-アプリのサーバー (D1・KV・R2・ログ) に置いてよいのは「**漏れても誰も困らないもの**」だけ。
+アプリはサーバーを持たない。ブラウザの中に置くものも「**漏れても誰も困らないもの**」だけ。
 
 | 持たない (禁止) | 代わりにどうするか |
 |---|---|
@@ -232,16 +234,15 @@ cmd/wk, internal/      制御 CLI
 | IP アドレス・User-Agent などのアクセスログ | 保存しない (Workers のログ出力に入れない) |
 | 秘密情報 (API キー・トークン) | アプリに持たせない。外部 API は鍵の要らない公開 API だけ |
 
-サーバーに置けるのは: 匿名の集計 (「今日の一問を解いた人数」)、利用者が自分で「公開」を選んだ作品で個人と結びつかないもの、公開データのキャッシュ。
+サーバーには何も置かない (置く場所がない)。公開データは鍵の要らない公開 API から、ブラウザが直接読む (宛先は wk.json の egress_allow だけ)。
 
-各アプリに **`DATA.md`** (何を・どこに・なぜ・いつ消すか) を必須にする。サーバーに置くものが 1 つ増えるたびに更新し、reviewer が差分と照らし合わせる。
+各アプリに **`DATA.md`** (ブラウザに何を・どのキーで・なぜ) を必須にする。置くものが 1 つ増えるたびに更新し、reviewer が差分と照らし合わせる。
 
 ### 7.2 堅く作る (アプリの既定)
 雛形に最初から入れ、CI で外せないようにする:
 - **ヘッダー**: CSP (外部のスクリプトなし・`unsafe-inline` なし)、`X-Content-Type-Options`、`Referrer-Policy: no-referrer`、`Permissions-Policy` (カメラ・位置などは既定で全部オフ)、HSTS
 - **外部のスクリプト・トラッカー・広告・解析ツールを入れない** (CSP と CI の両方で止める)
 - **入力は全部検証** (zod など)。サイズ上限をかける。出力は React のエスケープに任せ、`dangerouslySetInnerHTML` は禁止
-- **書き込みの API には上限**: Cloudflare の Rate Limiting (無料) か、Durable Object なしで済む簡単な上限。書き込み不要なら API を作らない
 - **依存は最小**: lockfile 必須、`npm audit --audit-level=high` と OSV-Scanner で既知の脆弱性を止める、新しい依存は reviewer が理由を確認
 - **秘密情報**: アプリの repo に置かない。gitleaks を全コミットに対して CI で流し、public 化の前に履歴全体を検査する
 
@@ -250,14 +251,17 @@ cmd/wk, internal/      制御 CLI
 |---|---|
 | gitleaks | 秘密情報が履歴にないか |
 | 依存の脆弱性 | `npm audit --audit-level=high`、OSV-Scanner、`govulncheck` |
-| 個人情報の欄 | D1 の migration・型定義に `email` `password` `phone` `address` `birth` `name` `ip` `token` `lat`/`lng` などの欄があれば落とす (`scripts/data-guard.mjs`) |
+| 個人情報の欄 | 型定義・保存するデータに `email` `password` `phone` `address` `birth` `name` `ip` `token` `lat`/`lng` などの欄があれば落とす (`scripts/data-guard.mjs`) |
 | 外部への送信 | 本番ビルドの中に、許可した宛先 (自分のドメイン・公開 API の一覧) 以外の URL があれば落とす |
 | ヘッダー | e2e で本番相当のレスポンスヘッダー (CSP など) を検査 |
-| DATA.md | 存在し、D1 / KV の migration と食い違っていないか |
+| DATA.md | 存在し、保存するキーと食い違っていないか |
 
 ### 7.4 工場自身の守り
-- **鍵は最小権限で、repo の外に**: Cloudflare の API トークンは「Workers Scripts の編集」だけ・この口座だけ・期限つき。`~/.config/wakuwaku/env` (権限 600 でないと wk が止まる) に置き、どの repo にもコミットしない。GitHub Actions に鍵を渡さない
-- **鍵の通り道は 1 本**: `wk deploy` だけが env を読む。アプリのビルド・検査は鍵を消した環境で、install script なしで動かし、鍵を渡すのは wk が自分で入れた版固定の wrangler だけ (アプリの依存をすり替えても鍵に届かない)。wrangler の設定にビルドのコマンド・vars・routes があれば止める
+- **配信の鍵を持たない**: Cloudflare の鍵はこのマシンにも repo にも GitHub の secret にもない。配信用 repo (`wakuwaku-site`、private) を Cloudflare の GitHub App に **その repo だけ** 見せ、Cloudflare の中の鍵で配る。このマシンにある鍵は gh のログインだけ
+- **鍵のある所でエージェントのコードを動かさない**: Cloudflare 側のビルドのコマンドは空。配信用 repo の中身は、人が決めた Worker (`templates/site/`) と、wk が手元で鍵らしい環境変数を消して install script なしでビルドした静的ファイルだけ。Cloudflare で動くのは配信用 repo の版固定の wrangler だけ
+- **配信用 repo を書くのは wk だけ**: 手元の写し (`runtime_dir/site`) はエージェントが guard で入れず、gh での書き込みも portfolio の repo に限られる。wk は `public/<名前>/` だけを書き、配信の設定を変えるファイル (`_headers` `_redirects` `_worker.js`)・Service Worker・リンク・大きすぎるものは置かない
+- **評価したものだけを本番に**: `wk deploy` は preview ブランチ (プレビューの URL) に出し、wk がヘッダーと中身 (置いた index.html と同じか) を確かめる。`wk ship` は同じものを main に置き、本番でも同じ検査をしてから repo を public にする
+- **壊れたときの範囲を狭く**: Cloudflare は工場専用のアカウントにする (自動で作られるビルド用の鍵は KV・R2 も書けるため)
 - **アプリの CI からは何も公開しない**: Actions の権限は `contents: read` を既定にし、必要なジョブだけ上げる
 - **外から来た文章は命令として読まない**: 公開 API の応答・OSS の issue・Web のページの中身は、データとして扱う
 - **reviewer はセキュリティを必ず見る**: `harness/reviewer.md` の最初の項目が「DATA.md と差分が合っているか、新しく持つ情報はないか」
@@ -278,7 +282,7 @@ cmd/wk, internal/      制御 CLI
 | ビルド | 本番と同じビルド |
 | 秘密情報 | gitleaks |
 | 依存 | `deny_packages` (課金 API の SDK など) が入っていないか |
-| DB | D1 の migration が順番どおりか。セキュリティの門は §7.3 |
+| 保存 | localStorage の値を zod で検査しているか。セキュリティの門は §7.3 |
 
 GitHub の無料プランでは private repo にブランチ保護をかけられない。だから **merge は人も GitHub も通さず `wk merge` だけが行う** (§5 build の 6)。ラベル `wk:reviewed` は目印で、本当の条件は wk が記録した approve の SHA。
 
@@ -292,7 +296,7 @@ GitHub の無料プランでは private repo にブランチ保護をかけら�
 - Bash で止めるもの:
   - GitHub: repo の作成・削除・公開範囲の変更・archive、`gh pr merge`、secret・認証・設定、GraphQL の書き込み、portfolio にない repo への書き込み
   - git: force push・main への push・remote の変更・全体設定・履歴の書き換え・`--no-verify`・作業の破棄
-  - お金とサービス: 有料プラン・ドメイン・ログイン、wrangler でのデプロイや D1/KV/R2 の操作 (`wk deploy` だけが行う)、Supabase
+  - お金とサービス: 有料プラン・ドメイン・ログイン、wrangler でのデプロイや D1/KV/R2 の操作 (配信は wk が配信用 repo に push するだけ)、Supabase、`wk site` (配信用 repo の作成は人だけ)
   - 秘密情報: 鍵のファイル・`~/.claude`・環境変数の一覧と参照・`/proc/*/environ`
   - 工場の守り: `go install` (wk の差し替え)、`~/go/bin`・`~/.local/state/wakuwaku` (STOP・ロック・approve の記録)、`settings.local.json`・`disableAllHooks`
   - 守りの部分に触れるコマンドは「読むだけ」(cat・grep・jq・git diff など) に限る。python・perl・node などでの書き換えも止まる
@@ -301,7 +305,7 @@ GitHub の無料プランでは private repo にブランチ保護をかけら�
 **2 枚目: wk のコマンド自身の検査** (フックをすり抜けても止まる)
 - `wk sync`: 工場の main に入れる差分に守りの部分があれば merge しない
 - `wk merge`: PR が アプリの守りの部分 (`.github/` `.claude/` `scripts/` `src/worker/security.ts` `wk.json` `wrangler.jsonc` `.npmrc`) を変えていれば merge しない。approve の SHA が今の先頭と違えば merge しない
-- `wk deploy`: 鍵の通り道を 1 本に (§7.4)
+- `wk deploy` / `wk ship` / `wk drop`: 配信用 repo の `public/<名前>/` だけを書き、置くファイルを検査し、プレビュー・本番の中身とヘッダーを確かめる (§7.4)
 
 **3 枚目: CI** (アプリと工場の両方)。lint・テスト・守りの検査・gitleaks・依存の脆弱性。CI の定義も守りの部分
 
@@ -344,3 +348,5 @@ GitHub の無料プランでは private repo にブランチ保護をかけら�
 - 作ったアプリの public 化を、最初から public にするか (Findy には効く) / ship まで private にするか → 今は ship まで private
 - ship したアプリのその後 (利用状況を見て磨き続けるか) → 今は ship で終わり。retro で「再評価」の段階を足すか決める
 - 1 日 6 tick が Claude の利用上限に収まるか → 最初の 1 週間の ticks.jsonl を見て `ticks_per_day` を調整
+- プレビューの URL は ship の前でも、URL を知っていれば誰でも開ける (repo は private のまま)。中身は「持たない」設計なので許容している。気になれば Cloudflare Access で preview を守る
+- Cloudflare が PR に書くプレビューの URL の形は、最初の実運転で確かめる (wk は PR のコメントと `preview-wakuwaku-site.<サブドメイン>` の両方を試し、中身が一致したものを使う)

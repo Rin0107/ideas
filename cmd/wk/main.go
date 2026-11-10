@@ -30,12 +30,13 @@ var commands = map[string]command{
 	"attempt":  {"<issue> --note ...: build の失敗を issue に記録 (上限で wk:blocked)", cmdAttempt},
 	"evaluate": {"--scores <json>: 評価の点数から ship / iterate / drop を決める", cmdEvaluate},
 	"iterate":  {"--plan <json>: 次のマイルストーンと磨く issue を登録 (status=iterating)", cmdIterate},
-	"ship":     {"--url <url>: 公開の点検をして public にする (status=shipped)", cmdShip},
-	"drop":     {"--reason ... [--never]: archive して捨てる (status=dropped)", cmdDrop},
+	"ship":     {"[--url <url>]: 公開の点検をして本番に出し public にする (Web は URL を wk が決める。CLI は release の URL)", cmdShip},
+	"drop":     {"--reason ... [--never]: 本番から消し、archive して捨てる (status=dropped)", cmdDrop},
 	// PR
 	"review": {"<repo> <pr>: 別の Claude に PR を見せ、approve なら wk:reviewed を付ける", cmdReview},
 	"merge":  {"<repo> <pr>: CI 全部 green かつ wk:reviewed のときだけ squash merge", cmdMerge},
-	"deploy": {"作っているアプリの main を本番に出し、守りのヘッダーを検査する (鍵は wk だけが読む)", cmdDeploy},
+	"deploy": {"作っているアプリを出す: Web はプレビュー (配信用 repo の preview)、CLI はタグとリリース", cmdDeploy},
+	"site":   {"init: 配信用の repo を作る (人が 1 回だけ。docs/SETUP.md)", cmdSite},
 	// フック
 	"guard-bash": {"PreToolUse(Bash) フック", cmdGuardBash},
 	"guard-edit": {"PreToolUse(Edit|Write) フック", cmdGuardEdit},

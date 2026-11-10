@@ -12,17 +12,20 @@ func sc(idea string, w, l, f, o, fy int) SelectScore {
 
 func TestChooseIdea(t *testing.T) {
 	c := config.Select{MinFree: 3, MinLight: 3}
-	allowed := map[string]bool{"a": true, "b": true, "c": true, "d": true, "e": true}
+	allowed := map[string]bool{"a": true, "b": true, "c": true, "d": true, "e": true, "f": true}
 	hw := sc("d", 5, 5, 5, 5, 5)
 	hw.Hardware = true
 	sens := sc("e", 5, 5, 5, 5, 5)
 	sens.Sensitive = true
+	srv := sc("f", 5, 5, 5, 5, 5)
+	srv.NeedsServer = true
 	got, log, err := ChooseIdea([]SelectScore{
 		sc("a", 4, 4, 4, 4, 4), // 20
 		sc("b", 5, 5, 2, 5, 5), // 無料で足切り
 		sc("c", 5, 4, 4, 4, 3), // 20 だがわくわくが上
 		hw,                     // 物が要る
 		sens,                   // 重要な情報が要る
+		srv,                    // サーバーが要る
 	}, allowed, c)
 	if err != nil {
 		t.Fatal(err)
@@ -30,7 +33,7 @@ func TestChooseIdea(t *testing.T) {
 	if got.Idea != "c" {
 		t.Fatalf("got %s", got.Idea)
 	}
-	if len(log) != 3 {
+	if len(log) != 4 {
 		t.Fatalf("log %v", log)
 	}
 }

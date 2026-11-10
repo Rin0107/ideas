@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -149,8 +150,18 @@ func cmdSelect(args []string) error {
 	for _, c := range ideas.Candidates(all, e.pf.Tried(), e.cfg.Select.Candidates, e.today()) {
 		allowed[c.Dir] = true
 	}
+	var skipped []string
+	if e.cfg.Site.URL == "" { // 配信の準備がまだなら Web は作らない (出せないため)
+		scores = slices.DeleteFunc(scores, func(s verdict.SelectScore) bool {
+			if s.Stack == "web" {
+				skipped = append(skipped, s.Idea+": 配信の準備がまだ (factory.json の site.url) なので Web は除外")
+				return true
+			}
+			return false
+		})
+	}
 	best, log, err := verdict.ChooseIdea(scores, allowed, e.cfg.Select)
-	for _, l := range log {
+	for _, l := range append(skipped, log...) {
 		fmt.Fprintln(os.Stderr, l)
 	}
 	if err != nil {
@@ -499,13 +510,26 @@ func cmdShip(args []string) error {
 	if p.Verdict != "ship" {
 		return fmt.Errorf("評価が ship でない (%q)", p.Verdict)
 	}
-	if probs := publishCheck(p.Repo, *url); len(probs) > 0 {
+	if p.Stack == "web" {
+		if e.cfg.Site.URL == "" {
+			return errors.New("配信の準備がまだ (factory.json の site.url。docs/SETUP.md)")
+		}
+		*url = strings.TrimRight(e.cfg.Site.URL, "/") + "/" + filepath.Base(p.Repo) + "/"
+	}
+	if probs := publishCheck(p.Repo, *url, p.Stack == "web"); len(probs) > 0 {
 		return errors.New("公開の点検に通らない:\n  " + strings.Join(probs, "\n  "))
+	}
+	if p.Stack == "web" {
+		got, err := publishWeb(e, p)
+		if err != nil {
+			return err
+		}
+		*url = got
 	}
 	if _, err := gh.GH("repo", "edit", p.Repo, "--visibility", "public", "--accept-visibility-change-consequences"); err != nil {
 		return err
 	}
-	p.Status, p.URL, p.Verdict = state.Shipped, *url, ""
+	p.Status, p.URL, p.Preview, p.Verdict = state.Shipped, *url, "", ""
 	e.event(p, "shipped", *url)
 	if err := e.appendIdeaHistory(p.Idea, "公開: "+*url+" ("+p.Repo+")"); err != nil {
 		return err
@@ -513,8 +537,13 @@ func cmdShip(args []string) error {
 	return e.save()
 }
 
-func publishCheck(repo, url string) []string {
+// publishCheck は public にする前の点検。web のときは本番に出す前なので、URL は README に載っているかだけを見る
+// (本番の検査は publishWeb がする)。
+func publishCheck(repo, url string, web bool) []string {
 	var probs []string
+	if readme, err := gh.GH("api", "repos/"+repo+"/readme", "-H", "Accept: application/vnd.github.raw"); err == nil && url != "" && !strings.Contains(readme, url) {
+		probs = append(probs, "README に公開の URL ("+url+") がない")
+	}
 	for _, f := range []string{"README.md", "LICENSE"} {
 		if _, err := gh.GH("api", "repos/"+repo+"/contents/"+f, "--jq", ".name"); err != nil {
 			probs = append(probs, f+" がない")
@@ -531,8 +560,8 @@ func publishCheck(repo, url string) []string {
 	}
 	if url == "" {
 		probs = append(probs, "--url が空")
-	} else if strings.Contains(url, ".workers.dev") {
-		probs = append(probs, smoke(url)...)
+	} else if web {
+		// 本番に出すのはこのあと
 	} else if code := httpStatus(url); code != 200 {
 		probs = append(probs, fmt.Sprintf("%s が %d", url, code))
 	}
@@ -570,6 +599,11 @@ func cmdDrop(args []string) error {
 	p, err := e.project()
 	if err != nil {
 		return err
+	}
+	if p.Stack == "web" {
+		if err := unpublishWeb(e, p); err != nil {
+			return fmt.Errorf("本番から消せない: %w", err)
+		}
 	}
 	if p.Repo != "" {
 		if _, err := gh.GH("repo", "archive", p.Repo, "--yes"); err != nil {

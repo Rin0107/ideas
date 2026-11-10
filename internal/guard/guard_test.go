@@ -41,6 +41,7 @@ func TestBashDenies(t *testing.T) {
 		"npx wrangler d1 create db",
 		"npx wrangler login",
 		"vercel domains buy example.com",
+		"wk site init",
 		"npx supabase init",
 		// 秘密情報
 		"cat ~/.config/wakuwaku/env",
