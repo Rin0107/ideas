@@ -64,9 +64,9 @@ jobs:
       - name: gremlins
         env: { BASE: "${{ github.event.pull_request.base.sha || github.event.before }}" }
         run: |
-          case "$BASE" in ""|0000000000000000000000000000000000000000) BASE=$(git hash-object -t tree /dev/null) ;; esac
-          if [ -z "$(git diff --name-only "$BASE" -- 'internal/*.go' ':!*_test.go')" ]; then echo "ok: internal/ の変更なし"; exit 0; fi
-          gremlins unleash --diff "$BASE" --threshold-efficacy 95 --threshold-mcover 100 --timeout-coefficient 3 \
+          case "$BASE" in 0000000000000000000000000000000000000000) BASE="" ;; esac
+          if [ -n "$BASE" ] && [ -z "$(git diff --name-only "$BASE" -- 'internal/*.go' ':!*_test.go')" ]; then echo "ok: internal/ の変更なし"; exit 0; fi
+          gremlins unleash ${BASE:+--diff "$BASE"} --threshold-efficacy 95 --threshold-mcover 100 --timeout-coefficient 3 \
             --invert-logical --invert-loopctrl -E 'internal/fakegh/' ./internal/...
 
   # 仕様: spec/ (工場の流れ・評価の結論) を TLA+ と Z3 で検査し、TestSpec_ とのつながりを確かめる
@@ -132,15 +132,13 @@ jobs:
   template-web-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # ブラウザ入りの公式イメージ (版と digest を固定。入れる時間を省いて 5 分に収める)
+    container: mcr.microsoft.com/playwright:v1.65.0-noble@sha256:6e3fb709361521eb27161606e6da6d2674e5e89fa16516cb37d6fdd91372273d
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with: { node-version: 24 }
       - run: sh scripts/instantiate.sh templates/web /tmp/app wk-template-web
       - run: npm ci --no-audit --no-fund
-        working-directory: /tmp/app
-      - run: npx playwright install --with-deps chromium
         working-directory: /tmp/app
       - run: npm run e2e
         working-directory: /tmp/app

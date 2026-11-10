@@ -31,13 +31,12 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # ブラウザ入りの公式イメージ (版と digest を固定。入れる時間を省いて 5 分に収める)
+    container: mcr.microsoft.com/playwright:v1.65.0-noble@sha256:6e3fb709361521eb27161606e6da6d2674e5e89fa16516cb37d6fdd91372273d
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with: { node-version: 24, cache: npm }
       - run: npm ci --no-audit --no-fund
-      - run: npx playwright install --with-deps chromium
       - run: npm run e2e
         env: { CI: "1", WRANGLER_SEND_METRICS: "false" }
 

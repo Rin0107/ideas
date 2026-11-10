@@ -33,10 +33,10 @@ FUZZ_SECONDS ?= 150
 fuzz:
 	sh scripts/fuzz.sh $(FUZZ_SECONDS)
 
-# ミューテーション: コードを少し壊して、テストが気づくか。BASE からの変更だけ (CI が渡す)
+# ミューテーション: コードを少し壊して、テストが気づくか。BASE からの変更だけ (CI が渡す)。BASE が空なら全部
 BASE ?= origin/main
 mutate:
-	gremlins unleash --diff "$(BASE)" --threshold-efficacy 95 --threshold-mcover 100 --timeout-coefficient 3 --invert-logical --invert-loopctrl
+	gremlins unleash $(if $(BASE),--diff "$(BASE)") --threshold-efficacy 95 --threshold-mcover 100 --timeout-coefficient 3 --invert-logical --invert-loopctrl
 
 # 仕様の検査: TLA+ (TLC) と Z3。道具は CI が版と sha256 を固定して入れる
 formal:
