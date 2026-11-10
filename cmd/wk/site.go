@@ -36,7 +36,7 @@ func openSite(e *env) (*site, error) {
 		if err := os.MkdirAll(filepath.Dir(s.dir), 0o755); err != nil {
 			return nil, err
 		}
-		if _, err := gh.GH("repo", "clone", s.repo, s.dir, "--", "-q"); err != nil {
+		if err := gh.Clone(s.repo, s.dir); err != nil {
 			return nil, err
 		}
 	}
@@ -249,9 +249,6 @@ func cmdSite(args []string) error {
 	if repo == "" {
 		return errors.New("factory.json の site.repo が空")
 	}
-	if _, err := gh.GH("repo", "view", repo, "--json", "name"); err == nil {
-		return fmt.Errorf("%s はすでにある", repo)
-	}
 	tmp, err := os.MkdirTemp("", "wakuwaku-site-")
 	if err != nil {
 		return err
@@ -269,8 +266,7 @@ func cmdSite(args []string) error {
 			return err
 		}
 	}
-	if _, err := gh.GH("repo", "create", repo, "--private", "--source", dir, "--push",
-		"--description", "わくわく工場が公開したアプリを配る (Cloudflare Workers)"); err != nil {
+	if err := gh.CreateAndPush(repo, dir, "わくわく工場が公開したアプリを配る (Cloudflare Workers)"); err != nil {
 		return err
 	}
 	fmt.Printf("作った: https://github.com/%s\n次: Cloudflare でこの repo を連携し、出た URL を factory.json の site.url に書く (docs/SETUP.md)\n", repo)

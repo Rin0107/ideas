@@ -232,7 +232,7 @@ func cmdScaffold(args []string) error {
 				return err
 			}
 		}
-		if _, err := gh.GH("repo", "create", repo, "--private", "--source", dir, "--push", "--description", plan.Description); err != nil {
+		if err := gh.CreateAndPush(repo, dir, plan.Description); err != nil {
 			return err
 		}
 	}
