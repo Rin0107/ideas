@@ -15,4 +15,6 @@
   "observability": { "enabled": false },
   "workers_dev": true,
   "preview_urls": true,
+  // preview ブランチを Worker Previews (npx wrangler preview) で出すのに要る。中身は空でよい
+  "previews": {},
 }
