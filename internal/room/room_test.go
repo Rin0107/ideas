@@ -57,14 +57,21 @@ func ok() sys {
 		}}
 }
 
+// 既定は nix-config の配分 (WSL 6GB = Orca など 2G + テストなど 4G) に合わせる
 func TestDefault(t *testing.T) {
-	if (Default() != Limits{MinAvailMB: 3072, MinCgroupMB: 2048, MaxPSI: 10, MaxLoadPct: 50}) {
+	uid := strconv.Itoa(os.Getuid())
+	want := Limits{MinAvailMB: 2048, MinCgroupMB: 512, MaxPSI: 10, MaxLoadPct: 50,
+		Heavy: "user.slice/user-" + uid + ".slice/user@" + uid + ".service/heavy.slice", MinHeavyMB: 2048}
+	if Default() != want {
 		t.Fatal(Default())
 	}
 }
 
+// テストでの条件 (境界値を分かりやすい数で)
+var testLimits = Limits{MinAvailMB: 3072, MinCgroupMB: 2048, MaxPSI: 10, MaxLoadPct: 50, Heavy: "u/heavy", MinHeavyMB: 1024}
+
 func TestProblems(t *testing.T) {
-	l := Default()
+	l := testLimits
 	cases := []struct {
 		name string
 		edit func(*sys)
@@ -108,6 +115,17 @@ func TestProblems(t *testing.T) {
 			s.cg["a/memory.current"], s.cg["a/memory.high"] = n(3*gib), n(4*gib)
 		}, "cgroup の残りが少ない: 1024MB < 2048MB"},
 		{"上限が数でない", func(s *sys) { s.cg["non-systemd/memory.high"], s.cg["non-systemd/memory.max"] = "x", "x" }, ""},
+		// テストなどの枠: 残り 1024MB はよく、1023MB はだめ。枠がまだなければ親 (u) を見る
+		{"枠 ちょうど", func(s *sys) {
+			s.cg["u/heavy/memory.current"], s.cg["u/heavy/memory.max"] = n(3*gib), n(4*gib)
+		}, ""},
+		{"枠 1 つ下", func(s *sys) {
+			s.cg["u/heavy/memory.current"], s.cg["u/heavy/memory.max"] = n(3*gib+1<<20), n(4*gib)
+		}, "テストなどの枠の残りが少ない: 1023MB < 1024MB"},
+		{"枠がまだない (親で見る)", func(s *sys) {
+			s.cg["u/memory.current"], s.cg["u/memory.high"] = n(3*gib+512<<20), n(4*gib)
+		}, "テストなどの枠の残りが少ない: 512MB < 1024MB"},
+		{"枠にも親にも上限なし", func(s *sys) { s.cg["u/memory.current"] = n(3 * gib) }, ""},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

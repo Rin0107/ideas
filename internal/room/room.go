@@ -12,15 +12,20 @@ import (
 
 // Limits は始めてよい条件。
 type Limits struct {
-	MinAvailMB  int // 使えるメモリ (MemAvailable) の下限
-	MinCgroupMB int // 自分の cgroup の上限 (memory.high / memory.max、親もたどる) までの残りの下限
-	MaxPSI      int // メモリ待ちの割合 (PSI some avg10、%) の上限
-	MaxLoadPct  int // 1 分の load の、コア数に対する割合 (%) の上限
+	MinAvailMB  int    // 使えるメモリ (MemAvailable) の下限
+	MinCgroupMB int    // 自分の cgroup (Orca など。tick の claude が入る) の上限 (memory.high / memory.max、親もたどる) までの残りの下限
+	Heavy       string // テストなどの枠の cgroup (/sys/fs/cgroup からの相対。scripts/limit.sh が重いコマンドを入れる)
+	MinHeavyMB  int    // テストなどの枠の上限までの残りの下限
+	MaxPSI      int    // メモリ待ちの割合 (PSI some avg10、%) の上限
+	MaxLoadPct  int    // 1 分の load の、コア数に対する割合 (%) の上限
 }
 
-// Default は既定の条件 (nix-config の cgroup の上限 memory.high=5G より内側に収まるように)。
+// Default は既定の条件。nix-config の配分 (WSL 6GB = Orca など 2G + テストなど 4G) に合わせる:
+// tick を始めるには、Orca などの側に claude 1 本分 (512MB)、テストなどの側に重いコマンド 1 本分 (2G) が空いていること。
 func Default() Limits {
-	return Limits{MinAvailMB: 3072, MinCgroupMB: 2048, MaxPSI: 10, MaxLoadPct: 50}
+	uid := os.Getuid()
+	return Limits{MinAvailMB: 2048, MinCgroupMB: 512, MaxPSI: 10, MaxLoadPct: 50,
+		Heavy: fmt.Sprintf("user.slice/user-%d.slice/user@%d.service/heavy.slice", uid, uid), MinHeavyMB: 2048}
 }
 
 // Problems は root (本番は "/") の下の /proc と /sys/fs/cgroup を読み、条件を満たさない理由を返す。空なら始めてよい。
@@ -52,8 +57,11 @@ func Problems(root string, cores int, l Limits) []string {
 	} else if pct := v * 100 / float64(max(cores, 1)); pct > float64(l.MaxLoadPct) {
 		out = append(out, fmt.Sprintf("CPU が混んでいる: load %.2f (%d コアの %.0f%%) > %d%%", v, cores, pct, l.MaxLoadPct))
 	}
-	if r, ok := cgroupRoomMB(root); ok && r < l.MinCgroupMB {
+	if r, ok := cgroupRoomMB(root, selfCgroup(root)); ok && r < l.MinCgroupMB {
 		out = append(out, fmt.Sprintf("cgroup の残りが少ない: %dMB < %dMB", r, l.MinCgroupMB))
+	}
+	if r, ok := cgroupRoomMB(root, l.Heavy); ok && r < l.MinHeavyMB {
+		out = append(out, fmt.Sprintf("テストなどの枠の残りが少ない: %dMB < %dMB", r, l.MinHeavyMB))
 	}
 	return out
 }
@@ -88,18 +96,21 @@ func psiSome10(psi string) (float64, bool) {
 	return 0, false
 }
 
-// cgroupRoomMB は自分の cgroup (v2) から根までたどり、上限までの残りの一番小さいものを返す。上限がなければ false。
-func cgroupRoomMB(root string) (int, bool) {
-	b, err := os.ReadFile(filepath.Join(root, "proc/self/cgroup"))
-	if err != nil {
-		return 0, false
-	}
+// selfCgroup は自分の cgroup (v2) の、/sys/fs/cgroup からの相対の場所。分からなければ空 (根)。
+func selfCgroup(root string) string {
+	b, _ := os.ReadFile(filepath.Join(root, "proc/self/cgroup"))
 	rel := ""
 	for line := range strings.SplitSeq(string(b), "\n") {
 		if p, ok := strings.CutPrefix(line, "0::"); ok {
 			rel = p
 		}
 	}
+	return rel
+}
+
+// cgroupRoomMB は rel の cgroup から根までたどり、上限までの残りの一番小さいものを返す。
+// まだない cgroup (heavy.slice は最初の重いコマンドで作られる) は飛ばして親を見る。上限がどこにもなければ false。
+func cgroupRoomMB(root, rel string) (int, bool) {
 	best, found := 0, false
 	for dir := filepath.Clean("/" + rel); dir != "/"; dir = filepath.Dir(dir) {
 		d := filepath.Join(root, "sys/fs/cgroup", dir)

@@ -50,12 +50,12 @@
 
 | 段 | 何をするか | どこで |
 |---|---|---|
-| 1 本ごとの上限 | `scripts/limit.sh <メモリ> <CPU 数> <コマンド>`。手元では systemd の cgroup (scope) に入れ、超えたら**そのコマンドだけ**が止まる (swap も使わない)。CI (`CI=true`) ではそのまま動かす | Makefile・package.json・fuzz.sh・formal.sh |
+| 1 本ごとの上限 | `scripts/limit.sh <メモリ> <CPU 数> <コマンド>`。手元では systemd の cgroup (`heavy.slice` の中の scope) に入れ、超えたら**そのコマンドだけ**が止まる (swap も使わない)。CI (`CI=true`) ではそのまま動かす | Makefile・package.json・fuzz.sh・formal.sh |
 | 並列の数 | 手元 2・CI 4 (`JOBS`)。`GOMAXPROCS`・`go test -p`・fuzz の `-parallel`・gremlins の `--workers`・TLC の `-workers`・vitest の `maxWorkers`・Stryker の `concurrency`・Playwright の `workers` | 同上 |
 | 道具ごとのメモリ | Go: `GOMEMLIMIT=1GiB` (柔らかい上限)。TLC: `-Xmx768m`。Z3: `-memory:1024`。Node: `--max-old-space-size=1536` | 同上・`.claude/settings.json` の env |
 | エージェントの既定 | `.claude/settings.json` の env (GOMAXPROCS=2 など)。エージェントが手で打つコマンドにも効く | 工場と雛形 |
-| 始める前の門 | `wk due` が使えるメモリ・メモリ待ち (PSI)・CPU の load・cgroup の残りを見て、足りなければ tick を始めない (`internal/room`) | 工場 |
-| 機械全体 | WSL 6GB・6 コア、Orca の端末全体の cgroup 4G、earlyoom | nix-config (この repo の外) |
+| 始める前の門 | `wk due` が使えるメモリ・メモリ待ち (PSI)・CPU の load・Orca 側の cgroup の残り (512MB)・テストなどの枠の残り (2G) を見て、足りなければ tick を始めない (`internal/room`) | 工場 |
+| 機械全体 | WSL 6GB・6 コア = Orca など (端末・claude) 2G・2 コア + テストなど (`heavy.slice`、limit.sh が入れる) 4G・4 コア。earlyoom | nix-config (この repo の外) |
 
 | 重いもの | 並列 | メモリの上限 (1 本) |
 |---|---|---|
