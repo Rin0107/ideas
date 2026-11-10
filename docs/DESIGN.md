@@ -349,4 +349,4 @@ GitHub の無料プランでは private repo にブランチ保護をかけら�
 - ship したアプリのその後 (利用状況を見て磨き続けるか) → 今は ship で終わり。retro で「再評価」の段階を足すか決める
 - 1 日 6 tick が Claude の利用上限に収まるか → 最初の 1 週間の ticks.jsonl を見て `ticks_per_day` を調整
 - プレビューの URL は ship の前でも、URL を知っていれば誰でも開ける (repo は private のまま)。中身は「持たない」設計なので許容している。気になれば Cloudflare Access で preview を守る
-- Cloudflare が PR に書くプレビューの URL の形は、最初の実運転で確かめる (wk は PR のコメントと `preview-wakuwaku-site.<サブドメイン>` の両方を試し、中身が一致したものを使う)
+- (確認済み 2026-11-10) プレビューは `preview-wakuwaku-site.<サブドメイン>` とコミットごとの `<短い ID>-wakuwaku-site.<サブドメイン>` の両方に出る。wk は PR のコメントの URL とブランチ名の URL を試し、中身が一致したものを使う
