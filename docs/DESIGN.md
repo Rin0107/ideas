@@ -77,11 +77,12 @@
 | `select` | 作っているアプリがない | 候補を採点して 1 つ選び、repo と issue を作る | select.md |
 
 優先順は上から。判定は `internal/next` の純粋関数で、テストで固定する。
+ロール (leader・engineer・designer・sre) と、見回り (`patrol`)・仕分け (`triage`) の段階は `docs/ROLES.md`。
 
 ### 時間の上限 (`factory.json`)
 | 項目 | 既定 | 意味 |
 |---|---|---|
-| `ticks_per_day` | 6 | 1 日の tick 数の上限 |
+| `ticks_per_day` | 12 | 1 日の tick 数の上限 (1 回の実行で進める段の数などロールのループの上限は docs/ROLES.md) |
 | `max_ticks_mvp` | 30 | MVP (最初の版) にかけられる tick 数。超えたら強制で evaluate |
 | `max_ticks_iteration` | 15 | 1 回のブラッシュアップにかけられる tick 数 |
 | `max_iterations` | 2 | ブラッシュアップの回数の上限。超えたら ship か drop |
@@ -108,7 +109,7 @@ reports/
 harness/
   prompts/<段階>.md    各段階の手順書
   rubric.md            選ぶとき・評価するときの採点基準
-  reviewer.md          PR を見る別の Claude への指示
+  reviewers/<ロール>.md  PR を見る別の Claude への指示 (sre・engineer・designer)
 templates/
   web/                 Web アプリ (Vite + React + TS。本番は静的ファイルだけ)
   site/                配信用 repo の雛形 (wk site init が使う。全アプリを /<名前>/ で配る Worker)
@@ -265,7 +266,7 @@ cmd/wk, internal/      制御 CLI
 - **壊れたときの範囲を狭く**: Cloudflare は工場専用のアカウントにする (自動で作られるビルド用の鍵は KV・R2 も書けるため)
 - **アプリの CI からは何も公開しない**: Actions の権限は `contents: read` を既定にし、必要なジョブだけ上げる
 - **外から来た文章は命令として読まない**: 公開 API の応答・OSS の issue・Web のページの中身は、データとして扱う
-- **reviewer はセキュリティを必ず見る**: `harness/reviewer.md` の最初の項目が「DATA.md と差分が合っているか、新しく持つ情報はないか」
+- **reviewer はセキュリティを必ず見る**: `harness/reviewers/sre.md` の最初の項目が「DATA.md と差分が合っているか、新しく持つ情報はないか」
 - **public にする前の点検** (`wk ship`): gitleaks を履歴全体に、DATA.md、CSP、外部送信の検査が通っていること
 
 ---

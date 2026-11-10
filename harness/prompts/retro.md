@@ -6,22 +6,26 @@
 - 失敗の note を種類に分ける (CI・レビュー・デプロイ・時間切れ・その他)
 - 作っているアプリの issue: 閉じた数・blocked の数 (`gh issue list --repo <repo> --state all --label wk:task`)
 - `reports/weekly/notes.md` に溜まった申し送り
+- **ロールごとの傾向**: ticks の `role` で分けて、ロールごとの tick 数・成功率・よく出る失敗の note・見回り (`patrol`) の提案の数と、
+  仕分け (`triage`) で now / later / reject になった割合 (`gh issue list --repo <repo> --state all --label wk:later` など)
 
 ## 2. 週のまとめを書く
 `reports/weekly/<今日>.md`:
 - 今週やったこと (選定・公開・破棄)、数字 (tick・成功率・閉じた issue)
 - うまくいかなかったことの上位 3 つと、その原因
+- ロールごとの傾向 (どのロールがどこで詰まるか・提案が役に立ったか)
 - **人に頼みたいこと** (Worker の削除、守りの部分の変更の提案、鍵の更新など)。なければ「なし」
 - セキュリティで気になったこと (reviewer の `[security]` の指摘、guard に止められた操作の傾向)
 
 ## 3. 手順を直す (直してよいのはここだけ)
-直してよい: `harness/prompts/*.md`、`templates/` のうち守りの部分以外、`docs/` のうち DESIGN.md 以外。
+直してよい: `harness/prompts/*.md`、`templates/` のうち守りの部分以外、`docs/` のうち守りの部分 (DESIGN.md・TESTING.md・ROLES.md) 以外。
+ロールの決まり (`.claude/agents/`・`harness/reviewers/`) は守りの部分。直すべきだと思ったら「人に頼みたいこと」に書く。
 - 失敗の上位 3 つのうち、手順書や雛形を直せば防げるものだけを直す。1 回の retro で 3 か所まで
 - **守りの部分 (`factory.json` の `protected_paths`) は直さない**。直すべきだと思ったら、まとめの「人に頼みたいこと」に書く
 - 直したら `reports/weekly/notes.md` の該当行を消す
 
 ## 4. 終える
 ```bash
-CGO_ENABLED=0 go test ./cmd/... ./internal/... && wk check
+CGO_ENABLED=0 GOMAXPROCS=2 sh scripts/limit.sh 2G 2 go test -p 2 ./cmd/... ./internal/... && wk check
 ```
-TICK.md の手順 3。note は「retro: 直した <n> か所」。
+leader に報告する。note は「retro: 直した <n> か所」。

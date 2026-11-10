@@ -5,7 +5,8 @@
   "runtime_dir": "~/.local/state/wakuwaku",
   "ideas_dir": "ideas_wakuwaku",
 
-  "ticks_per_day": 6,
+  "ticks_per_day": 12,
+  "steps_per_run": 3,
   "max_ticks_mvp": 30,
   "max_ticks_iteration": 15,
   "max_iterations": 2,
@@ -17,6 +18,10 @@
   "intake_every_days": 7,
   "retro_every_days": 7,
   "min_untried_ideas": 30,
+
+  "patrol_every_days": 3,
+  "patrol_min_ticks": 5,
+  "max_proposals": 3,
 
   "select": {
     "candidates": 15,
@@ -40,7 +45,8 @@
     "harness/rubric.md",
     ".github/workflows/",
     "docs/DESIGN.md",
-    "harness/reviewer.md",
+    "harness/reviewers/",
+    "docs/ROLES.md",
     "templates/web/.github/",
     "templates/web/scripts/",
     "templates/web/src/worker/security.ts",

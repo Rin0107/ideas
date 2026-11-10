@@ -1,6 +1,8 @@
 # build — issue を 1 つ実装して、merge・デプロイする
 
 `wk next` の `repo` と `issue` が対象。アプリの main の checkout は `~/src/wakuwaku/<repo の名前>`。
+担当は `role` (issue の `role:<名前>` のラベル。なければ engineer)。手順は同じで、**自分のロールのやり方で** 作る
+(engineer: 設計と `docs/architecture.md`、designer: デザインシステムと `docs/design-system.md`、sre: 失敗の扱い・テストの体制と `docs/runbook.md`)。
 
 ## 1. 準備
 ```bash
@@ -41,7 +43,8 @@ gh pr create --repo <repo> --base main --title "<タイトル>" --body "Closes #
 <何をしたか 2〜3 行。依存を足したら理由。DATA.md を変えたら何を>"
 wk review <repo> <PR 番号>
 ```
-- `request_changes` なら指摘を直して push し、もう一度 `wk review`。**最大 2 回**。3 回目も通らなければ手順 6
+- `wk review` はロールごとに別の reviewer が見る (sre・engineer はいつも、画面や表示に触れたら designer も)。結果はロールごとに PR のコメントに出る。**全員が approve して初めて approve**
+- `request_changes` なら、**どのロールの指摘も全部** 直して 1 回で push し、もう一度 `wk review`。**最大 2 回**。3 回目も通らなければ手順 6
 - approve されたら:
 ```bash
 wk merge <repo> <PR 番号>     # CI を待ち、全部 green なら merge
@@ -55,10 +58,10 @@ wk deploy                      # プレビューに出して、守りのヘッ�
 git -C $APP worktree remove ~/src/wakuwaku/.wt/<名前>-$N
 ```
 `wk deploy` が落ちたら fail で終える (次の tick で原因を直す issue を作るか、evaluate に回る)。
-TICK.md の手順 3 (result ok)。
+leader に報告する (result ok)。
 
 ## 6. 失敗したとき
 ```bash
 wk attempt $N --note "<なぜ通らないか。次の試行への申し送り>"
 ```
-PR は閉じず、ブランチも残す (次の試行が読める)。worktree だけ消す。TICK.md の手順 3 (result fail)。
+PR は閉じず、ブランチも残す (次の試行が読める)。worktree だけ消す。leader に報告する (result fail)。

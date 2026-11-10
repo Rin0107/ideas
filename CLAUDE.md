@@ -14,6 +14,12 @@
 - merge・公開・デプロイ・repo の作成と archive は wk のコマンドだけで行う (`wk merge` `wk ship` `wk deploy` `wk scaffold` `wk drop`)
 - 状態 (`state/`) は wk だけが書く。手で編集しない
 
+## ロール (docs/ROLES.md)
+- **leader** (定期実行の本体、`harness/TICK.md`): `wk next` の `role` に 1 段ずつ渡し、短い報告を受けて `wk done` する。手順書もコードも読まない
+- **engineer** (設計と実装)・**designer** (デザインシステムと UX)・**sre** (QA・信頼性・セキュリティ、公開): `.claude/agents/<role>.md`
+- 仕事の見つけ方: ロールが見回り (`patrol`) で提案 (`wk propose`) し、leader が仕分ける (`wk triage`)。数の上限は wk が決める
+- PR のレビューはロールごと (`harness/reviewers/<role>.md`)。全員の approve が要る
+
 ## 変えてはいけないもの (guard が止める)
 `factory.json` の `protected_paths` にあるもの: 制御のコード (`cmd/` `internal/`)・設定・CI・設計書・採点基準・reviewer の指示・雛形の守りの部分。
 変えるべきだと思ったら、`reports/weekly/notes.md` に書く (retro がユーザーに頼む)。

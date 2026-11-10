@@ -17,4 +17,4 @@
 wk drop --reason "<理由>" [--never]
 ```
 repo は archive される (private のまま)。idea.md の履歴に理由が残る。
-TICK.md の手順 3。次の tick で新しいアイディアが選ばれる。
+leader に報告する。次の tick で新しいアイディアが選ばれる。
