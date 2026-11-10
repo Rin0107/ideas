@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/Rin0107/ideas/internal/ideas"
 	"github.com/Rin0107/ideas/internal/lock"
 	"github.com/Rin0107/ideas/internal/next"
+	"github.com/Rin0107/ideas/internal/room"
 	"github.com/Rin0107/ideas/internal/state"
 )
 
@@ -84,6 +86,10 @@ func cmdDue(args []string) error {
 	}
 	if p := e.stopFile(); p != "" {
 		return exitError{1, "STOP がある (" + p + ")"}
+	}
+	// 機械に余裕がなければ始めない (2026-11-10 にメモリが尽きて PC ごと落ちた)
+	if why := room.Problems(sysRoot, runtime.NumCPU(), room.Default()); len(why) > 0 {
+		return exitError{1, "機械に余裕がない: " + strings.Join(why, " / ")}
 	}
 	rt, err := state.LoadRuntime(e.cfg.RuntimeDir, e.now)
 	if err != nil {

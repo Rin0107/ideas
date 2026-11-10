@@ -293,7 +293,7 @@ func cmdGuardEdit(args []string) error {
 // appProtected はアプリ repo の守りの部分 (エージェントは変えられない。雛形から来たまま)。
 // テストの基準 (カバレッジ 100%・ミューテーション・5 分) を書いたファイルも含む。
 var appProtected = []string{".github/", ".claude/", "scripts/", "src/worker/security.ts", "wk.json", "wrangler.jsonc", ".npmrc",
-	"Makefile", "vitest.config.ts", "stryker.config.json", "spec/README.md"}
+	"Makefile", "vitest.config.ts", "stryker.config.json", "playwright.config.ts", "spec/README.md"}
 
 func prFiles(repo string, pr int) ([]string, error) {
 	out, err := gh.GH("pr", "view", fmt.Sprint(pr), "--repo", repo, "--json", "files", "--jq", ".files[].path")

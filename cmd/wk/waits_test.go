@@ -18,4 +18,7 @@ func TestDefaultWaits(t *testing.T) {
 			t.Errorf("%s = %v (既定は %v)", name, c.got, c.want)
 		}
 	}
+	if sysRoot != "/" {
+		t.Errorf("sysRoot = %q (既定は /)", sysRoot)
+	}
 }

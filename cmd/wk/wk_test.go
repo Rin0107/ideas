@@ -40,6 +40,7 @@ type fixture struct {
 
 func setup(t *testing.T) fixture {
 	t.Helper()
+	fakeMachine(t, roomyMem, idleLoad)
 	base := t.TempDir()
 	f := fixture{root: filepath.Join(base, "factory"), runtime: filepath.Join(base, "runtime"), ghLog: filepath.Join(base, "gh.log")}
 	cfg := map[string]any{

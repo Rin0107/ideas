@@ -56,7 +56,9 @@
     "templates/go-cli/spec/README.md",
     "docs/TESTING.md",
     "scripts/",
-    "spec/"
+    "spec/",
+    "templates/web/playwright.config.ts",
+    "templates/web/package.json"
   ],
 
   "site": {

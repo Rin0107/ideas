@@ -50,8 +50,25 @@ func newFactory(t *testing.T, rules ...fakegh.Rule) *factory {
 	}
 	f.write("ideas_wakuwaku/INDEX.md", index.String())
 	f.gh = fakegh.Install(t, append(rules, fakegh.Rule{Match: `.`, Out: "[]"})...)
+	fakeMachine(t, roomyMem, idleLoad)
 	t.Chdir(f.root)
 	return f
+}
+
+const (
+	roomyMem = "MemAvailable: 8388608 kB\n" // 8GB 空いている
+	idleLoad = "0.00 0.00 0.00 1/1 1\n"
+)
+
+// fakeMachine は wk due が読む /proc を偽物にする (本物の機械の混み具合でテストが変わらないように)。
+func fakeMachine(t *testing.T, meminfo, loadavg string) {
+	r := t.TempDir()
+	must(t, os.MkdirAll(filepath.Join(r, "proc"), 0o755))
+	must(t, os.WriteFile(filepath.Join(r, "proc/meminfo"), []byte(meminfo), 0o644))
+	must(t, os.WriteFile(filepath.Join(r, "proc/loadavg"), []byte(loadavg), 0o644))
+	old := sysRoot
+	sysRoot = r
+	t.Cleanup(func() { sysRoot = old })
 }
 
 // gitconfig は https://github.com/<x> を <remote>/<x> に向ける git の設定を作る。

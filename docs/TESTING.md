@@ -42,6 +42,34 @@
 | Stryker (TS のミューテーション) | 10.1.1 | package.json (固定) |
 | vitest のカバレッジ (v8) | 5.1.0 | package.json (固定、vitest と同じ版) |
 
+## 手元の機械を守る (並列の数とメモリ・CPU の上限)
+
+2026-11-10 に、手元でメモリが尽きて PC ごと落ちた。どの道具も既定では「全コア・メモリの上限なし」で動く
+(gremlins は `runtime.NumCPU()` の数だけ go test を同時に動かす。TLC は `-workers auto`、Java のヒープは物理メモリの 1/4)。
+そこで、重いものは**並列の数とメモリ・CPU の上限を全部はっきり決めて**動かす。
+
+| 段 | 何をするか | どこで |
+|---|---|---|
+| 1 本ごとの上限 | `scripts/limit.sh <メモリ> <CPU 数> <コマンド>`。手元では systemd の cgroup (scope) に入れ、超えたら**そのコマンドだけ**が止まる (swap も使わない)。CI (`CI=true`) ではそのまま動かす | Makefile・package.json・fuzz.sh・formal.sh |
+| 並列の数 | 手元 2・CI 4 (`JOBS`)。`GOMAXPROCS`・`go test -p`・fuzz の `-parallel`・gremlins の `--workers`・TLC の `-workers`・vitest の `maxWorkers`・Stryker の `concurrency`・Playwright の `workers` | 同上 |
+| 道具ごとのメモリ | Go: `GOMEMLIMIT=1GiB` (柔らかい上限)。TLC: `-Xmx768m`。Z3: `-memory:1024`。Node: `--max-old-space-size=1536` | 同上・`.claude/settings.json` の env |
+| エージェントの既定 | `.claude/settings.json` の env (GOMAXPROCS=2 など)。エージェントが手で打つコマンドにも効く | 工場と雛形 |
+| 始める前の門 | `wk due` が使えるメモリ・メモリ待ち (PSI)・CPU の load・cgroup の残りを見て、足りなければ tick を始めない (`internal/room`) | 工場 |
+| 機械全体 | WSL 6GB・6 コア、Orca の端末全体の cgroup 4G、earlyoom | nix-config (この repo の外) |
+
+| 重いもの | 並列 | メモリの上限 (1 本) |
+|---|---|---|
+| go vet・go test・カバレッジ・build・govulncheck | 2 | 2G |
+| fuzz (1 つの Fuzz ずつ) | 2 | 2G |
+| gremlins (ミューテーション) | 2 | 3G |
+| TLC (TLA+) | 2 | ヒープ 768m・cgroup 1536M |
+| Z3 | 1 | 1024MB・cgroup 1536M |
+| vitest・tsc・eslint・vite build | 2 | 2G |
+| Stryker | 2 | 3G |
+| Playwright (e2e) | 2 | 3G |
+
+上限を外して調べたいときは `LIMIT_OFF=1`。上限そのもの (scripts/・Makefile・設定) は守りの部分で、エージェントは変えられない。
+
 ## 書き方の決まり
 
 - **仕様が先**。振る舞いを変える PR は、spec・実装・`TestSpec_` を同じ PR で変える

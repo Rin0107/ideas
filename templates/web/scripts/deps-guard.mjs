@@ -14,4 +14,9 @@ for (const [name, ver] of Object.entries(all)) {
 if (Object.keys(pkg.dependencies ?? {}).length > 8) problems.push("本番の依存が 8 個を超えた (減らす)");
 if (!existsSync("package-lock.json")) problems.push("package-lock.json がない");
 if (pkg.scripts?.postinstall || pkg.scripts?.preinstall) problems.push("install のスクリプトは使わない");
+// 手元の機械を守る: 重いスクリプトは scripts/limit.sh (メモリと CPU の上限) を通す (docs は工場の TESTING.md)
+for (const s of ["build", "typecheck", "lint", "test", "e2e", "fuzz", "mutate"]) {
+  if (!/^sh scripts\/limit\.sh \d+[MG] \d+ /.test(pkg.scripts?.[s] ?? ""))
+    problems.push(`npm run ${s} は sh scripts/limit.sh <メモリ> <CPU 数> を通す (上限を外さない)`);
+}
 fail("依存 (deps-guard)", problems);

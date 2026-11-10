@@ -5,7 +5,13 @@
 #   - Z3: すべての (check-sat) が unsat (性質の否定が成り立たない = 性質が証明できた)
 # 道具: TLA2TOOLS (tla2tools.jar のパス)、Z3 (z3 の実行ファイル)。CI が版と sha256 を固定して入れる。
 # 守りの部分 (wakuwaku guard で書き換え禁止)。
+# 手元の機械を守る: TLC は TLC_WORKERS 本 (既定 2)・Java のヒープ TLC_HEAP (既定 768m)、Z3 は Z3_MEM_MB (既定 1024MB) まで。
+#   さらに scripts/limit.sh で、それぞれ 1536M・2 コアの cgroup に入れる (超えたらそのコマンドだけが止まる)
 set -eu
+workers="${TLC_WORKERS:-2}"
+heap="${TLC_HEAP:-768m}"
+z3mem="${Z3_MEM_MB:-1024}"
+lim="sh $(dirname "$0")/limit.sh 1536M 2"
 : "${TLA2TOOLS:?tla2tools.jar のパスを TLA2TOOLS に}"
 Z3="${Z3:-z3}"
 cfgs=$(ls spec/*.cfg 2>/dev/null || true)
@@ -18,7 +24,7 @@ for cfg in $cfgs; do
   tla="${cfg%.cfg}.tla"
   echo "TLC: $tla"
   dir=$(mktemp -d)
-  if ! java -XX:+UseParallelGC -cp "$TLA2TOOLS" tlc2.TLC -workers auto -metadir "$dir" -config "$cfg" "$tla"; then
+  if ! $lim java -Xmx"$heap" -XX:ActiveProcessorCount="$workers" -XX:+UseParallelGC -cp "$TLA2TOOLS" tlc2.TLC -workers "$workers" -metadir "$dir" -config "$cfg" "$tla"; then
     echo "TLC が失敗: $tla" >&2
     fail=1
   fi
@@ -36,7 +42,7 @@ for cfg in $cfgs; do
 done
 for smt in $(ls spec/*.smt2 2>/dev/null || true); do
   echo "Z3: $smt"
-  out=$("$Z3" -T:60 "$smt" 2>&1 || true)
+  out=$($lim "$Z3" -T:60 -memory:"$z3mem" "$smt" 2>&1 || true)
   if [ -z "$out" ] || printf '%s\n' "$out" | grep -qv '^unsat$'; then
     echo "Z3: $smt が証明できない (unsat 以外):" >&2
     printf '%s\n' "$out" >&2

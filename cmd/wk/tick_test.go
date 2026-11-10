@@ -48,6 +48,13 @@ func TestDue(t *testing.T) {
 	if err != nil || !strings.Contains(out, "ok (今日 0/6 tick)") {
 		t.Fatal(out, err)
 	}
+	// 機械に余裕がない (メモリ 1GB しかない・CPU が詰まっている) なら始めない
+	fakeMachine(t, "MemAvailable: 1048576 kB\n", "999 0 0 1/1 1\n")
+	if err := cmdDue(nil); code(err) != 1 || !strings.Contains(err.Error(), "機械に余裕がない: メモリが足りない") ||
+		!strings.Contains(err.Error(), " / CPU が混んでいる") {
+		t.Fatal(err)
+	}
+	fakeMachine(t, roomyMem, idleLoad)
 	// 生きているロック
 	_, err = lock.Acquire(f.runtime, lock.Info{Since: time.Now(), Phase: "build"}, time.Hour)
 	must(t, err)

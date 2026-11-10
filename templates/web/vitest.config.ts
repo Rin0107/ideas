@@ -9,6 +9,8 @@ export default defineConfig({
     include: ["tests/unit/**/*.test.{ts,tsx}"],
     environment: "node",
     testTimeout: 60_000,
+    // 手元の機械を守る: 同時に動かすテストのプロセスは 2 つまで (npm test は 2G・2 コアの cgroup の中で動く)
+    maxWorkers: 2,
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],
