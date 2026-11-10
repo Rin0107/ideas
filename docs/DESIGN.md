@@ -214,6 +214,7 @@ cmd/wk, internal/      制御 CLI
 - 言語は **TypeScript と Go** (Findy の方針と合わせる)。Web は TS、CLI は Go
 - **サーバーは作らない**。利用者のデータはブラウザの中 (localStorage) にだけ置く。サーバーが要るアイディアは選ばない (rubric の data_plan)
 - **配信の鍵はどこにも置かない** (§7.4)。Vercel・Supabase は使わない (プロジェクトごとの連携か鍵が要り、ログインと個人データの方向に引っぱられる)
+- Web アプリはホーム画面に追加できる (manifest とアイコン。iPhone でもアイコンから全画面で開く)。オフラインで動かすための Service Worker は使わない (取り消せない・同じ origin に並ぶため。要るなら wk が決まった形で作る設計を足す)
 - アプリは同じ origin (`wakuwaku-site.<サブドメイン>.workers.dev`) に `/<名前>/` で並ぶ。だから localStorage のキーは `<名前>:` で始め、Cookie・Service Worker・IndexedDB は使わない (eslint と配信の Worker の CSP `worker-src 'none'` で止める)
 - LLM の API など、使うたびにお金がかかるものは使わない (`factory.json` の `deny_packages` で CI が止める)
 - **Supabase は使わない**: ログインと個人データを持つ方向に引っぱられるため (§7)

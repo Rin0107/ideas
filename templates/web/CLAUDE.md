@@ -9,6 +9,7 @@ wakuwaku factory が作るアプリ。工場の設計: `~/src/okuos/repos/ideas/
 - 本番は**静的ファイルだけ** (配信用の repo の `/{{NAME}}/` の下)。サーバーの処理・API・保存の場所は作らない。`src/worker/` は手元の確認用
 - ファイルの道は相対 (`./`) か `import.meta.env.BASE_URL` から。`/` で始まる道は本番で壊れる
 - Service Worker・`document.cookie`・IndexedDB は使わない (eslint が止める)
+- ホーム画面に追加できる形 (PWA) は雛形に入っている: `public/manifest.webmanifest` と `public/icons/`。アイコンと色はアプリに合わせて作り直してよい (PNG 180・192・512)
 - 外部のスクリプト・フォント・解析・広告を入れない。外部 API は鍵の要らない公開 API だけ (wk.json の egress_allow はユーザーだけが変える)
 - 生の HTML を差し込まない。入力は zod で検査し、サイズの上限をかける
 - 秘密情報を repo に置かない。鍵の要るものを作らない (鍵はどこにも用意しない)

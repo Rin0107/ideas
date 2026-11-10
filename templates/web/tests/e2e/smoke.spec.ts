@@ -32,3 +32,19 @@ test("CSP 違反がない", async ({ page }) => {
   await page.waitForLoadState("networkidle");
   expect(violations).toEqual([]);
 });
+
+test("ホーム画面に追加できる (manifest とアイコン)", async ({ page, request }) => {
+  await page.goto("./");
+  const href = await page.locator('link[rel="manifest"]').getAttribute("href");
+  expect(href).toBeTruthy();
+  const url = new URL(href ?? "", page.url());
+  const manifest = await (await request.get(url.toString())).json();
+  expect(manifest.display).toBe("standalone");
+  for (const icon of manifest.icons as { src: string }[]) {
+    const res = await request.get(new URL(icon.src, url).toString());
+    expect(res.status()).toBe(200);
+  }
+  const touch = await page.locator('link[rel="apple-touch-icon"]').getAttribute("href");
+  expect(touch).toMatch(/\.png$/);
+  expect((await request.get(new URL(touch ?? "", page.url()).toString())).status()).toBe(200);
+});
