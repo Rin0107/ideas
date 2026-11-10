@@ -50,8 +50,10 @@ type proposals struct {
 }
 
 func cmdPropose(args []string) error {
-	var planPath *string
-	if _, err := flags("propose", args, func(f *flag.FlagSet) { planPath = f.String("plan", "", "提案の JSON ({\"issues\": [...]})") }); err != nil {
+	// flags() に関数を渡す形にしない (関数の後ろの err != nil がカバレッジの区切りから外れ、ミューテーションが「通らない」と数える)
+	fs := flag.NewFlagSet("propose", flag.ContinueOnError)
+	planPath := fs.String("plan", "", "提案の JSON ({\"issues\": [...]})")
+	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	e, err := load()
@@ -107,10 +109,9 @@ type decision struct {
 }
 
 func cmdTriage(args []string) error {
-	var path *string
-	if _, err := flags("triage", args, func(f *flag.FlagSet) {
-		path = f.String("decisions", "", "仕分けの JSON ([{issue, decision, reason}])")
-	}); err != nil {
+	fs := flag.NewFlagSet("triage", flag.ContinueOnError)
+	path := fs.String("decisions", "", "仕分けの JSON ([{issue, decision, reason}])")
+	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	e, err := load()
