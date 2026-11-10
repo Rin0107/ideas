@@ -23,5 +23,11 @@ wakuwaku factory が作る Go の CLI。工場の設計: `~/src/okuos/repos/idea
 - `make verify` が通ってから PR。`wk review` → `wk merge` (gh pr merge は使わない)
 - 依存は標準ライブラリを優先。足すなら PR に理由を書く (直接の依存は 8 個まで)
 
+## ロールと持ち場の文書 (工場の docs/ROLES.md)
+変えるときは、同じ PR で持ち場の文書も直す。レビューはロールごと (sre・engineer、表示に触れたら designer)。
+- `docs/design-system.md` — **designer**: コマンドと引数の名前・出力の形・色の使い方・エラーの文・終了コード
+- `docs/architecture.md` — **engineer**: ドメインの言葉・層と依存の向き・仕様との対応
+- `docs/runbook.md` — **sre**: 動かし方・失敗の種類と扱い・戻し方・テストの体制
+
 ## 変えてはいけないもの (guard が止める)
 `.github/` `.claude/` `scripts/` `wk.json` `Makefile` `spec/README.md`

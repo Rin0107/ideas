@@ -29,6 +29,12 @@ wakuwaku factory が作るアプリ。工場の設計: `~/src/okuos/repos/ideas/
 - `npm run verify` が通ってから PR。プレビューは `wk deploy` (工場がやる)。`wk review` → `wk merge` (gh pr merge は使わない)
 - 依存を足すのは最後の手段。足すなら `npm install -E` で固定し、PR に理由を書く
 
+## ロールと持ち場の文書 (工場の docs/ROLES.md)
+変えるときは、同じ PR で持ち場の文書も直す。レビューはロールごと (sre・engineer、画面に触れたら designer)。
+- `docs/design-system.md` — **designer**: トークン・部品・状態・文言・アクセシビリティ。画面はここに書いたものだけで作る
+- `docs/architecture.md` — **engineer**: ドメインの言葉・層と依存の向き・仕様との対応
+- `docs/runbook.md` — **sre**: 動かし方・失敗の種類と扱い・戻し方・テストの体制
+
 ## 変えてはいけないもの (guard が止める)
 
 `.github/` `.claude/` `scripts/` `src/worker/security.ts` `wk.json` `vitest.config.ts` `stryker.config.json` `spec/README.md`
