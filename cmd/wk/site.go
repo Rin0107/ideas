@@ -272,10 +272,3 @@ func cmdSite(args []string) error {
 	fmt.Printf("作った: https://github.com/%s\n次: Cloudflare でこの repo を連携し、出た URL を factory.json の site.url に書く (docs/SETUP.md)\n", repo)
 	return nil
 }
-
-// Cloudflare のビルドを待つ時間 (テストでは短くする)
-var (
-	checkPoll  = 20 * time.Second
-	checkNoRun = 5 * time.Minute  // check run が 1 つも出ないと判断するまで
-	checkWait  = 20 * time.Minute // ビルドを待つ長さ
-)

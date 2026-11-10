@@ -21,7 +21,7 @@ concurrency:
 
 env:
   CGO_ENABLED: "0"
-  PKGS: ./cmd/... ./internal/...
+  PKGS: ./...
 
 jobs:
   # S のテスト・カバレッジ・lint・状態とアイディアの検査・依存の脆弱性
@@ -62,7 +62,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dir: [internal, cmd/wk]
+        include:
+          - { dir: internal, exclude: "^cmd/" }
+          - { dir: cmd/wk, exclude: "^internal/" }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
@@ -70,12 +72,17 @@ jobs:
         with: { go-version-file: go.mod }
       - run: go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
       - name: gremlins
-        env: { BASE: "${{ inputs.base || github.event.pull_request.base.sha || github.event.before }}", DIR: "${{ matrix.dir }}" }
+        env:
+          BASE: "${{ inputs.base || github.event.pull_request.base.sha || github.event.before }}"
+          DIR: "${{ matrix.dir }}"
+          EXCLUDE: "${{ matrix.exclude }}"
+        # gremlins はモジュールの root で "." を渡す (パスを渡すと --diff と変異が結びつかず、全部が飛ばされる。2026-11-10 に確かめた)
+        # (この使い方で本当に変異を試すことは、template-go の「ミューテーションの道具の自己検査」で毎回確かめる)
         run: |
           case "$BASE" in 0000000000000000000000000000000000000000) BASE="" ;; esac
           if [ -n "$BASE" ] && [ -z "$(git diff --name-only "$BASE" -- "$DIR/*.go" ':!*_test.go')" ]; then echo "ok: $DIR の変更なし"; exit 0; fi
           gremlins unleash ${BASE:+--diff "$BASE"} --threshold-efficacy 95 --threshold-mcover 100 --timeout-coefficient 3 \
-            --invert-logical --invert-loopctrl -E 'internal/fakegh/' "./$DIR"
+            --invert-logical --invert-loopctrl -E "$EXCLUDE" -E 'internal/fakegh/' .
 
   # 仕様: spec/ (工場の流れ・評価の結論) を TLA+ と Z3 で検査し、TestSpec_ とのつながりを確かめる
   formal:
@@ -117,6 +124,16 @@ jobs:
       - run: go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
       - run: sh scripts/mutate.sh ""
         working-directory: /tmp/app
+      # ミューテーションの道具の自己検査: 1 行変えて差分だけを流したとき、本当に変異を試して殺すか
+      # (道具の使い方を誤ると、全部を飛ばして「通った」になる。2026-11-10 に実際に起きた)
+      - name: ミューテーションの道具の自己検査
+        working-directory: /tmp/app
+        run: |
+          set -o pipefail
+          sed -i 's/if c.n >= c.max {/if c.n >= c.max \&\& c.max >= 0 {/' internal/app/counter.go
+          git -c user.name=ci -c user.email=ci@example.com commit -qam "1 行変える"
+          sh scripts/mutate.sh HEAD~1 | tee /tmp/m.out
+          grep -Eq "Killed: [1-9]" /tmp/m.out || { echo "差分のミューテーションが変異を試していない" >&2; exit 1; }
 
   template-web:
     runs-on: ubuntu-latest

@@ -19,14 +19,6 @@ import (
 
 const maxDiffBytes = 150_000
 
-// 待ち時間 (テストでは短くする)
-var (
-	claudeTimeout = 10 * time.Minute // reviewer の claude -p
-	mergePoll     = 20 * time.Second // CI の結果を見に行く間隔
-	mergeWait     = 30 * time.Minute // CI を待つ長さ
-	mergeNoCI     = 5 * time.Minute  // CI が 1 つも出てこないと判断するまで
-)
-
 // ---- review: 別の Claude に PR を見せる ----
 
 type review struct {
@@ -196,12 +188,14 @@ func cmdMerge(args []string) error {
 				failed = append(failed, c.Name)
 			}
 		}
-		switch {
-		case len(failed) > 0:
+		// switch の case の条件はミューテーションの道具がカバレッジの範囲外と見なすので、if で書く
+		if len(failed) > 0 {
 			return fmt.Errorf("CI が赤: %s", strings.Join(failed, ", "))
-		case len(cs) == 0 && time.Since(start) > mergeNoCI:
+		}
+		if len(cs) == 0 && time.Since(start) > mergeNoCI {
 			return errors.New("CI が 1 つも動いていない (雛形の workflow を確認)")
-		case len(cs) > 0 && pending == 0:
+		}
+		if len(cs) > 0 && pending == 0 {
 			if _, err := gh.GH("pr", "merge", fmt.Sprint(pr), "--repo", repo, "--squash", "--delete-branch"); err != nil {
 				return err
 			}

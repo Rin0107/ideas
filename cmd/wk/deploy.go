@@ -322,12 +322,6 @@ func scrubEnv(env []string) []string {
 	return out
 }
 
-// previewE2EWait は L のテストの結果を待つ長さ (ジョブは 5 分で打ち切られる)。
-var (
-	previewE2EWait = 10 * time.Minute
-	previewPoll    = 15 * time.Second
-)
-
 // httpTransport は本番・プレビューの検査で使う (テストでは手元のサーバーに向ける)。
 var httpTransport http.RoundTripper = http.DefaultTransport
 
