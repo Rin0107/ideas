@@ -244,3 +244,47 @@ func TestTriageErrors(t *testing.T) {
 		})
 	}
 }
+
+// ---- labels ----
+
+func TestLabels(t *testing.T) {
+	f := newFactory(t)
+	f.projects(active())
+	out, err := capture(t, func() error { return cmdLabels([]string{"Tester/alpha"}) })
+	if err != nil || !strings.Contains(out, "ラベルをそろえた: Tester/alpha") {
+		t.Fatal(out, err)
+	}
+	for _, l := range []string{"wk:task", "wk:proposal", "wk:later", "role:sre", "role:designer", "role:engineer", "wk:attempt-3"} {
+		if !f.gh.Called("label create " + l + " --repo Tester/alpha") {
+			t.Fatalf("%s がない: %v", l, f.gh.Calls())
+		}
+	}
+	if f.gh.Called("wk:attempt-4") {
+		t.Fatal("試行の上限 (3) を超えたラベルを作った")
+	}
+}
+
+func TestLabelsErrors(t *testing.T) {
+	for name, c := range map[string]struct {
+		args  []string
+		rules []fakegh.Rule
+		setup func(f *factory)
+		want  string
+	}{
+		"引数がない":         {args: nil, want: "使い方"},
+		"引数が多い":         {args: []string{"Tester/alpha", "x"}, want: "使い方"},
+		"portfolio にない": {args: []string{"Other/x"}, want: "portfolio にない"},
+		"ラベルを作れない":      {args: []string{"Tester/alpha"}, rules: []fakegh.Rule{{Match: `^label create`, Code: 1}}, want: "label create"},
+		"設定が壊れている":      {args: []string{"Tester/alpha"}, setup: func(f *factory) { f.write("factory.json", "{") }, want: "factory.json"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFactory(t, c.rules...)
+			f.projects(active())
+			if c.setup != nil {
+				c.setup(f)
+			}
+			_, err := capture(t, func() error { return cmdLabels(c.args) })
+			errHas(t, err, c.want)
+		})
+	}
+}

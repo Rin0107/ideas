@@ -242,6 +242,29 @@ func TestNextStepsPerRun(t *testing.T) {
 	}
 }
 
+// 同じ worktree が使い回されても、前の段からロックの有効期限 (150 分) より空いていれば別の実行として数え直す
+func TestNextStepsPerRunReusedWorktree(t *testing.T) {
+	f := newFactory(t)
+	f.writeConfig(map[string]any{"steps_per_run": 2})
+	wd, _ := os.Getwd()
+	setLast := func(ago time.Duration) {
+		rt := runtimeNow(t, f)
+		rt.RunWorktree, rt.RunSteps, rt.RunLast = wd, 2, time.Now().Add(-ago)
+		must(t, state.SaveRuntime(f.runtime, rt))
+	}
+	setLast(149 * time.Minute) // まだ同じ実行: 上限で止まる
+	if a := nextJSON(t, f); a.Phase != state.PhaseIdle || a.Reason != "この実行で進める段の上限 (2/2)" {
+		t.Fatalf("同じ実行: %+v", a)
+	}
+	setLast(151 * time.Minute) // 間が空いた: 新しい実行の 1 段目
+	if a := nextJSON(t, f); a.Phase != state.PhaseSelect {
+		t.Fatalf("新しい実行: %+v", a)
+	}
+	if rt := runtimeNow(t, f); rt.RunSteps != 1 || rt.RunWorktree != wd || time.Since(rt.RunSince) > time.Minute {
+		t.Fatalf("新しい実行: %+v", rt)
+	}
+}
+
 func TestNextStepsPerRunZeroMeansNoCap(t *testing.T) {
 	f := newFactory(t)
 	f.writeConfig(map[string]any{"steps_per_run": 0})
@@ -585,7 +608,7 @@ func TestStatus(t *testing.T) {
 	}
 	out, _ = capture(t, func() error { return cmdStatus(nil) })
 	for _, want := range []string{"プレビューの URL: https://p/alpha/", "URL: https://u", "公開時の URL: https://wakuwaku-site.tester.workers.dev/alpha/",
-		"shipped 1 / dropped 0", "次の段階: evaluate"} {
+		"shipped 1 / dropped 0", "次の段階: evaluate (leader) Tester/alpha"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("%q がない:\n%s", want, out)
 		}

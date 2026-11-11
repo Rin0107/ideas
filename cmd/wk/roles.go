@@ -31,6 +31,25 @@ func roleOr(r, def string) string {
 	return r
 }
 
+// cmdLabels は、portfolio の repo に工場のラベルをそろえる (ロールより前に作ったアプリを、今の形に合わせるため)。
+func cmdLabels(args []string) error {
+	if len(args) != 1 {
+		return errors.New("使い方: wk labels <owner/repo>")
+	}
+	e, err := load()
+	if err != nil {
+		return err
+	}
+	if !e.pf.Repos()[args[0]] {
+		return fmt.Errorf("%s は portfolio にない", args[0])
+	}
+	if err := ensureLabels(args[0], e.cfg.MaxAttemptsPerIssue); err != nil {
+		return err
+	}
+	fmt.Println("ラベルをそろえた:", args[0])
+	return nil
+}
+
 // working は、作っている途中 (issue を足してよい状態) のアプリを返す。
 func (e *env) working() (*state.Project, error) {
 	p, err := e.project()

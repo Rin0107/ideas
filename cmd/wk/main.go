@@ -36,6 +36,7 @@ var commands = map[string]command{
 	// PR
 	"propose": {"--plan <json>: 見回り (patrol) の中で、ロールの提案を issue にする (wk:proposal)", cmdPropose},
 	"triage":  {"--decisions <json>: leader が提案を仕分ける (now / later / reject)", cmdTriage},
+	"labels":  {"<repo>: 工場のラベル (wk:*・role:*) をそろえる (portfolio の repo だけ。ラベルが増えたあと古いアプリに)", cmdLabels},
 
 	"review": {"<repo> <pr>: ロールごとに別の Claude が PR を見る (SRE・engineer・UI なら designer)。全員 approve なら wk:reviewed", cmdReview},
 	"merge":  {"<repo> <pr>: CI 全部 green かつ wk:reviewed のときだけ squash merge", cmdMerge},

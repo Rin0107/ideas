@@ -150,10 +150,7 @@ func cmdNext(args []string) error {
 		return printJSON(a)
 	}
 	rt.TicksToday++
-	if rt.RunWorktree != wd {
-		rt.RunWorktree, rt.RunSteps = wd, 0
-	}
-	rt.RunSteps++
+	rt.Step(wd, e.now, e.ttl())
 	if err := state.SaveRuntime(e.cfg.RuntimeDir, rt); err != nil {
 		return err
 	}
@@ -181,7 +178,7 @@ func stepLimit(e *env, rt *state.Runtime, wd string) string {
 	if rt.TicksToday >= e.cfg.TicksPerDay {
 		return fmt.Sprintf("今日の tick は上限 (%d/%d)", rt.TicksToday, e.cfg.TicksPerDay)
 	}
-	if e.cfg.StepsPerRun > 0 && rt.RunWorktree == wd && rt.RunSteps >= e.cfg.StepsPerRun {
+	if e.cfg.StepsPerRun > 0 && rt.SameRun(wd, e.now, e.ttl()) && rt.RunSteps >= e.cfg.StepsPerRun {
 		return fmt.Sprintf("この実行で進める段の上限 (%d/%d)", rt.RunSteps, e.cfg.StepsPerRun)
 	}
 	return ""
@@ -378,7 +375,7 @@ func cmdStatus(args []string) error {
 	fmt.Printf("これまで: shipped %d / dropped %d\n", n[state.Shipped], n[state.Dropped])
 	if s, err := e.snapshot(); err == nil {
 		a := next.Decide(s)
-		fmt.Printf("次の段階: %s %s #%d — %s\n", a.Phase, a.Repo, a.Issue, a.Reason)
+		fmt.Printf("次の段階: %s (%s) %s #%d — %s\n", a.Phase, a.Role, a.Repo, a.Issue, a.Reason)
 	} else {
 		fmt.Println("次の段階: 判定できない:", err)
 	}

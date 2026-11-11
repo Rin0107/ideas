@@ -101,11 +101,8 @@ func issueBody(is PlanIssue) string {
 	return b.String()
 }
 
-func flags(name string, args []string, def func(*flag.FlagSet)) (*flag.FlagSet, error) {
-	fs := flag.NewFlagSet(name, flag.ContinueOnError)
-	def(fs)
-	return fs, fs.Parse(args)
-}
+// 引数は各コマンドで flag.NewFlagSet で読む (関数を渡す形にすると、その後ろの err != nil がカバレッジの区切りから外れ、
+// ミューテーションが「テストが通らない」と数える。2026-11-10)
 
 func (e *env) project() (*state.Project, error) {
 	p := e.pf.Active()
@@ -139,8 +136,9 @@ func (e *env) appendIdeaHistory(idea, line string) error {
 // ---- select ----
 
 func cmdSelect(args []string) error {
-	var scoresPath *string
-	if _, err := flags("select", args, func(f *flag.FlagSet) { scoresPath = f.String("scores", "", "点数の JSON (- で標準入力)") }); err != nil {
+	fs := flag.NewFlagSet("select", flag.ContinueOnError)
+	scoresPath := fs.String("scores", "", "点数の JSON (- で標準入力)")
+	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	e, err := load()
@@ -196,8 +194,9 @@ func cmdSelect(args []string) error {
 // ---- scaffold ----
 
 func cmdScaffold(args []string) error {
-	var planPath *string
-	if _, err := flags("scaffold", args, func(f *flag.FlagSet) { planPath = f.String("plan", "", "計画の JSON") }); err != nil {
+	fs := flag.NewFlagSet("scaffold", flag.ContinueOnError)
+	planPath := fs.String("plan", "", "計画の JSON")
+	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	e, err := load()
@@ -367,8 +366,9 @@ func cmdAttempt(args []string) error {
 	if _, err := fmt.Sscan(args[0], &num); err != nil {
 		return err
 	}
-	var note *string
-	if _, err := flags("attempt", args[1:], func(f *flag.FlagSet) { note = f.String("note", "", "失敗の理由") }); err != nil {
+	fs := flag.NewFlagSet("attempt", flag.ContinueOnError)
+	note := fs.String("note", "", "失敗の理由")
+	if err := fs.Parse(args[1:]); err != nil {
 		return err
 	}
 	e, err := load()
@@ -409,8 +409,9 @@ func cmdAttempt(args []string) error {
 // ---- evaluate ----
 
 func cmdEvaluate(args []string) error {
-	var scoresPath *string
-	if _, err := flags("evaluate", args, func(f *flag.FlagSet) { scoresPath = f.String("scores", "", "評価の JSON") }); err != nil {
+	fs := flag.NewFlagSet("evaluate", flag.ContinueOnError)
+	scoresPath := fs.String("scores", "", "評価の JSON")
+	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	e, err := load()
@@ -466,8 +467,9 @@ func filterEvents(h []state.Event, ev string) []state.Event {
 // ---- iterate ----
 
 func cmdIterate(args []string) error {
-	var planPath *string
-	if _, err := flags("iterate", args, func(f *flag.FlagSet) { planPath = f.String("plan", "", "計画の JSON") }); err != nil {
+	fs := flag.NewFlagSet("iterate", flag.ContinueOnError)
+	planPath := fs.String("plan", "", "計画の JSON")
+	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	e, err := load()
@@ -511,8 +513,9 @@ func cmdIterate(args []string) error {
 // ---- ship ----
 
 func cmdShip(args []string) error {
-	var url *string
-	if _, err := flags("ship", args, func(f *flag.FlagSet) { url = f.String("url", "", "本番 URL (CLI なら release の URL)") }); err != nil {
+	fs := flag.NewFlagSet("ship", flag.ContinueOnError)
+	url := fs.String("url", "", "本番 URL (CLI なら release の URL)")
+	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	e, err := load()
@@ -597,12 +600,10 @@ func httpStatus(url string) int {
 // ---- drop ----
 
 func cmdDrop(args []string) error {
-	var reason *string
-	var never *bool
-	if _, err := flags("drop", args, func(f *flag.FlagSet) {
-		reason = f.String("reason", "", "捨てる理由 (次の選定に効く形で)")
-		never = f.Bool("never", false, "二度と選ばない")
-	}); err != nil {
+	fs := flag.NewFlagSet("drop", flag.ContinueOnError)
+	reason := fs.String("reason", "", "捨てる理由 (次の選定に効く形で)")
+	never := fs.Bool("never", false, "二度と選ばない")
+	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if len([]rune(strings.TrimSpace(*reason))) < 10 {

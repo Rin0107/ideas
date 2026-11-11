@@ -156,9 +156,26 @@ type Runtime struct {
 	Day                 string `json:"day"`
 	TicksToday          int    `json:"ticks_today"`
 	ConsecutiveFailures int    `json:"consecutive_failures"`
-	// 1 回の実行 (run) で進めた段の数。run は worktree で見分ける (Orca は毎回新しい worktree を作る)
-	RunWorktree string `json:"run_worktree,omitempty"`
-	RunSteps    int    `json:"run_steps,omitempty"`
+	// 1 回の実行 (run) で進めた段の数。run は worktree と時間で見分ける (Orca は毎回新しい worktree を作るが、
+	// 同じ worktree が使い回されても、前の段からロックの有効期限より空いていれば別の実行とみなす)
+	RunWorktree string    `json:"run_worktree,omitempty"`
+	RunSteps    int       `json:"run_steps,omitempty"`
+	RunSince    time.Time `json:"run_since,omitzero"` // この実行の最初の段
+	RunLast     time.Time `json:"run_last,omitzero"`  // この実行の最後の段
+}
+
+// SameRun は、wd で now に始める段が、記録している実行の続きか (同じ worktree で、前の段から gap 以内)。
+func (r *Runtime) SameRun(wd string, now time.Time, gap time.Duration) bool {
+	return r.RunWorktree == wd && !now.After(r.RunLast.Add(gap))
+}
+
+// Step は wd で now に始める段を数える。続きでなければ新しい実行として 1 段目から数える。
+func (r *Runtime) Step(wd string, now time.Time, gap time.Duration) {
+	if !r.SameRun(wd, now, gap) {
+		r.RunWorktree, r.RunSteps, r.RunSince = wd, 0, now
+	}
+	r.RunSteps++
+	r.RunLast = now
 }
 
 // Tick は 1 tick の記録。
@@ -237,7 +254,7 @@ func LoadRuntime(dir string, now time.Time) (*Runtime, error) {
 	}
 	if today := now.Format(time.DateOnly); r.Day != today {
 		r.Day, r.TicksToday = today, 0
-		r.RunWorktree, r.RunSteps = "", 0
+		r.RunWorktree, r.RunSteps, r.RunSince, r.RunLast = "", 0, time.Time{}, time.Time{}
 	}
 	return r, nil
 }
