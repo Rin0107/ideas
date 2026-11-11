@@ -14,7 +14,7 @@ import (
 )
 
 var phases = []string{state.PhaseIdle, state.PhaseRetro, state.PhaseBuild, state.PhaseEvaluate, state.PhaseIterate,
-	state.PhaseShip, state.PhaseDrop, state.PhaseIntake, state.PhaseSelect, state.PhasePatrol, state.PhaseTriage}
+	state.PhaseShip, state.PhaseDrop, state.PhaseIntake, state.PhaseSelect, state.PhasePatrol, state.PhaseTriage, state.PhaseRepair}
 
 var roles = []string{role.Leader, role.SRE, role.Designer, role.Engineer}
 
@@ -52,11 +52,23 @@ func genSnapshot(t *rapid.T) Snapshot {
 			if rapid.Bool().Draw(t, fmt.Sprint("blocked", i)) {
 				is.Labels = []string{LabelBlocked}
 			}
+			if rapid.Bool().Draw(t, fmt.Sprint("fix", i)) {
+				is.Labels = append(is.Labels, LabelFix)
+			}
 			if r := rapid.SampledFrom([]string{"", "sre", "designer", "engineer"}).Draw(t, fmt.Sprint("role", i)); r != "" {
 				is.Labels = append(is.Labels, role.Label(r))
 			}
 			s.Issues = append(s.Issues, is)
 		}
+	}
+	n := rapid.IntRange(0, 3).Draw(t, "factoryFixes")
+	s.FactoryRepo = "o/factory"
+	for i := 0; i < n; i++ {
+		is := Issue{Number: rapid.IntRange(1, 20).Draw(t, fmt.Sprint("fnum", i)), Labels: []string{LabelFix}}
+		if rapid.Bool().Draw(t, fmt.Sprint("fblocked", i)) {
+			is.Labels = append(is.Labels, LabelBlocked)
+		}
+		s.FactoryFixes = append(s.FactoryFixes, is)
 	}
 	return s
 }
@@ -72,19 +84,22 @@ func TestSpec_TypeOK(t *testing.T) {
 		if a.Phase != state.PhaseBuild {
 			return
 		}
+		// 直す issue (wk:fix) があればその中から、なければ全部から
+		fixFirst := slices.ContainsFunc(s.Issues, func(is Issue) bool { return !is.Blocked() && is.Fix() })
+		pick := func(is Issue) bool { return !is.Blocked() && is.Fix() == fixFirst }
 		lowest, owner := 0, ""
 		for _, is := range s.Issues {
-			if !is.Blocked() && (lowest == 0 || is.Number < lowest) {
+			if pick(is) && (lowest == 0 || is.Number < lowest) {
 				lowest, owner = is.Number, role.ForIssue(is.Labels)
 			}
 		}
-		if a.Issue != lowest {
-			t.Fatalf("issue #%d を選んだ (一番小さい未 blocked は #%d)", a.Issue, lowest)
+		if a.Issue != lowest || a.Fix != fixFirst {
+			t.Fatalf("issue #%d (fix %v) を選んだ (選ぶべきは #%d fix %v)", a.Issue, a.Fix, lowest, fixFirst)
 		}
 		// 同じ番号の issue が 2 つ引かれることがあるので、担当は「その番号のどれかの担当」であればよい
 		ok := a.Role == owner
 		for _, is := range s.Issues {
-			ok = ok || is.Number == lowest && !is.Blocked() && role.ForIssue(is.Labels) == a.Role
+			ok = ok || is.Number == lowest && pick(is) && role.ForIssue(is.Labels) == a.Role
 		}
 		if !ok {
 			t.Fatalf("issue #%d の担当が %s", a.Issue, a.Role)
@@ -100,7 +115,7 @@ func TestSpec_VerdictOnlyWhenEvaluated(t *testing.T) {
 			t.Skip()
 		}
 		a := Decide(s)
-		if a.Phase != state.PhaseRetro && a.Phase != s.Active.Verdict {
+		if a.Phase != state.PhaseRetro && a.Phase != state.PhaseRepair && a.Phase != s.Active.Verdict {
 			t.Fatalf("結論 %s なのに %s", s.Active.Verdict, a.Phase)
 		}
 	})
@@ -150,6 +165,30 @@ func TestSpec_TriageFirst(t *testing.T) {
 		}
 		if a.Phase == state.PhasePatrol && !role.Valid(a.Role) {
 			t.Fatalf("見回りの担当が %s", a.Role)
+		}
+	})
+}
+
+// RepairFirst: 工場の直す issue (wk:fix) が blocked でなく残っているあいだは、何より先にそれを直す (番号の小さい順)。
+// なければ repair にはならない。
+func TestSpec_RepairFirst(t *testing.T) {
+	rapid.Check(t, func(t *rapid.T) {
+		s := genSnapshot(t)
+		a := Decide(s)
+		lowest := 0
+		for _, is := range s.FactoryFixes {
+			if !is.Blocked() && (lowest == 0 || is.Number < lowest) {
+				lowest = is.Number
+			}
+		}
+		if lowest == 0 {
+			if a.Phase == state.PhaseRepair {
+				t.Fatalf("直す issue がないのに repair %+v", a)
+			}
+			return
+		}
+		if a.Phase != state.PhaseRepair || a.Issue != lowest || a.Repo != s.FactoryRepo || !a.Fix || !role.Valid(a.Role) {
+			t.Fatalf("工場の直す issue #%d があるのに %+v", lowest, a)
 		}
 	})
 }

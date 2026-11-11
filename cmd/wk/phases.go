@@ -315,7 +315,7 @@ func copyTemplate(src, dst string, repl map[string]string) error {
 
 func ensureLabels(repo string, maxAttempts int) error {
 	labels := map[string]string{
-		"wk:task": "0e8a16", "wk:blocked": "b60205", "wk:reviewed": "1d76db", "wk:incident": "d93f0b",
+		"wk:task": "0e8a16", "wk:blocked": "b60205", "wk:reviewed": "1d76db", "wk:incident": "d93f0b", next.LabelFix: "0e8a16", labelHuman: "d93f0b",
 		labelProposal: "c5def5", labelLater: "d4c5f9",
 	}
 	for _, r := range role.Workers() {

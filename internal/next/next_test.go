@@ -46,6 +46,18 @@ func TestDecide(t *testing.T) {
 		{"build は番号の小さい blocked でない issue",
 			Snapshot{Active: building(3), Issues: []Issue{{Number: 5}, {Number: 2, Labels: []string{LabelBlocked}}, {Number: 3}}},
 			state.PhaseBuild, 3},
+		{"直す issue (wk:fix) が番号より先",
+			Snapshot{Active: building(3), Issues: []Issue{{Number: 2}, {Number: 8, Labels: []string{LabelFix}},
+				{Number: 5, Labels: []string{LabelFix, LabelBlocked}}, {Number: 6, Labels: []string{LabelFix}}, {Number: 1}}},
+			state.PhaseBuild, 6},
+		{"工場の直す issue → 何より先に repair",
+			Snapshot{Untried: 500, Active: building(3), Issues: []Issue{{Number: 2}}, Meta: &state.Meta{LastRetro: "2026-11-01"},
+				FactoryFixes: []Issue{{Number: 9, Labels: []string{LabelFix, LabelBlocked}}, {Number: 7, Labels: []string{LabelFix}}}},
+			state.PhaseRepair, 7},
+		{"工場の直す issue が全部 blocked → いつもの段",
+			Snapshot{Active: building(3), Issues: []Issue{{Number: 2}},
+				FactoryFixes: []Issue{{Number: 9, Labels: []string{LabelFix, LabelBlocked}}}},
+			state.PhaseBuild, 2},
 		{"issue が全部閉じた → evaluate",
 			Snapshot{Active: building(10)}, state.PhaseEvaluate, 0},
 		{"残りが全部 blocked → evaluate",
@@ -92,5 +104,26 @@ func TestAttempts(t *testing.T) {
 	is := Issue{Labels: []string{"wk:task", "wk:attempt-1", "wk:attempt-2"}}
 	if is.Attempts() != 2 {
 		t.Fatal(is.Attempts())
+	}
+}
+
+func TestRepairAction(t *testing.T) {
+	s := Snapshot{Now: now, Cfg: cfg(), Meta: meta(), FactoryRepo: "o/factory",
+		FactoryFixes: []Issue{{Number: 3, Labels: []string{LabelFix, "role:sre"}}}}
+	a := Decide(s)
+	if a.Repo != "o/factory" || !a.Fix || a.Role != "sre" || a.Reason != "工場の直す issue #3" {
+		t.Fatalf("%+v", a)
+	}
+	s = Snapshot{Now: now, Cfg: cfg(), Meta: meta(), Active: building(3), Issues: []Issue{{Number: 4, Labels: []string{LabelFix}}, {Number: 1}}}
+	if a := Decide(s); !a.Fix || a.Issue != 4 {
+		t.Fatalf("%+v", a)
+	}
+	s.Issues = []Issue{{Number: 1}, {Number: 4, Labels: []string{LabelFix}}}
+	if a := Decide(s); !a.Fix || a.Issue != 4 {
+		t.Fatalf("並びに左右された %+v", a)
+	}
+	s.Issues = []Issue{{Number: 1}}
+	if a := Decide(s); a.Fix {
+		t.Fatalf("%+v", a)
 	}
 }

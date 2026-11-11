@@ -19,7 +19,7 @@ func TestRun(t *testing.T) {
 		t.Fatal(b.String())
 	}
 	b.Reset()
-	if run([]string{"done", "--result", "x"}, &b) != 1 || !strings.Contains(b.String(), "wk done: --result は ok か fail") {
+	if run([]string{"done", "--result", "x"}, &b) != 1 || !strings.Contains(b.String(), "wk done: --result は ok・retry・fix・human のどれか") {
 		t.Fatal(b.String())
 	}
 	f.write("STOP", "x")

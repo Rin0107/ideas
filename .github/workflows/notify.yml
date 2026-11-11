@@ -1,0 +1,37 @@
+# 守りの部分。人に頼むこと (wk:human の issue) を、持ち主にメールで知らせる。docs/DESIGN.md §9
+# 工場は持ち主の gh で issue を立てるので、GitHub は「自分の操作」とみなして知らせない。
+# そこで github-actions[bot] が持ち主を @メンションし、担当にする。GitHub の通知の設定 (既定) でメールが届く。
+# 鍵は要らない (GITHUB_TOKEN だけ。この repo の issue に書くだけの権限)。
+name: notify
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: notify-${{ github.event.issue.number }}
+
+jobs:
+  mention:
+    if: contains(github.event.issue.labels.*.name, 'wk:human')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      issues: write
+    steps:
+      - name: 持ち主に知らせる (1 つの issue に 1 回だけ)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUM: ${{ github.event.issue.number }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          mark='<!-- wk:notified -->'
+          if gh api "repos/$REPO/issues/$NUM/comments" --paginate --jq '.[].body' | grep -qF "$mark"; then
+            echo "もう知らせた"; exit 0
+          fi
+          gh issue edit "$NUM" --repo "$REPO" --add-assignee "$OWNER"
+          gh issue comment "$NUM" --repo "$REPO" --body "$mark
+          @$OWNER わくわく工場が人の作業を待っています。上の本文の手順をやって、終わったらこの issue を閉じてください。"

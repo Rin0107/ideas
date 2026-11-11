@@ -214,3 +214,18 @@ func TestOpenWithLabel(t *testing.T) {
 		t.Fatal("gh の失敗を通した")
 	}
 }
+
+func TestLabeledIssues(t *testing.T) {
+	f := fakegh.Install(t,
+		fakegh.Rule{Match: `^issue list --repo o/ok --label wk:fix --state open --limit 100 --json number,title,labels$`,
+			Out: `[{"number":3,"title":"wk:fix a","labels":[{"name":"wk:fix"}]}]`},
+		fakegh.Rule{Match: `--repo o/err `, Code: 1},
+	)
+	is, err := LabeledIssues("o/ok", "wk:fix")
+	if err != nil || len(is) != 1 || !is[0].Fix() || is[0].Number != 3 || is[0].Title != "wk:fix a" {
+		t.Fatal(is, err, f.Calls())
+	}
+	if _, err := LabeledIssues("o/err", "wk:fix"); err == nil {
+		t.Fatal("gh の失敗を通した")
+	}
+}

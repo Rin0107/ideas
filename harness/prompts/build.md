@@ -49,7 +49,11 @@ wk review <repo> <PR 番号>
 ```bash
 wk merge <repo> <PR 番号>     # CI を待ち、全部 green なら merge
 ```
-CI が赤なら、ログ (`gh run view --repo <repo> --log-failed`) を読んで直し、push → `wk review` からやり直す (この tick の中で 1 回まで)
+CI が赤なら、ログ (`gh run view --repo <repo> --log-failed`) を読んで直し、push → `wk review` からやり直す (この tick の中で 1 回まで)。
+- 原因がこの issue のコードでなく、**CI・雛形・工場の側** (権限・道具の版・手順書の誤りなど) なら、ここで止めて `result: fix` で報告する。
+  detail にエラーの文そのままと、どこをどう直せばよいかを書く。工場 (`templates/`・`harness/`・CI) の問題なら `in: factory` も付ける
+- 直すのに **守りの部分** (アプリの `.github/workflows/` や雛形の守りの部分など) を変えるしかないなら `result: human`。detail に貼れる差分を書く
+- `reports/weekly/notes.md` に書いて終わりにはしない (誰も直さず、同じ所で詰まり続ける)
 
 ## 5. デプロイして片付ける
 ```bash
@@ -57,11 +61,11 @@ cd $APP && git pull --ff-only origin main
 wk deploy                      # プレビューに出して、守りのヘッダーと中身を検査 (鍵は要らない)
 git -C $APP worktree remove ~/src/wakuwaku/.wt/<名前>-$N
 ```
-`wk deploy` が落ちたら fail で終える (次の tick で原因を直す issue を作るか、evaluate に回る)。
+`wk deploy` が落ちたら `result: fix` で終える (detail に出力。wk が直す issue を立て、次の tick で直す)。
 leader に報告する (result ok)。
 
 ## 6. 失敗したとき
 ```bash
 wk attempt $N --note "<なぜ通らないか。次の試行への申し送り>"
 ```
-PR は閉じず、ブランチも残す (次の試行が読める)。worktree だけ消す。leader に報告する (result fail)。
+PR は閉じず、ブランチも残す (次の試行が読める)。worktree だけ消す。leader に報告する (`result: retry`。試行は issue に数えてあり、上限で blocked になる)。

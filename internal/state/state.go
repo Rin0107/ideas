@@ -39,6 +39,7 @@ const (
 	PhaseSelect   = "select"
 	PhasePatrol   = "patrol" // ロールが自分の持ち場を見回り、仕事の提案を出す
 	PhaseTriage   = "triage" // leader が提案を仕分ける (今やる・あとで・やらない)
+	PhaseRepair   = "repair" // 工場そのものの直す issue (wk:fix) を解く
 )
 
 var validStatus = map[string]bool{Selected: true, Building: true, Evaluating: true, Iterating: true, Shipped: true, Dropped: true}

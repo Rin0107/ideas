@@ -12,7 +12,10 @@ import (
 	"github.com/Rin0107/ideas/internal/state"
 )
 
-const LabelBlocked = "wk:blocked"
+const (
+	LabelBlocked = "wk:blocked"
+	LabelFix     = "wk:fix" // 工場が自分で直す問題 (tick の結果 fix から立つ)。ほかの issue より先に解く
+)
 
 type Issue struct {
 	Number int      `json:"number"`
@@ -21,6 +24,7 @@ type Issue struct {
 }
 
 func (i Issue) Blocked() bool { return slices.Contains(i.Labels, LabelBlocked) }
+func (i Issue) Fix() bool     { return slices.Contains(i.Labels, LabelFix) }
 
 // Attempts は wk:attempt-N ラベルの最大の N。
 func (i Issue) Attempts() int {
@@ -43,6 +47,9 @@ type Snapshot struct {
 	Untried int
 	// Proposals は Active の repo にある、まだ仕分けていない提案 (wk:proposal) の数
 	Proposals int
+	// FactoryFixes は工場 repo の open な直す issue (wk:fix)
+	FactoryFixes []Issue
+	FactoryRepo  string
 }
 
 type Action struct {
@@ -50,7 +57,8 @@ type Action struct {
 	Repo   string `json:"repo,omitempty"`
 	Idea   string `json:"idea,omitempty"`
 	Issue  int    `json:"issue,omitempty"`
-	Role   string `json:"role"` // 担当のロール (docs/ROLES.md)
+	Fix    bool   `json:"fix,omitempty"` // Issue が直す issue (wk:fix) か
+	Role   string `json:"role"`          // 担当のロール (docs/ROLES.md)
 	Reason string `json:"reason"`
 }
 
@@ -65,6 +73,13 @@ func Decide(s Snapshot) Action {
 
 func decide(s Snapshot) Action {
 	c := s.Cfg
+	// 工場そのものが壊れていたら、何より先に直す (直さないと、ほかの段も同じところで詰まる)
+	for _, is := range sorted(s.FactoryFixes) {
+		if !is.Blocked() {
+			return Action{Phase: state.PhaseRepair, Repo: s.FactoryRepo, Issue: is.Number, Fix: true, Role: role.ForIssue(is.Labels),
+				Reason: fmt.Sprintf("工場の直す issue #%d", is.Number)}
+		}
+	}
 	if state.DaysSince(s.Meta.LastRetro, s.Now) >= c.RetroEveryDays && s.Meta.LastRetro != "" ||
 		s.Meta.LastRetro == "" && s.Active != nil && s.Active.Ticks.Total >= c.MaxTicksMVP {
 		// 初回の retro は、最初のアプリがある程度進んでから
@@ -110,7 +125,7 @@ func decide(s Snapshot) Action {
 		}
 		for _, is := range sorted(s.Issues) {
 			if !is.Blocked() {
-				a.Phase, a.Issue, a.Role = state.PhaseBuild, is.Number, role.ForIssue(is.Labels)
+				a.Phase, a.Issue, a.Fix, a.Role = state.PhaseBuild, is.Number, is.Fix(), role.ForIssue(is.Labels)
 				a.Reason = fmt.Sprintf("未完了の issue #%d (%d/%d tick)", is.Number, p.Ticks.Phase, limit)
 				return a
 			}
@@ -151,8 +166,17 @@ func patrolDue(s Snapshot) string {
 	return ""
 }
 
+// sorted は解く順: 直す issue (wk:fix) が先、その中は番号の小さい順。
 func sorted(is []Issue) []Issue {
 	out := slices.Clone(is)
-	slices.SortFunc(out, func(a, b Issue) int { return a.Number - b.Number })
+	slices.SortFunc(out, func(a, b Issue) int {
+		if a.Fix() != b.Fix() {
+			if a.Fix() {
+				return -1
+			}
+			return 1
+		}
+		return a.Number - b.Number
+	})
 	return out
 }

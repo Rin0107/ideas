@@ -28,8 +28,18 @@ func GH(args ...string) (string, error) { return Run("", "gh", args...) }
 
 // OpenIssues はマイルストーンの open な issue。
 func OpenIssues(repo, milestone string) ([]next.Issue, error) {
-	out, err := GH("issue", "list", "--repo", repo, "--milestone", milestone, "--state", "open",
+	return issues("issue", "list", "--repo", repo, "--milestone", milestone, "--state", "open",
 		"--limit", "100", "--json", "number,title,labels")
+}
+
+// LabeledIssues はそのラベルの付いた open な issue (マイルストーンを問わない)。
+func LabeledIssues(repo, label string) ([]next.Issue, error) {
+	return issues("issue", "list", "--repo", repo, "--label", label, "--state", "open",
+		"--limit", "100", "--json", "number,title,labels")
+}
+
+func issues(args ...string) ([]next.Issue, error) {
+	out, err := GH(args...)
 	if err != nil {
 		return nil, err
 	}

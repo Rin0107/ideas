@@ -37,7 +37,7 @@ wk propose --plan /tmp/wk-proposals.json    # 0 件なら {"issues": []}
 次の段で leader が仕分ける (`triage`)。
 
 **工場そのもの** (wk・手順書・雛形) や **守りの部分** (`factory.json` の `protected_paths`) についての気づきは、提案にしない。
-`reports/weekly/notes.md` に 1 行書く (retro が拾う)。
+守りの部分でなければ `wk fix --title ... --detail <ファイル>` で直す issue にする (次の tick で工場が直す)。守りの部分なら `wk human --title ... --detail <ファイル>` で人に頼む (メールが届く。人がそのまま貼れる差分を書く)。
 
 ## 4. 終える
 leader に報告する (note は「<role> の見回り: 提案 <n> 件」)。

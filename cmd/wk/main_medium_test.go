@@ -31,7 +31,7 @@ func TestM_Binary(t *testing.T) {
 	}{
 		{nil, 2, "使い方"},
 		{[]string{"check"}, 0, "ok (アイディア 3 件"},
-		{[]string{"done", "--result", "x"}, 1, "ok か fail"},
+		{[]string{"done", "--result", "x"}, 1, "ok・retry・fix・human のどれか"},
 	} {
 		cmd := exec.Command(bin, c.args...)
 		cmd.Dir = f.root

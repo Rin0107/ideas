@@ -1,0 +1,76 @@
+# 2026/11/11 22:57:15.237213 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw mvp: 1
+# 2026/11/11 22:57:15.237219 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw iter: 1
+# 2026/11/11 22:57:15.237220 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw minUntried: 0
+# 2026/11/11 22:57:15.237221 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw patrolEvery: 0
+# 2026/11/11 22:57:15.237221 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw patrolMin: 0
+# 2026/11/11 22:57:15.237222 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw intake: ""
+# 2026/11/11 22:57:15.237223 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw retro: ""
+# 2026/11/11 22:57:15.237223 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw patrol-sre: ""
+# 2026/11/11 22:57:15.237224 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw patrol-designer: ""
+# 2026/11/11 22:57:15.237224 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw patrol-engineer: ""
+# 2026/11/11 22:57:15.237225 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw untried: 0
+# 2026/11/11 22:57:15.237225 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw active: true
+# 2026/11/11 22:57:15.237226 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw status: "building"
+# 2026/11/11 22:57:15.237227 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw verdict: "ship"
+# 2026/11/11 22:57:15.237227 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw phaseTicks: 0
+# 2026/11/11 22:57:15.237227 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw earlier: 0
+# 2026/11/11 22:57:15.237228 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw proposals: 0
+# 2026/11/11 22:57:15.237228 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw issues: 0
+# 2026/11/11 22:57:15.237230 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw factoryFixes: 1
+# 2026/11/11 22:57:15.237230 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw fnum0: 1
+# 2026/11/11 22:57:15.237230 [TestSpec_VerdictOnlyWhenEvaluated] [rapid] draw fblocked0: false
+# 2026/11/11 22:57:15.237232 [TestSpec_VerdictOnlyWhenEvaluated] 結論 ship なのに repair
+# 
+v0.4.8#1396055854703723863
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x1
+0x0
+0x1
+0x0
+0x1
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x1
+0x0
+0x0
+0x0
+0x0

@@ -16,6 +16,7 @@
 | 段階 | 担当 | 決まり |
 |---|---|---|
 | `build` | issue の `role:<名前>` のラベル (なければ engineer) | `role.ForIssue` |
+| `repair` (工場の直す issue。何より先) | issue の `role:<名前>` のラベル (なければ engineer) | `role.ForIssue` |
 | `patrol` | 番のロール (sre → designer → engineer の順) | `next.patrolDue` |
 | `ship` | sre | `role.ForPhase` |
 | `evaluate` | leader が自分でまとめる (採点は designer: wakuwaku・weakest、sre: core_works・quality・bugs) | `role.ForPhase`・evaluate.md |
@@ -31,7 +32,7 @@
    ▲          │ {phase, role, ...}
    │          ▼
    │      role のサブエージェントが 1 段 (harness/prompts/<phase>.md)
-   │          │ 報告 (result: ok|fail / note: 1 行)
+   │          │ 報告 (result: ok|retry|fix|human / note: 1 行)
    │          ▼
    └─── wk done → git commit → wk sync
 
@@ -63,7 +64,8 @@
 | open な issue の数 | `max_open_issues` 8 | `wk triage` (now を足すと超えるなら止める) |
 | 1 つの issue の失敗 | `max_attempts_per_issue` 3 | `wk attempt` (超えたら wk:blocked) |
 | レビューのやり直し | 2 回 | `harness/prompts/build.md` |
-| 連続の失敗 | `max_consecutive_failures` 3 | `wk done` (STOP と incident) |
+| 連続の失敗 (human だけ数える) | `max_consecutive_failures` 3 | `wk done` (STOP と incident、持ち主にメール) |
+| 直す issue の試行 | `max_attempts_per_issue` 3 | `wk done` (上限で human に上げる) |
 | ロールの名前 | engineer・designer・sre | 計画・提案の検査 (`issueErrors`) |
 
 ## 誰が何を変えてよいか

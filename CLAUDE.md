@@ -22,7 +22,7 @@
 
 ## 変えてはいけないもの (guard が止める)
 `factory.json` の `protected_paths` にあるもの: 制御のコード (`cmd/` `internal/`)・設定・CI・設計書・採点基準・reviewer の指示・雛形の守りの部分。
-変えるべきだと思ったら、`reports/weekly/notes.md` に書く (retro がユーザーに頼む)。
+変えるべきだと思ったら、`wk human --title ... --detail <ファイル>` で人に頼む (持ち主にメールが届く。貼れる差分を書く)。守りの部分でない工場の問題は `wk fix --title ... --detail <ファイル>` (次の tick で工場が直す)。
 
 ## 書いてよいもの
 - `ideas_wakuwaku/` のアイディアと `ideas_wakuwaku/INDEX.md` (intake・iterate・drop の手順で)

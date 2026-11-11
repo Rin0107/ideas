@@ -32,22 +32,36 @@ JSON が出る (`phase` `role` `repo` `idea` `issue` `reason`)。
 ```
 <wk next の JSON をそのまま>
 harness/prompts/<phase>.md に従って、この 1 段だけをやる。
-終わったら 5 行までで報告する: 1 行目 `result: ok|fail`、2 行目 `note: <1 行>`。wk done と wk sync は呼ばない。
+終わったら 5 行までで報告する: 1 行目 `result: ok|retry|fix|human`、2 行目 `note: <1 行>`、
+fix・human なら 3 行目 `detail: <本文のファイルのパス>`、工場の問題なら 4 行目 `in: factory`。wk done と wk sync は呼ばない。
 ```
 - 例外: `phase` が `evaluate` なら、leader 自身が `harness/prompts/evaluate.md` に従ってまとめる (採点は designer と sre に 1 つずつ頼む)
-- 報告の形が違う・返ってこない・`result` がない なら `fail` とみなす。note は「報告がない」
+- 報告の形が違う・返ってこない・`result` がない なら `fix` (工場の問題) とみなす: `--in factory`、note は「<phase> の報告がない」
 
 ## 3. 記録する (成功でも失敗でも必ず)
 ```bash
-wk done --result <ok|fail> --note "<報告の note>"
+wk done --result <ok|retry|fix|human> --note "<報告の note>" [--detail <報告の detail>] [--in factory (報告に in: factory があれば)]
 git add -A && git commit -m "tick: <phase> <repo> <note>"
 wk sync
 ```
 そして 1 に戻る。
 
 - `wk done` を呼ばずに終わると、ロックが残って次の tick が 150 分待たされる
-- 失敗が 3 回続くと wk が自分で止まり (STOP)、incident を立てる。止まったら人が来るまで待つ (次の `wk next` がエラーになって終わる)
+- 失敗に数えるのは `human` だけ。3 回続くと wk が自分で止まり (STOP)、人に知らせる。止まったら人が来るまで待つ (次の `wk next` がエラーになって終わる)
 - `wk sync` が失敗したら、そこで終わる (次の実行が続きをやる)
+
+## 結果の 4 つ (docs/DESIGN.md §9)
+**人の手なしで直せることは、全部工場が直す**。人に頼むのは、人にしかできないことだけ。
+
+| result | いつ | wk がすること | 失敗に数える |
+|---|---|---|---|
+| `ok` | 進んだ | 記録する | いいえ (数を 0 に戻す) |
+| `retry` | issue の試行が通らなかった (`wk attempt` で issue に記録した) | 記録だけ。次の tick がもう一度試す (上限で blocked) | いいえ |
+| `fix` | 人の手なしで直せる問題に当たった (CI・テスト・手順書・雛形・依存・設定の誤り・報告がない など) | 直す issue (`wk:fix`) を立て、次の tick で最優先に解く。同じ問題を 3 回試して直らなければ `human` に上げる | いいえ |
+| `human` | 人にしかできない: **守りの部分の変更**・鍵やトークン・アカウントや連携の設定・お金・Worker の削除 | 人宛ての issue (`wk:human`) を立て、持ち主に**メールで**知らせる。今の issue は blocked | **はい** |
+
+- `fix` と `human` の detail には「何が起きたか (エラーの文そのまま)・原因・どう直すか」を書く。`human` なら、人がそのまま貼れる差分やコマンドまで書く (人の手間を最小に)
+- 迷ったら `fix`。直す issue を解く回で「本当に人が要る」と分かったら、そのとき `human` にする
 
 ## してはいけないこと (guard も止めるが、頼らない)
 - 重要な情報 (個人情報・認証情報・支払い・位置・IP) を持つ機能を作る

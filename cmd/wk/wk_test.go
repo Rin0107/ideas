@@ -152,7 +152,7 @@ func TestStopsAfterConsecutiveFailures(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		must(t, cmdDue(nil))
 		must(t, cmdNext(nil))
-		must(t, cmdDone([]string{"--result", "fail", "--note", "テスト"}))
+		must(t, cmdDone([]string{"--result", "human", "--note", "テスト"}))
 	}
 	if _, err := os.Stat(filepath.Join(f.runtime, "STOP")); err != nil {
 		t.Fatal("3 回失敗しても STOP ができていない")

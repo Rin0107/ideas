@@ -17,10 +17,12 @@ type command struct {
 
 var commands = map[string]command{
 	// tick の枠
-	"due":  {"tick を始めてよいか (precheck)。止める理由があれば終了コード 1", cmdDue},
-	"next": {"ロックを取り、次の段階を JSON で出す", cmdNext},
-	"done": {"--result ok|fail [--note ...]: tick を終える (記録・ロック解除)", cmdDone},
-	"sync": {"今の worktree のブランチを工場の main に merge して push する", cmdSync},
+	"due":   {"tick を始めてよいか (precheck)。止める理由があれば終了コード 1", cmdDue},
+	"next":  {"ロックを取り、次の段階を JSON で出す", cmdNext},
+	"done":  {"--result ok|retry|fix|human [--note ...] [--detail file] [--in factory]: tick を終える (記録・直す issue・人への依頼・ロック解除)", cmdDone},
+	"fix":   {"--title ... [--detail file]: 工場の直す issue (wk:fix) を立てる。次の tick が最優先で直す", cmdFix},
+	"human": {"--title ... [--detail file]: 人に頼む (工場 repo に wk:human の issue。持ち主にメールが届く)", cmdHuman},
+	"sync":  {"今の worktree のブランチを工場の main に merge して push する", cmdSync},
 	// 状態
 	"status":     {"[--short] 工場の状態", cmdStatus},
 	"check":      {"状態・アイディア・設定の矛盾を検査 (CI でも使う)", cmdCheck},

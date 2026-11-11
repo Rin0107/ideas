@@ -130,7 +130,7 @@ func TestNextRecordsStaleLockAsAborted(t *testing.T) {
 		t.Fatal(ts)
 	}
 	rt, _ := state.LoadRuntime(f.runtime, time.Now())
-	if rt.ConsecutiveFailures != 1 || rt.TicksToday != 1 {
+	if rt.ConsecutiveFailures != 0 || rt.TicksToday != 1 {
 		t.Fatalf("%+v", rt)
 	}
 }
@@ -366,7 +366,7 @@ func TestDonePatrolFailKeepsDate(t *testing.T) {
 	_, err = lock.Acquire(f.runtime, lock.Info{Since: time.Now(), Phase: state.PhasePatrol}, time.Hour)
 	must(t, err)
 	must(t, writeCurrent(e, next.Action{Phase: state.PhasePatrol, Role: "designer", Reason: "テスト"}))
-	if _, err := capture(t, func() error { return cmdDone([]string{"--result", "fail"}) }); err != nil {
+	if _, err := capture(t, func() error { return cmdDone([]string{"--result", "fix"}) }); err != nil {
 		t.Fatal(err)
 	}
 	if m, _ := state.LoadMeta(f.root); len(m.LastPatrol) != 0 {
@@ -405,7 +405,7 @@ func TestDoneErrors(t *testing.T) {
 		want    string
 	}{
 		"知らない引数":              {[]string{"--nope"}, nil, "nope"},
-		"result が不正":          {[]string{"--result", "maybe"}, nil, "ok か fail"},
+		"result が不正":          {[]string{"--result", "fail"}, nil, "ok・retry・fix・human のどれか"},
 		"設定が壊れている":            {[]string{"--result", "ok"}, func(f *factory) { f.write("factory.json", "{") }, "factory.json"},
 		"今の tick がない":         {[]string{"--result", "ok"}, func(f *factory) { os.Remove(filepath.Join(f.runtime, "current.json")) }, "wk next"},
 		"current.json が壊れている": {[]string{"--result", "ok"}, func(f *factory) { f.write(filepath.Join(f.runtime, "current.json"), "{") }, "JSON"},
@@ -418,8 +418,8 @@ func TestDoneErrors(t *testing.T) {
 			setPhase(t, state.PhaseRetro)
 			f.block("state/meta.json.tmp")
 		}, "meta.json.tmp"},
-		"ticks を書けない":   {[]string{"--result", "fail"}, func(f *factory) { f.block("state/ticks.jsonl") }, "ticks.jsonl"},
-		"runtime を書けない": {[]string{"--result", "fail"}, func(f *factory) { f.block(filepath.Join(f.runtime, "runtime.json.tmp")) }, "runtime.json"},
+		"ticks を書けない":   {[]string{"--result", "human"}, func(f *factory) { f.block("state/ticks.jsonl") }, "ticks.jsonl"},
+		"runtime を書けない": {[]string{"--result", "human"}, func(f *factory) { f.block(filepath.Join(f.runtime, "runtime.json.tmp")) }, "runtime.json"},
 		"ロックを外せない": {[]string{"--result", "ok"}, func(f *factory) {
 			must(t, os.Remove(filepath.Join(f.runtime, "tick.lock")))
 			f.block(filepath.Join(f.runtime, "tick.lock"))
@@ -445,7 +445,7 @@ func TestDoneStopsAndReportsIncidentFailure(t *testing.T) {
 	r, w, _ := os.Pipe()
 	old := os.Stderr
 	os.Stderr = w
-	_, err := capture(t, func() error { return cmdDone([]string{"--result", "fail", "--note", "x"}) })
+	_, err := capture(t, func() error { return cmdDone([]string{"--result", "human", "--note", "x"}) })
 	os.Stderr = old
 	w.Close()
 	b := make([]byte, 4096)

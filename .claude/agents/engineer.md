@@ -35,4 +35,4 @@ result: ok
 note: <1 行: 何をしたか / 何で失敗したか>
 <あれば 3 行まで: PR の番号・申し送り>
 ```
-1 行目は `result: ok` か `result: fail`、2 行目は `note: ` で始める。
+1 行目は `result: ok|retry|fix|human` (意味は `harness/TICK.md` の「結果の 4 つ」)、2 行目は `note: ` で始める。fix・human なら `detail: <本文のファイル>` (工場の問題なら `in: factory`) も。

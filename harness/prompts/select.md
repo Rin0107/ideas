@@ -44,7 +44,7 @@ wk が足切りと合計点で 1 件選ぶ。全部足切りなら、ここで�
 wk scaffold --plan /tmp/wk-plan.json
 ```
 雛形から private の repo を作り、ラベル・マイルストーン MVP・issue を登録する。
-落ちたら、エラーを読んで直せるもの (repo_name が使われている・計画の形) は直して再実行。直せなければ fail で終える。
+落ちたら、エラーを読んで直せるもの (repo_name が使われている・計画の形) は直して再実行。直せなければ `result: fix` で終える (detail にエラーの文)。
 
 ## 5. 終える
 leader に報告する。note は「選定: <idea> → <repo>」。

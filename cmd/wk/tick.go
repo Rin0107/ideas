@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
@@ -71,7 +72,11 @@ func (e *env) snapshot() (next.Snapshot, error) {
 	if err != nil {
 		return next.Snapshot{}, err
 	}
-	s := next.Snapshot{Now: e.now, Cfg: e.cfg, Meta: meta, Active: e.pf.Active(), Untried: ideas.Untried(all, e.pf.Tried())}
+	s := next.Snapshot{Now: e.now, Cfg: e.cfg, Meta: meta, Active: e.pf.Active(), Untried: ideas.Untried(all, e.pf.Tried()),
+		FactoryRepo: e.factoryRepo()}
+	if s.FactoryFixes, err = gh.LabeledIssues(s.FactoryRepo, next.LabelFix); err != nil {
+		return next.Snapshot{}, err
+	}
 	if p := s.Active; p != nil && p.Repo != "" && (p.Status == state.Building || p.Status == state.Iterating) {
 		if s.Issues, err = gh.OpenIssues(p.Repo, p.Milestone); err != nil {
 			return next.Snapshot{}, err
@@ -141,7 +146,7 @@ func cmdNext(args []string) error {
 		return err
 	}
 	if stale != nil {
-		rt.ConsecutiveFailures++
+		// 前の tick が終わらずに消えた。ロックを引き継げば直るので、失敗には数えない (自分で直せること)
 		_ = state.AppendTick(e.cfg.Root, state.Tick{Start: stale.Since, End: e.now, Phase: stale.Phase, Result: "aborted",
 			Note: "ロックが " + stale.Worktree + " に残っていた"})
 	}
@@ -208,13 +213,19 @@ func readCurrent(e *env) (next.Action, time.Time, error) {
 
 func cmdDone(args []string) error {
 	fs := flag.NewFlagSet("done", flag.ContinueOnError)
-	result := fs.String("result", "", "ok / fail")
-	note := fs.String("note", "", "1 行のメモ")
+	result := fs.String("result", "", "ok / retry / fix / human (docs/DESIGN.md §9)")
+	note := fs.String("note", "", "1 行のメモ (fix と human では issue の題になる)")
+	detail := fs.String("detail", "", "fix・human: 本文のファイル (何が起きたか・どう直すか・人にやってほしい手順と差分)")
+	in := fs.String("in", "", "fix: factory なら工場 repo に立てる (既定はその tick の repo)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if *result != "ok" && *result != "fail" {
-		return errors.New("--result は ok か fail")
+	if !slices.Contains([]string{"ok", "retry", "fix", "human"}, *result) {
+		return errors.New("--result は ok・retry・fix・human のどれか")
+	}
+	body, err := readDetail(*detail)
+	if err != nil {
+		return err
 	}
 	e, err := load()
 	if err != nil {
@@ -251,12 +262,14 @@ func cmdDone(args []string) error {
 				return err
 			}
 		}
-	} else {
-		rt.ConsecutiveFailures++
 	}
 	if err := state.AppendTick(e.cfg.Root, state.Tick{Start: start, End: e.now, Phase: a.Phase, Repo: a.Repo,
 		Issue: a.Issue, Role: a.Role, Result: *result, Note: *note}); err != nil {
 		return err
+	}
+	// 人の手が要るものだけを失敗に数える。gh が落ちても tick は終える (ロックを残さない)
+	if err := settle(e, rt, a, *result, *note, body, *in); err != nil {
+		fmt.Fprintln(os.Stderr, "issue の作成に失敗:", err)
 	}
 	if err := state.SaveRuntime(e.cfg.RuntimeDir, rt); err != nil {
 		return err
@@ -274,6 +287,24 @@ func cmdDone(args []string) error {
 	return nil
 }
 
+// settle は fix と human の後始末 (直す issue・人宛ての issue) をし、失敗の数を数える。
+func settle(e *env, rt *state.Runtime, a next.Action, result, note, body, in string) error {
+	switch result {
+	case "human":
+		rt.ConsecutiveFailures++
+		return handleHuman(e, a, note, body)
+	case "fix":
+		up, err := handleFix(e, a, note, body, in)
+		if err != nil || !up {
+			return err
+		}
+		rt.ConsecutiveFailures++
+		return handleHuman(e, a, fmt.Sprintf("直す issue %s #%d が %d 回で直らない", a.Repo, a.Issue, e.cfg.MaxAttemptsPerIssue),
+			note+"\n\n"+body)
+	}
+	return nil
+}
+
 // stopWithIncident は STOP を置いて止まり、工場 repo に incident を立てる。人が来るまで tick は動かない。
 func stopWithIncident(e *env, rt *state.Runtime, a next.Action, note string) error {
 	msg := fmt.Sprintf("%s: 連続 %d 回失敗したので止まった。最後: %s %s #%d %s\n", e.now.Format(time.DateTime),
@@ -282,8 +313,11 @@ func stopWithIncident(e *env, rt *state.Runtime, a next.Action, note string) err
 		return err
 	}
 	body := msg + "\n直したら `" + filepath.Join(e.cfg.RuntimeDir, "STOP") + "` を消すと再開する。\n記録: state/ticks.jsonl"
+	if err := ensureLabel(e.factoryRepo(), labelHuman); err != nil {
+		return err
+	}
 	_, err := gh.GH("issue", "create", "--repo", e.factoryRepo(), "--title", "wk:incident 連続失敗で停止 "+e.today(),
-		"--label", "wk:incident", "--body", body)
+		"--label", "wk:incident", "--label", labelHuman, "--body", body)
 	return err
 }
 

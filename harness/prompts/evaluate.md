@@ -40,7 +40,7 @@ jq -s '{core_works: .[1].core_works, quality: .[1].quality, bugs: .[1].bugs,
         summary: (.[0].summary + " / " + .[1].summary)}' \
   /tmp/wk-eval-designer.json /tmp/wk-eval-sre.json > /tmp/wk-eval.json
 ```
-どちらかが JSON を返さなかったら、もう一度だけ頼む。それでもだめなら fail で終える (点を自分で埋めない)。
+どちらかが JSON を返さなかったら、もう一度だけ頼む。それでもだめなら `result: fix` で終える (点を自分で埋めない)。
 
 ## 5. 決める
 ```bash
