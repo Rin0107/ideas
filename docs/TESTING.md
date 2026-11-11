@@ -13,7 +13,7 @@
 | 仕様が明確で正確 | 状態の流れを TLA+ で書き、TLC が全状態を調べる。算術・条件の性質を Z3 で証明する | CI の formal。落ちたら merge しない |
 | 実装が仕様どおり | 仕様の不変条件ごとに、同じ性質を実装に対して確かめるテスト (`TestSpec_<名前>` / `"Spec_<名前>: …"`) を PBT か全件ループで書く | `scripts/formal.sh` が、cfg の INVARIANT ごとにテストがあるかを検査 |
 | テストが全部の道を通る | カバレッジ 100% (Go: S と M を合わせて文単位、main も含む。TS: 行・分岐・関数・文) | 1 文でも通らなければ落ちる (`scripts/cover-check.sh` は丸めずに数える) |
-| テストが本当に壊れを見つける | ミューテーション: コードを少し壊し、テストが気づくか | efficacy (score) 95% 以上・mutant coverage 100%。変えたコードだけを毎回 |
+| テストが本当に壊れを見つける | ミューテーション: コードを少し壊し、テストが気づくか | efficacy (score) 95% 以上・mutant coverage 100%。変えたコードだけを毎回。判定は gremlins の出力を数える `scripts/mutation-gate.sh` (gremlins の `--threshold-*` は読まれずに効かない。2026-11-11 に確かめた) |
 | 想定外の入力で落ちない | fuzzing (Go の fuzz・fast-check) | CI の fuzz が時間を区切って毎回探す。シードは毎回の S のテストでも流れる |
 | 速い | どの CI ジョブも 5 分で打ち切り | `timeout-minutes: 5`。超えたら失敗 = merge できない |
 

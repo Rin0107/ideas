@@ -42,6 +42,8 @@ jobs:
           COVER_M=$PWD/.cover/m go test -count=1 -tags medium -run '^TestM_' ./cmd/wk/
           go tool covdata textfmt -i=.cover/s,.cover/m -o cover.out
           sh scripts/cover-check.sh cover.out
+      - name: ミューテーションの関門の自己検査 (98% が落ち、100% が通る)
+        run: sh scripts/mutation-gate.test.sh
       - run: go run ./cmd/wk check
       - run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 $PKGS
 
@@ -81,8 +83,11 @@ jobs:
         run: |
           case "$BASE" in 0000000000000000000000000000000000000000) BASE="" ;; esac
           if [ -n "$BASE" ] && [ -z "$(git diff --name-only "$BASE" -- "$DIR/*.go" ':!*_test.go')" ]; then echo "ok: $DIR の変更なし"; exit 0; fi
-          gremlins unleash --workers 4 --test-cpu 1 ${BASE:+--diff "$BASE"} --threshold-efficacy 95 --threshold-mcover 100 --timeout-coefficient 3 \
-            --invert-logical --invert-loopctrl -E "$EXCLUDE" -E 'internal/fakegh/' .
+          # 基準 (efficacy 95%・mutant coverage 100%) は gremlins の引数では効かないので、出力を数えて判定する (scripts/mutation-gate.sh)
+          gremlins unleash --workers 4 --test-cpu 1 ${BASE:+--diff "$BASE"} --timeout-coefficient 3 \
+            --invert-logical --invert-loopctrl -E "$EXCLUDE" -E 'internal/fakegh/' . > /tmp/gremlins.out 2>&1 || { cat /tmp/gremlins.out; exit 1; }
+          cat /tmp/gremlins.out
+          sh scripts/mutation-gate.sh /tmp/gremlins.out
 
   # 仕様: spec/ (工場の流れ・評価の結論) を TLA+ と Z3 で検査し、TestSpec_ とのつながりを確かめる
   formal:
@@ -129,11 +134,13 @@ jobs:
       - name: ミューテーションの道具の自己検査
         working-directory: /tmp/app
         run: |
-          set -o pipefail
           sed -i 's/if c.n >= c.max {/if c.n >= c.max \&\& c.max >= 0 {/' internal/app/counter.go
           git -c user.name=ci -c user.email=ci@example.com commit -qam "1 行変える"
-          sh scripts/mutate.sh HEAD~1 | tee /tmp/m.out
+          # 足した条件はテストが確かめていないので、生き残る変異があってよい (関門が落とすのは正しい)。ここで見るのは道具のつながり
+          sh scripts/mutate.sh HEAD~1 > /tmp/m.out 2>&1 || true
+          cat /tmp/m.out
           grep -Eq "Killed: [1-9]" /tmp/m.out || { echo "差分のミューテーションが変異を試していない" >&2; exit 1; }
+          grep -Eq "^ok: ミューテーション |^ミューテーションの関門: " /tmp/m.out || { echo "make mutate が関門 (mutation-gate.sh) を通していない" >&2; exit 1; }
 
   template-web:
     runs-on: ubuntu-latest

@@ -44,10 +44,16 @@ fuzz:
 
 # ミューテーション: コードを少し壊して、テストが気づくか。BASE からの変更だけ (CI が渡す)。BASE が空なら全部
 # gremlins は既定で全コア (runtime.NumCPU) の数だけ go test を同時に動かすので、--workers で決める
+# 基準 (efficacy 95%・mutant coverage 100%) は gremlins の引数では効かない (読まれずに 0 になる) ので、
+# 出力を数えて scripts/mutation-gate.sh が判定する
 MUTATE_MEM ?= 3G
+MUTATE_OUT ?= .cover/gremlins.out
 BASE ?= origin/main
 mutate:
-	sh scripts/limit.sh $(MUTATE_MEM) $(JOBS) gremlins unleash --workers $(JOBS) --test-cpu 1 $(if $(BASE),--diff "$(BASE)") --threshold-efficacy 95 --threshold-mcover 100 --timeout-coefficient 3 --invert-logical --invert-loopctrl
+	mkdir -p $(dir $(MUTATE_OUT))
+	sh scripts/limit.sh $(MUTATE_MEM) $(JOBS) gremlins unleash --workers $(JOBS) --test-cpu 1 $(if $(BASE),--diff "$(BASE)") --timeout-coefficient 3 --invert-logical --invert-loopctrl > $(MUTATE_OUT) 2>&1 || { cat $(MUTATE_OUT); exit 1; }
+	cat $(MUTATE_OUT)
+	sh scripts/mutation-gate.sh $(MUTATE_OUT)
 
 # 仕様の検査: TLA+ (TLC) と Z3。道具は CI が版と sha256 を固定して入れる (並列と上限は scripts/formal.sh が自分でかける)
 formal:
