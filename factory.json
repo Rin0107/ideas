@@ -67,6 +67,26 @@
     "templates/web/package.json"
   ],
 
+  "reviewable_paths": [
+    "harness/TICK.md",
+    "harness/rubric.md",
+    "docs/DESIGN.md",
+    "docs/ROLES.md",
+    "docs/TESTING.md",
+    "templates/web/.github/",
+    "templates/web/scripts/",
+    "templates/web/src/worker/security.ts",
+    "templates/web/vitest.config.ts",
+    "templates/web/stryker.config.json",
+    "templates/web/spec/README.md",
+    "templates/web/playwright.config.ts",
+    "templates/web/package.json",
+    "templates/go-cli/scripts/",
+    "templates/go-cli/.github/",
+    "templates/go-cli/Makefile",
+    "templates/go-cli/spec/README.md"
+  ],
+
   "site": {
     "repo": "Rin0107/wakuwaku-site",
     "url": "https://wakuwaku-site.Rin0107.workers.dev"

@@ -73,7 +73,7 @@
 - **wk だけ**: `state/`、merge・公開・デプロイ・repo の作成と archive、issue のラベルの付け替え (仕分け)
 - **ロール**: アプリのコード (PR で。全員のレビューを通す)、自分の持ち場の文書、提案 (`wk propose` で)
 - **leader**: 工場の repo へのコミットと `wk sync`、仕分けの結論
-- **人だけ**: 守りの部分 (`factory.json` の `protected_paths`。このファイル・`.claude/agents/`・`harness/reviewers/` を含む)
+- **人だけ**: 守りの部分のうち `reviewable_paths` にないもの (`.claude/agents/`・`harness/reviewers/`・制御のコード・`factory.json`)。このファイルは守りのレビューを通せば変えてよい
 
 ## 手元の機械のメモリとの関係
 

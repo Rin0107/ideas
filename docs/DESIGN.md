@@ -22,7 +22,7 @@
 2. **お金を使わない**: 無料プランだけ。有料プランへの切り替え・ドメイン購入・課金 API は禁止 (§8)
 3. **壊さない**: 工場が触れるのは、工場が作ったリポジトリとサービスだけ (§8 のガード)
 4. **自分で直す。人に頼むのは人にしかできないことだけ**: 人の手なしで直せる問題は失敗にせず、直す issue を立てて工場が解く。
-   人にしかできないこと (守りの部分・鍵・アカウント・お金) だけを失敗に数え、持ち主にメールで頼む (§9)
+   人にしかできない許可 (権限・接続・鍵・お金) だけを失敗に数え、持ち主にメールで頼む (§9)
 5. **記録を残す**: 何を選び、なぜ捨てたかを全部 git に残す (ユーザーの okuos の方針と同じ)
 
 迷ったら上を優先する。わくわくより安全、完成より安全。
@@ -332,13 +332,19 @@ tick の結果は 4 つ (`wk done --result`、手順は `harness/TICK.md` の「
 | `ok` | 進んだ | 記録 | いいえ (0 に戻す) |
 | `retry` | issue の試行が通らなかった | `wk attempt` で `wk:attempt-N`、上限で `wk:blocked`。核の issue が blocked なら evaluate へ | いいえ |
 | `fix` | 人の手なしで直せる問題 | 直す issue (`wk:fix`) を立てる。アプリの問題はアプリの repo (マイルストーンの中、ほかの issue より先に解く)、工場の問題は工場 repo (`repair` の段で、何より先に解く)。同じ題の issue があれば試行を数える。直す issue そのものが `max_attempts_per_issue` 回直らなければ `human` に上げる | いいえ (上げたときだけ数える) |
-| `human` | 人にしかできない (守りの部分・鍵・アカウント・お金) | 工場 repo に `wk:human` の issue。今の issue は `wk:blocked` | はい |
+| `human` | 人にしかできない許可 (権限・MCP や GitHub App の接続・鍵・お金・工場の力を広げる変更) | 工場 repo に `wk:human` の issue。今の issue は `wk:blocked` | はい |
 
 - ほかに: tick が途中で落ちた → ロックが `lock_ttl_minutes` で切れ、次の tick が `aborted` と記録して続ける (失敗に数えない)
 - 無料枠に当たった → デプロイを止めて evaluate へ (「無料枠で成立しない」として drop の理由にする)
 - 失敗 (`human`) が `max_consecutive_failures` 回続いたら `STOP` を置いて止まり、`wk:incident` と `wk:human` の issue を立てる
 - 直す issue が無限に続かない理由: 直す issue を解く回の `fix` は新しい issue を立てず試行を数える (上限で人へ)。
   アプリの直す issue はアプリの持ち時間を使うので、時間切れは必ず来る。工場の直す issue は 1 日の tick の上限の中で解く
+
+**守りの部分の変更 (2026-11-11 追記)**: ユーザー「必要なのは権限や mcp 接続などを許可していないことだけ。こういう判断はあなたの方でやる」。
+守りの部分を 2 つに分ける。`reviewable_paths` (雛形やアプリの CI・検査の設定・設計書など) は、守りのレビュー
+(`harness/reviewers/guardian.md`、会話を引き継がない別の Claude、迷ったら通さない) を通せば工場が変える。アプリの PR は `wk review` に guardian が加わり、
+工場の変更は `wk sync` が guardian に見せる。残り (`cmd/` `internal/` `factory.json` `.claude/` `harness/reviewers/` `scripts/` `spec/` 工場の CI、
+アプリの `.claude/` `wk.json`) は工場の力を広げるので、変えるのは人だけ (`human`)。
 
 **知らせ方 (メール)**: `wk:human` の issue が立つと、工場 repo の `.github/workflows/notify.yml` が github-actions[bot] として
 持ち主を @メンションし、担当にする。工場は持ち主の gh で issue を立てるので、そのままだと GitHub は「自分の操作」として知らせない。

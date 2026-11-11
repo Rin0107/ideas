@@ -9,10 +9,12 @@ package main
 // 同じ wk:fix の issue を max_attempts_per_issue 回試しても直らなければ human に上げる (直す issue が無限に続かない)。
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/Rin0107/ideas/internal/gh"
@@ -223,5 +225,30 @@ func cmdFix(args []string) error {
 		return err
 	}
 	fmt.Println("直す issue にした:", *title)
+	return nil
+}
+
+// guardianSync は、工場の変えてよい守りの部分の差分を、守りのレビュー (会話を引き継がない別の Claude) に見せる。
+// approve のときだけ main に入れてよい。指示は main の側から読む (作業ブランチで書き換えられないように)。
+func guardianSync(e *env, wd string, files []string) error {
+	instr, err := os.ReadFile(filepath.Join(e.cfg.MainCheckout, "harness", "reviewers", guardianReviewer+".md"))
+	if err != nil {
+		return err
+	}
+	// 直前の diff --name-only が通っているので、ここは落ちない (落ちて空なら、guardian は「理由が読めない」で通さない)
+	diff, _ := gh.Run(wd, "git", append([]string{"diff", "origin/main...HEAD", "--"}, files...)...)
+	log, _ := gh.Run(wd, "git", "log", "--format=%s%n%b", "origin/main..HEAD")
+	out, err := runClaude(e, string(instr)+"\n\n# 工場の守りの部分の変更 (wk sync)\n\n# コミット\n"+log+"\n# 差分\n```diff\n"+diff+"\n```\n")
+	if err != nil {
+		return err
+	}
+	var r review
+	if err := json.Unmarshal([]byte(extractJSON(out)), &r); err != nil || (r.Verdict != "approve" && r.Verdict != "request_changes") {
+		return fmt.Errorf("守りのレビューの出力が JSON の形でない: %v\n%s", err, out)
+	}
+	if r.Verdict != "approve" {
+		return fmt.Errorf("守りのレビューが通らない (%s): %s\n- %s", strings.Join(files, ", "), r.Summary, strings.Join(r.Issues, "\n- "))
+	}
+	fmt.Println("守りのレビュー: approve —", r.Summary)
 	return nil
 }

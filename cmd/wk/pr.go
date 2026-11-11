@@ -95,7 +95,7 @@ func cmdReview(args []string) error {
 	// ロールごとに、会話を引き継がない別の Claude が自分の持ち場の目で見る (docs/ROLES.md)。
 	// 途中で request_changes が出ても全員に見せる (直す側が 1 回で全部の指摘を受け取れるように)。
 	result := reviews{Verdict: "approve"}
-	for _, who := range role.Reviewers(files) {
+	for _, who := range reviewersFor(files) {
 		instr, err := os.ReadFile(filepath.Join(e.cfg.Root, "harness", "reviewers", who+".md"))
 		if err != nil {
 			return err
@@ -193,8 +193,8 @@ func cmdMerge(args []string) error {
 	}
 	if files, err := prFiles(repo, pr); err != nil {
 		return err
-	} else if hit := guard.TouchesProtected(files, appProtected); len(hit) > 0 {
-		return fmt.Errorf("守りの部分を変えている PR は merge しない: %s", strings.Join(hit, ", "))
+	} else if hit := guard.TouchesProtected(files, appHard); len(hit) > 0 {
+		return fmt.Errorf("工場の力を広げる守りの部分 (フック・検査の設定) を変えている PR は merge しない (人だけ): %s", strings.Join(hit, ", "))
 	}
 	start := time.Now()
 	for {
@@ -271,11 +271,11 @@ func hookContext() (hookInput, guard.Context, error) {
 		return in, guard.Context{}, err
 	}
 	root := e.cfg.Root
-	protected := e.cfg.ProtectedPaths
+	protected := e.cfg.HardProtected() // 変えてよい守りの部分は、守りのレビューが後で見る (wk review・wk sync)
 	// アプリ repo の中: 守るのは CI と フックの設定
 	if top, err := gh.Run(in.Cwd, "git", "rev-parse", "--show-toplevel"); err == nil {
 		if t := strings.TrimSpace(top); !strings.HasPrefix(t, e.cfg.Root) && t != e.cfg.MainCheckout && !isFactoryWorktree(t) {
-			root, protected = t, appProtected
+			root, protected = t, appHard
 		}
 	}
 	writable := []string{e.cfg.AppsDir, os.TempDir(), "/tmp"}
@@ -312,6 +312,21 @@ func cmdGuardEdit(args []string) error {
 	}
 	return nil
 }
+
+// reviewersFor は PR を通すのに approve が要るレビュアー。守りの部分に触れたら、最後に守りのレビュー (guardian) が入る。
+func reviewersFor(files []string) []string {
+	rs := role.Reviewers(files)
+	if len(guard.TouchesProtected(files, appProtected)) > 0 {
+		rs = append(rs, guardianReviewer)
+	}
+	return rs
+}
+
+// guardianReviewer は守りのレビュー (harness/reviewers/guardian.md)。守りを弱めない変更だけを通す。
+const guardianReviewer = "guardian"
+
+// appHard はアプリ repo の守りの部分のうち、工場が変えられないもの (フックの設定と、工場の検査が読む設定)。
+var appHard = []string{".claude/", "wk.json"}
 
 // appProtected はアプリ repo の守りの部分 (エージェントは変えられない。雛形から来たまま)。
 // テストの基準 (カバレッジ 100%・ミューテーション・5 分) を書いたファイルも含む。

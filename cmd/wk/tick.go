@@ -347,8 +347,12 @@ func cmdSync(args []string) error {
 	}
 	if out, err := gh.Run(wd, "git", "diff", "--name-only", "origin/main...HEAD"); err != nil {
 		return err
-	} else if hit := guard.TouchesProtected(strings.Split(out, "\n"), e.cfg.ProtectedPaths); len(hit) > 0 {
-		return fmt.Errorf("守りの部分が変わっているので main に入れない (ユーザーが見る): %s", strings.Join(hit, ", "))
+	} else if hit := guard.TouchesProtected(strings.Split(out, "\n"), e.cfg.HardProtected()); len(hit) > 0 {
+		return fmt.Errorf("工場の力を広げる守りの部分が変わっているので main に入れない (人だけが変える): %s", strings.Join(hit, ", "))
+	} else if soft := guard.TouchesProtected(strings.Split(out, "\n"), e.cfg.ReviewablePaths); len(soft) > 0 {
+		if err := guardianSync(e, wd, soft); err != nil {
+			return err
+		}
 	}
 	if _, err := gh.Run(main, "git", "merge", "--no-edit", br); err != nil {
 		_, _ = gh.Run(main, "git", "merge", "--abort")
@@ -451,6 +455,11 @@ func cmdCheck(args []string) error {
 	for _, p := range e.cfg.ProtectedPaths {
 		if _, err := os.Stat(filepath.Join(e.cfg.Root, p)); err != nil {
 			errs = append(errs, "守りの部分 "+p+" がない")
+		}
+	}
+	for _, p := range e.cfg.ReviewablePaths {
+		if !slices.Contains(e.cfg.ProtectedPaths, p) {
+			errs = append(errs, "reviewable_paths の "+p+" が protected_paths にない")
 		}
 	}
 	if len(errs) > 0 {

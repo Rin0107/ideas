@@ -52,7 +52,8 @@ wk merge <repo> <PR 番号>     # CI を待ち、全部 green なら merge
 CI が赤なら、ログ (`gh run view --repo <repo> --log-failed`) を読んで直し、push → `wk review` からやり直す (この tick の中で 1 回まで)。
 - 原因がこの issue のコードでなく、**CI・雛形・工場の側** (権限・道具の版・手順書の誤りなど) なら、ここで止めて `result: fix` で報告する。
   detail にエラーの文そのままと、どこをどう直せばよいかを書く。工場 (`templates/`・`harness/`・CI) の問題なら `in: factory` も付ける
-- 直すのに **守りの部分** (アプリの `.github/workflows/` や雛形の守りの部分など) を変えるしかないなら `result: human`。detail に貼れる差分を書く
+- 直すのにアプリの守りの部分 (`.github/workflows/`・`scripts/`・`Makefile`・`spec/README.md` など) を変えるなら、変えてよい。同じ PR で直すと、`wk review` に守りのレビュー (guardian) が加わる。守りを弱める変更は通らない
+- `.claude/` と `wk.json` は工場が変えられない (工場の力を広げるため)。それを変えるしかないときだけ `result: human`
 - `reports/weekly/notes.md` に書いて終わりにはしない (誰も直さず、同じ所で詰まり続ける)
 
 ## 5. デプロイして片付ける

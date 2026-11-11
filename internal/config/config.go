@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -60,6 +61,9 @@ type Config struct {
 	AllowedServices []string `json:"allowed_services"`
 	DenyPackages    []string `json:"deny_packages"`
 	ProtectedPaths  []string `json:"protected_paths"`
+	// ReviewablePaths は守りの部分のうち、守りのレビュー (harness/reviewers/guardian.md) を通せば工場が変えてよいもの。
+	// 残り (制御のコード・設定・フック・レビューの指示・工場の CI) は工場の力を広げるので、人だけが変える (docs/DESIGN.md §9)
+	ReviewablePaths []string `json:"reviewable_paths"`
 
 	// Site は公開した Web アプリをまとめて配る repo (Cloudflare の GitHub 連携で配信する)
 	Site Site `json:"site"`
@@ -123,4 +127,15 @@ func Expand(p string) string {
 		}
 	}
 	return p
+}
+
+// HardProtected は守りの部分のうち、工場が変えられないもの (protected_paths から reviewable_paths を除いたもの)。
+func (c *Config) HardProtected() []string {
+	var out []string
+	for _, p := range c.ProtectedPaths {
+		if !slices.Contains(c.ReviewablePaths, p) {
+			out = append(out, p)
+		}
+	}
+	return out
 }

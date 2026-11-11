@@ -448,3 +448,116 @@ func TestFixCommandErrors(t *testing.T) {
 		})
 	}
 }
+
+// ---- 守りのレビュー (guardian) ----
+
+func TestReviewAddsGuardianForProtected(t *testing.T) {
+	f := reviewFactory(t, fakegh.Rule{Match: `--json files`, Out: "internal/app/a.go\n.github/workflows/ci.yml\n"})
+	for name, c := range map[string]struct {
+		guardian, verdict string
+	}{
+		"守りが approve": {approveJSON, `"verdict": "approve"`},
+		"守りが通さない":     {changesJSON, `"verdict": "request_changes"`},
+	} {
+		t.Run(name, func(t *testing.T) {
+			calls := fakeClaudeBy(t, map[string]string{"sre": approveJSON, "engineer": approveJSON, "guardian": c.guardian})
+			out, err := capture(t, func() error { return cmdReview([]string{"Tester/alpha", "5"}) })
+			if err != nil || !strings.Contains(out, c.verdict) {
+				t.Fatal(out, err)
+			}
+			if got := string(mustRead(t, calls)); got != "sre\nengineer\nguardian\n" {
+				t.Fatal(got)
+			}
+			hasCall(t, f, "pr comment 5 --repo Tester/alpha --body **wakuwaku reviewer (guardian)")
+		})
+	}
+}
+
+func TestReviewersFor(t *testing.T) {
+	if got := reviewersFor([]string{"internal/a.go"}); len(got) != 2 {
+		t.Fatal(got)
+	}
+	if got := reviewersFor([]string{"spec/README.md"}); len(got) != 3 || got[2] != guardianReviewer {
+		t.Fatal(got)
+	}
+}
+
+// syncWithProtected は、変えてよい守りの部分 (templates/) を変えたコミットを作業ブランチに置く。
+func syncWithProtected(t *testing.T) (*factory, string) {
+	f := newFactory(t)
+	f.writeConfig(map[string]any{"protected_paths": []string{"factory.json", "templates/", "harness/reviewers/"},
+		"reviewable_paths": []string{"templates/"}})
+	f.write("templates/ci.yml", "permissions: {}\n")
+	f.write("harness/reviewers/guardian.md", "# reviewer:guardian\n")
+	wt := syncRepos(t, f)
+	t.Chdir(wt)
+	must(t, os.WriteFile(filepath.Join(wt, "templates/ci.yml"), []byte("permissions: {pull-requests: read}\n"), 0o644))
+	_, _ = runGit(wt, "commit", "-qam", "ci: 読む権限")
+	return f, wt
+}
+
+func TestSyncGuardianApproves(t *testing.T) {
+	f, _ := syncWithProtected(t)
+	calls := fakeClaudeBy(t, map[string]string{"guardian": approveJSON})
+	out, err := capture(t, func() error { return cmdSync(nil) })
+	if err != nil || !strings.Contains(out, "守りのレビュー: approve — よい") || !strings.Contains(out, "main に merge して push した") {
+		t.Fatal(out, err)
+	}
+	if got := string(mustRead(t, calls)); got != "guardian\n" {
+		t.Fatal(got)
+	}
+	in := string(mustRead(t, filepath.Join(filepath.Dir(calls), "in")))
+	if !strings.Contains(in, "+permissions: {pull-requests: read}") || !strings.Contains(in, "ci: 読む権限") {
+		t.Fatal(in)
+	}
+	if out, _ := runGit(f.remote+"/Tester/factory.git", "log", "--oneline", "main"); !strings.Contains(out, "読む権限") {
+		t.Fatal("push されていない", out)
+	}
+}
+
+func TestSyncGuardianRefuses(t *testing.T) {
+	cases := map[string]struct {
+		claude string
+		code   int
+		brk    func(f *factory)
+		want   string
+	}{
+		"通さない":       {claude: changesJSON, want: "守りのレビューが通らない (templates/ci.yml): 直す\n- 直す所"},
+		"JSON でない":   {claude: "わからない", want: "守りのレビューの出力が JSON の形でない"},
+		"結論が不正":      {claude: `{"verdict":"maybe"}`, want: "JSON の形でない"},
+		"claude が失敗": {claude: approveJSON, code: 1, want: "claude -p"},
+		"指示がない": {claude: approveJSON, brk: func(f *factory) {
+			_, _ = runGit(f.root, "rm", "-q", "harness/reviewers/guardian.md")
+			_, _ = runGit(f.root, "commit", "-qm", "rm")
+		}, want: "guardian.md"},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			f, _ := syncWithProtected(t)
+			fakeClaude(t, c.claude, c.code, "0")
+			if c.brk != nil {
+				c.brk(f)
+			}
+			_, err := capture(t, func() error { return cmdSync(nil) })
+			errHas(t, err, c.want)
+			if out, _ := runGit(f.remote+"/Tester/factory.git", "log", "--oneline", "main"); strings.Contains(out, "読む権限") {
+				t.Fatal("通らないのに push した")
+			}
+		})
+	}
+}
+
+func TestSyncRefusesHardProtected(t *testing.T) {
+	f, wt := syncWithProtected(t)
+	fakeClaude(t, approveJSON, 0, "0")
+	must(t, os.WriteFile(filepath.Join(wt, "factory.json"), []byte(f.read("factory.json")+"\n"), 0o644))
+	_, _ = runGit(wt, "commit", "-qam", "設定")
+	errHas(t, cmdSync(nil), "人だけが変える): factory.json")
+}
+
+func TestCheckReviewableMustBeProtected(t *testing.T) {
+	f := newFactory(t)
+	f.writeConfig(map[string]any{"reviewable_paths": []string{"templates/"}})
+	_, err := capture(t, func() error { return cmdCheck(nil) })
+	errHas(t, err, "reviewable_paths の templates/ が protected_paths にない")
+}

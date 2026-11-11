@@ -12,11 +12,12 @@ gh issue view <issue> --repo <repo> --comments
 
 ## 2. 確かめる
 - 起きたことを手元で再現する (エラーの文・`state/ticks.jsonl` の該当の行・`gh run view --log-failed` など)
-- 直す場所を決める。**守りの部分 (`factory.json` の `protected_paths`) を変えないと直らない**なら、手順 5 へ (人の作業)
+- 直す場所を決める。`factory.json` の `reviewable_paths` にある守りの部分 (雛形の CI・検査の設定・設計書など) は直してよい。`wk sync` のときに守りのレビュー (guardian) が見て、守りを弱めない変更だけが入る
+- `reviewable_paths` にない守りの部分 (`cmd/` `internal/` `factory.json` `.claude/` `harness/reviewers/` `scripts/` `spec/` 工場の CI) を変えないと直らないなら、手順 5 へ (人の許可)
 - アプリの repo の問題なら、そのアプリの repo で直す (手順は `harness/prompts/build.md` の 2〜5 と同じ: ブランチ → PR → `wk review` → `wk merge`)
 
 ## 3. 直す (工場の中)
-直してよい: `harness/prompts/*.md`、`templates/` の守りの部分以外、`docs/` の守りの部分以外、`reports/`、`ideas_wakuwaku/`
+直してよい: `harness/prompts/*.md`、`templates/`、`docs/`、`harness/TICK.md`・`harness/rubric.md`、`reports/`、`ideas_wakuwaku/` (守りの部分は `reviewable_paths` にあるものだけ)
 - 同じ問題が二度と起きないように、原因の側を直す (手順書の誤り・雛形の誤り・抜けた確認)。症状だけを隠さない
 - 直したら確かめる:
 ```bash
@@ -33,7 +34,7 @@ leader に `result: ok` で報告する。
 ## 5. 直せなかったとき
 - **まだ試せる** (原因の見当がついた・別の直し方がある): 申し送りを detail に書き、`result: fix` で報告する
   (wk がこの issue に試行を数える。3 回で人に上げる)
-- **人にしかできない** (守りの部分の変更・鍵・アカウント・お金): `result: human`。detail に、人がそのまま貼れる差分かコマンドと、
+- **人の許可が要る** (権限・接続・鍵・お金・`reviewable_paths` にない守りの部分): `result: human`。detail に、人がそのまま貼れる差分かコマンドと、
   それで何が直るかを書く (例: `.github/workflows/ci.yml` の security ジョブに `permissions: {contents: read, pull-requests: read}`)
 
 ## 報告 (5 行まで)

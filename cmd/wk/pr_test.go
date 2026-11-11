@@ -38,7 +38,7 @@ func reviewRules(extra ...fakegh.Rule) []fakegh.Rule {
 func reviewFactory(t *testing.T, extra ...fakegh.Rule) *factory {
 	f := newFactory(t, reviewRules(extra...)...)
 	f.projects(active())
-	for _, r := range role.Reviewers([]string{"src/app.tsx"}) {
+	for _, r := range append(role.Reviewers([]string{"src/app.tsx"}), guardianReviewer) {
 		f.write("harness/reviewers/"+r+".md", "# reviewer:"+r+"\n")
 	}
 	return f
@@ -189,7 +189,7 @@ func TestMergeErrors(t *testing.T) {
 		"先頭が読めない":        {rules: []fakegh.Rule{{Match: `headRefOid`, Code: 1}}, want: "headRefOid"},
 		"approve されていない": {rules: []fakegh.Rule{{Match: `headRefOid`, Out: strings.Repeat("f", 40)}}, want: "approve されていない"},
 		"変更が読めない":        {rules: []fakegh.Rule{{Match: `--json files`, Code: 1}}, want: "files"},
-		"守りの部分を変えている":    {rules: []fakegh.Rule{{Match: `--json files`, Out: ".github/workflows/ci.yml\nMakefile\n"}}, want: "守りの部分"},
+		"工場が変えられない守りの部分": {rules: []fakegh.Rule{{Match: `--json files`, Out: ".github/workflows/ci.yml\n.claude/settings.json\nwk.json\n"}}, want: "(人だけ): .claude/settings.json, wk.json"},
 		"CI が読めない":       {rules: []fakegh.Rule{{Match: `^pr checks`, Code: 1}}, want: "pr checks"},
 		"CI が赤":          {rules: []fakegh.Rule{{Match: `^pr checks`, Out: `[{"name":"mutation","bucket":"fail"},{"name":"e2e","bucket":"cancel"}]`}}, want: "mutation, e2e"},
 		"CI が動いていない":     {rules: []fakegh.Rule{{Match: `^pr checks`, Out: `[]`}}, setup: func(*factory) { mergeNoCI = 0 }, want: "1 つも動いていない"},
@@ -246,16 +246,27 @@ func TestGuardHooksInFactoryAndApp(t *testing.T) {
 	}
 	stdin(t, hook(f.root, "file_path", "notes.md"))
 	must(t, cmdGuardEdit(nil))
+	// 変えてよい守りの部分 (reviewable_paths) は書ける (wk sync の守りのレビューが見る)
+	f.writeConfig(map[string]any{"protected_paths": []string{"factory.json", "templates/"}, "reviewable_paths": []string{"templates/"}})
+	stdin(t, hook(f.root, "file_path", "templates/x.yml"))
+	must(t, cmdGuardEdit(nil))
+	stdin(t, hook(f.root, "file_path", "factory.json"))
+	if code(cmdGuardEdit(nil)) != 2 {
+		t.Fatal("reviewable でない守りの部分を止めない")
+	}
 	// アプリの repo の中: 守るのはアプリの守りの部分
 	app := filepath.Join(f.apps, "alpha")
 	must(t, os.MkdirAll(app, 0o755))
 	_, err := runGit(app, "init", "-q")
 	must(t, err)
 	t.Setenv("WK_FACTORY", f.root)
-	stdin(t, hook(app, "file_path", filepath.Join(app, ".github/workflows/ci.yml")))
+	stdin(t, hook(app, "file_path", filepath.Join(app, ".claude/settings.json")))
 	if code(cmdGuardEdit(nil)) != 2 {
-		t.Fatal("アプリの CI の書き換えを止めない")
+		t.Fatal("アプリのフックの書き換えを止めない")
 	}
+	// CI は守りのレビュー (wk review の guardian) を通せば変えてよい
+	stdin(t, hook(app, "file_path", filepath.Join(app, ".github/workflows/ci.yml")))
+	must(t, cmdGuardEdit(nil))
 	stdin(t, hook(app, "file_path", filepath.Join(app, "factory.json"))) // アプリでは守りの部分でない
 	must(t, cmdGuardEdit(nil))
 	// 工場の別の worktree (factory.json がある git の repo) は工場として扱う

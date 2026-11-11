@@ -77,3 +77,13 @@ func TestExpand(t *testing.T) {
 		t.Fatal("ホームがないのに展開した", got)
 	}
 }
+
+func TestHardProtected(t *testing.T) {
+	c := &Config{ProtectedPaths: []string{"cmd/", "templates/web/.github/", "factory.json"}, ReviewablePaths: []string{"templates/web/.github/"}}
+	if got := c.HardProtected(); len(got) != 2 || got[0] != "cmd/" || got[1] != "factory.json" {
+		t.Fatal(got)
+	}
+	if got := (&Config{ProtectedPaths: []string{"a"}}).HardProtected(); len(got) != 1 {
+		t.Fatal(got)
+	}
+}
