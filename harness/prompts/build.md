@@ -56,6 +56,14 @@ CI が赤なら、ログ (`gh run view --repo <repo> --log-failed`) を読んで
 - `.claude/` と `wk.json` は工場が変えられない (工場の力を広げるため)。それを変えるしかないときだけ `result: human`
 - `reports/weekly/notes.md` に書いて終わりにはしない (誰も直さず、同じ所で詰まり続ける)
 
+CI が始まらない (run が `queued` のまま jobs 0 で 15 分以上) なら、GitHub 側で run が壊れている。cancel・rerun は効かない (矛盾した答えが返る)。
+PR を閉じて開き直すと、新しい run が始まる:
+```bash
+gh pr close <PR 番号> --repo <repo> && gh pr reopen <PR 番号> --repo <repo>
+```
+そのあと `wk merge` をやり直す。古い run は `queued` のまま残るが、害はない。
+これでも始まらず、Actions の使用量の上限 (billing) かもしれないときだけ `result: human`。
+
 ## 5. デプロイして片付ける
 ```bash
 cd $APP && git pull --ff-only origin main
