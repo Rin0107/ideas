@@ -12,20 +12,21 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 // 名前など。値を書くと、それ自体がここから漏れる。sha256 の先頭 16 桁だけを置く (英数字の語を小文字にして比べる)
-const DENY = new Set([
-  "562d3f70a6733b1a",
-  "6b2c0cdb26cb0323",
-  "17cf6b5627e9ea1f",
-  "e62f309da4bb2a5f",
-]);
+const DENY = new Set(["562d3f70a6733b1a", "6b2c0cdb26cb0323", "17cf6b5627e9ea1f", "e62f309da4bb2a5f"]);
 
 // 公開してよいメールアドレス (完全一致) とドメイン (末尾一致)
 const MAIL_OK = new Set(["noreply@anthropic.com", "git@github.com"]);
-const MAIL_OK_DOMAIN = /(^|\.)(users\.noreply\.github\.com|example\.(com|org|net)|example|test|invalid|localhost)$/i;
+const MAIL_OK_DOMAIN =
+  /(^|\.)(users\.noreply\.github\.com|example\.(com|org|net)|example|test|invalid|localhost)$/i;
 const MAIL = /[A-Za-z0-9._%+-]+@((?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,})/g;
 // 家のパス。例に使う名前 (runner・user など) はよい
 const HOME_OK = /^(runner|user|username|you|me|node|ubuntu|vscode|name|USER|<[^>]*>)$/;
-const HOME = [/\/home\/([^/\s"'`:)]+)/g, /\/Users\/([^/\s"'`:)]+)/g, /[A-Za-z]:\\+Users\\+([^\\\s"'`:)]+)/gi, /\/mnt\/[a-z]\/Users\/([^/\s"'`:)]+)/gi];
+const HOME = [
+  /\/home\/([^/\s"'`:)]+)/g,
+  /\/Users\/([^/\s"'`:)]+)/g,
+  /[A-Za-z]:\\+Users\\+([^\\\s"'`:)]+)/gi,
+  /\/mnt\/[a-z]\/Users\/([^/\s"'`:)]+)/gi,
+];
 
 export function hash(word) {
   return createHash("sha256").update(word).digest("hex").slice(0, 16);
@@ -76,7 +77,9 @@ function scanCommits(revs, out) {
 // 足した行とファイル名
 function scanPatches(revs, out) {
   const log = git(["log", "-p", "--no-color", "--unified=0", "--format=commit %H", ...revs]).toString();
-  let sha = "", file = "", n = 0;
+  let sha = "",
+    file = "",
+    n = 0;
   for (const line of log.split("\n")) {
     if (line.startsWith("commit ")) sha = line.slice(7, 15);
     else if (line.startsWith("+++ ")) {
@@ -116,7 +119,9 @@ function all(out) {
     }
   }
   const shas = [...paths.keys()];
-  const kinds = git(["cat-file", "--batch-check=%(objectname) %(objecttype)"], shas.join("\n") + "\n").toString().split("\n");
+  const kinds = git(["cat-file", "--batch-check=%(objectname) %(objecttype)"], shas.join("\n") + "\n")
+    .toString()
+    .split("\n");
   const blobs = kinds.filter((l) => l.endsWith(" blob")).map((l) => l.split(" ")[0]);
   for (const sha of blobs) {
     scanText(`${paths.get(sha)} (履歴 ${sha.slice(0, 8)})`, git(["cat-file", "blob", sha]).toString(), out);
@@ -141,7 +146,9 @@ export function main(argv) {
     console.log(`ok: 個人情報なし (${mode})`);
     return 0;
   }
-  console.error(`NG: 公開してはいけない個人情報がある (${out.length} か所)。値は出さない。直すまで push・merge・公開はできない`);
+  console.error(
+    `NG: 公開してはいけない個人情報がある (${out.length} か所)。値は出さない。直すまで push・merge・公開はできない`,
+  );
   for (const o of out.slice(0, 200)) console.error(`  - ${o}`);
   return 1;
 }

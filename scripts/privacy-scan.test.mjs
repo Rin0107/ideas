@@ -21,7 +21,12 @@ test("メールアドレス", () => {
 });
 
 test("家のパス", () => {
-  for (const s of ["/home/alice/src", "/Users/alice/x", "C:\\Users\\alice\\x", "/mnt/c/Users/alice/AppData"]) {
+  for (const s of [
+    "/home/alice/src",
+    "/Users/alice/x",
+    "C:\\Users\\alice\\x",
+    "/mnt/c/Users/alice/AppData",
+  ]) {
     assert.deepEqual(check(s), ["家のパス"], s);
   }
   for (const s of ["/home/runner/work", "/home/user/x", "/home/$USER/x", "/Users/<you>/x", "/home/"]) {
@@ -37,7 +42,7 @@ test("名前 (DENY の hash と比べる)", () => {
   const deny = new Set([hash(fake)]);
   assert.deepEqual(check(`by ${fake.toUpperCase()}.x`, deny), ["名前"]);
   assert.deepEqual(check(`by ${fake}s`, deny), [], "語の一部は拾わない");
-  assert.ok([...src.matchAll(/^  "([0-9a-f]{16})",$/gm)].length >= 1, "DENY は空でない");
+  assert.ok([...src.matchAll(/"([0-9a-f]{16})"/g)].length >= 1, "DENY は空でない");
 });
 
 function repo() {

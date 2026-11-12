@@ -482,8 +482,8 @@ func TestShipErrors(t *testing.T) {
 		"個人情報がある": {setup: func(f *factory) {
 			privacyScan = func(_ *env, repo string) []string { return []string{"個人情報の検査に通らない: " + repo} }
 		}, want: "個人情報の検査に通らない: Tester/alpha"},
-		"履歴が書けない":      {setup: func(f *factory) { f.block("ideas_wakuwaku/00001-alpha/idea.md") }, want: "idea.md"},
-		"設定が壊れている":     {setup: func(f *factory) { f.write("factory.json", "{") }, want: "factory.json"},
+		"履歴が書けない":  {setup: func(f *factory) { f.block("ideas_wakuwaku/00001-alpha/idea.md") }, want: "idea.md"},
+		"設定が壊れている": {setup: func(f *factory) { f.write("factory.json", "{") }, want: "factory.json"},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
