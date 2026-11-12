@@ -594,8 +594,9 @@ func publishCheck(repo, url string, web bool) []string {
 	return probs
 }
 
-// privacyScan は public にする前に、repo の全履歴 (全ブランチの全コミットの作者・メッセージ・全ファイル) に
+// privacyScan は public にする前に、repo の全履歴 (全ブランチ・タグ・PR の ref の全コミットの作者・メッセージ・全ファイル) に
 // 個人情報がないかを見る。消したファイルも履歴に残るので、今のファイルだけでは足りない。
+// PR の ref (refs/pull/*) は履歴を書き換えても GitHub に残り、public にすると見えるので、mirror で写して見る。
 // 見るのは工場の scripts/privacy-scan.mjs (守りの部分。アプリの写しは使わない: アプリの側で緩められても効くように)。
 var privacyScan = func(e *env, repo string) []string {
 	tmp, err := os.MkdirTemp("", "wk-privacy-")
@@ -603,8 +604,8 @@ var privacyScan = func(e *env, repo string) []string {
 		return []string{err.Error()}
 	}
 	defer os.RemoveAll(tmp)
-	dir := filepath.Join(tmp, "repo")
-	if err := gh.Clone(repo, dir); err != nil {
+	dir := filepath.Join(tmp, "repo.git")
+	if err := gh.CloneMirror(repo, dir); err != nil {
 		return []string{err.Error()}
 	}
 	if _, err := gh.Run(dir, "node", filepath.Join(e.cfg.MainCheckout, "scripts", "privacy-scan.mjs"), "all"); err != nil {

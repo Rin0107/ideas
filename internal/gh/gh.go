@@ -117,6 +117,14 @@ func Clone(repo, dir string) error {
 	return SetupAuth(dir)
 }
 
+// CloneMirror は repo の全部の ref (ブランチ・タグに加えて GitHub の refs/pull/*) を dir に bare で写す。
+// public にする前の検査用。PR の ref は消したブランチのコミットを持ち続けるので、ブランチだけでは足りない。
+func CloneMirror(repo, dir string) error {
+	args := append(append([]string{}, authArgs...), "clone", "-q", "--mirror", "https://github.com/"+repo+".git", dir)
+	_, err := Run("", "git", args...)
+	return err
+}
+
 // CreateAndPush は private の repo を作り、dir の main を https で push する。
 // 前の試みで repo だけができて push が失敗していた (空の repo がある) ときは、push だけやり直す。
 func CreateAndPush(repo, dir, description string) error {

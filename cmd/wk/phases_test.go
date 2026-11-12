@@ -625,6 +625,17 @@ func TestPrivacyScan(t *testing.T) {
 		t.Fatal(got)
 	}
 
+	// ブランチから消しても、PR の ref に残っていれば止める
+	bare := filepath.Join(f.remote, "Tester", "alpha.git")
+	must(t, os.RemoveAll(bare))
+	_, err = runGit(filepath.Join(f.remote, "Tester"), "init", "-q", "--bare", "alpha.git")
+	must(t, err)
+	git("push", "-q", bare, "HEAD~2:refs/heads/main", "HEAD~1:refs/pull/1/head")
+	got = privacyScan(e, "Tester/alpha")
+	if len(got) != 1 || !strings.Contains(got[0], "メールアドレス") {
+		t.Fatal(got)
+	}
+
 	// 一時ディレクトリを作れない
 	t.Setenv("TMPDIR", filepath.Join(t.TempDir(), "none"))
 	if got := privacyScan(e, "Tester/alpha"); len(got) != 1 || !strings.Contains(got[0], "none") {

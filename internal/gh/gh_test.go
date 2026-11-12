@@ -131,6 +131,26 @@ func TestClone(t *testing.T) {
 	}
 }
 
+func TestCloneMirror(t *testing.T) {
+	base := gitEnv(t)
+	src := localRepo(t)
+	if err := os.MkdirAll(filepath.Join(base, "o"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gitRun(t, filepath.Join(base, "o"), "clone", "-q", "--bare", src, "site.git")
+	gitRun(t, src, "push", "-q", filepath.Join(base, "o", "site.git"), "HEAD:refs/pull/1/head")
+	dst := filepath.Join(t.TempDir(), "site.git")
+	if err := CloneMirror("o/site", dst); err != nil {
+		t.Fatal(err)
+	}
+	if out, _ := Run(dst, "git", "for-each-ref", "--format=%(refname)"); !strings.Contains(out, "refs/pull/1/head") {
+		t.Fatal(out)
+	}
+	if CloneMirror("o/missing", filepath.Join(t.TempDir(), "x")) == nil {
+		t.Fatal("ない repo を clone できた")
+	}
+}
+
 func TestSetupAuthOutsideRepo(t *testing.T) {
 	gitEnv(t)
 	if SetupAuth(t.TempDir()) == nil {

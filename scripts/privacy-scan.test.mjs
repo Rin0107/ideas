@@ -16,7 +16,7 @@ const fake = "taro" + "yamada";
 test("メールアドレス", () => {
   assert.deepEqual(check("連絡は someone@gmail.com まで"), ["メールアドレス"]);
   assert.deepEqual(check("Co-Authored-By: Claude <noreply@anthropic.com>"), []);
-  assert.deepEqual(check("1+x@users.noreply.github.com git@github.com a@example.com b@foo.test"), []);
+  assert.deepEqual(check("1+x@users.noreply.github.com git@github.com noreply@github.com a@example.com b@foo.test"), []);
   assert.deepEqual(check('"react@18.3.1" @types/node eslint@9.1.0'), []);
 });
 

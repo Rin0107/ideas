@@ -14,8 +14,8 @@ import { readFileSync } from "node:fs";
 // 名前など。値を書くと、それ自体がここから漏れる。sha256 の先頭 16 桁だけを置く (英数字の語を小文字にして比べる)
 const DENY = new Set(["562d3f70a6733b1a", "6b2c0cdb26cb0323", "17cf6b5627e9ea1f", "e62f309da4bb2a5f"]);
 
-// 公開してよいメールアドレス (完全一致) とドメイン (末尾一致)
-const MAIL_OK = new Set(["noreply@anthropic.com", "git@github.com"]);
+// 公開してよいメールアドレス (完全一致) とドメイン (末尾一致)。noreply@github.com は GitHub が squash merge したコミットのコミッター
+const MAIL_OK = new Set(["noreply@anthropic.com", "git@github.com", "noreply@github.com"]);
 const MAIL_OK_DOMAIN =
   /(^|\.)(users\.noreply\.github\.com|example\.(com|org|net)|example|test|invalid|localhost)$/i;
 const MAIL = /[A-Za-z0-9._%+-]+@((?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,})/g;
