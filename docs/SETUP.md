@@ -41,6 +41,7 @@ Cloudflare の GitHub App がその repo を配る (Vercel の GitHub 連携と�
      | Non-production branch builds | **有効** (`preview` ブランチがプレビューになる。評価はここでする) |
      | Root directory | `/` |
      | API token | 自動で作られるもののまま (気になるなら、Workers Scripts の編集だけのカスタムトークンを選ぶ) |
+   - サブドメインは公開される。既定はメールアドレスの @ の前から作られるので、Workers & Pages の Account details → Subdomain の Edit で個人を指さない名前 (例: `wakuwaku-factory`) に変えておく
 4. 最初のデプロイが終わったら、出た URL (`https://wakuwaku-site.<サブドメイン>.workers.dev`) を開き、
    一覧のページが出ることを確かめて、`factory.json` の `site.url` に書いてコミットする:
    ```bash
