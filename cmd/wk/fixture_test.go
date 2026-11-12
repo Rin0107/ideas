@@ -50,6 +50,9 @@ func newFactory(t *testing.T, rules ...fakegh.Rule) *factory {
 	}
 	f.write("ideas_wakuwaku/INDEX.md", index.String())
 	f.gh = fakegh.Install(t, append(rules, fakegh.Rule{Match: `.`, Out: "[]"})...)
+	// 個人情報の検査は本物の repo を clone するので、ふだんは通す (TestPrivacyScan が本物を見る)
+	privacyScan = func(*env, string) []string { return nil }
+	t.Cleanup(func() { privacyScan = realPrivacyScan })
 	fakeMachine(t, roomyMem, idleLoad)
 	t.Chdir(f.root)
 	return f

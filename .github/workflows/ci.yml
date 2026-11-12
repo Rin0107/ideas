@@ -44,6 +44,8 @@ jobs:
           sh scripts/cover-check.sh cover.out
       - name: ミューテーションの関門の自己検査 (98% が落ち、100% が通る)
         run: sh scripts/mutation-gate.test.sh
+      - name: 個人情報の検査の自己検査
+        run: node --test scripts/privacy-scan.test.mjs
       - run: go run ./cmd/wk check
       - run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 $PKGS
 

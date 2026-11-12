@@ -434,6 +434,9 @@ func TestShipCLI(t *testing.T) {
 	if !f.gh.Called("repo edit Tester/alpha --visibility public") {
 		t.Fatal(f.gh.Calls())
 	}
+	if !f.gh.Called("api -X PATCH repos/Tester/alpha -f security_and_analysis[secret_scanning][status]=enabled -f security_and_analysis[secret_scanning_push_protection][status]=enabled") {
+		t.Fatal(f.gh.Calls())
+	}
 }
 
 func TestPublishCheckFindsProblems(t *testing.T) {
@@ -475,6 +478,10 @@ func TestShipErrors(t *testing.T) {
 		}, want: "配信の準備がまだ"},
 		"点検に通らない":      {args: []string{}, want: "--url が空"},
 		"public にできない": {rules: []fakegh.Rule{{Match: `^repo edit`, Code: 1}}, want: "repo edit"},
+		"鍵の検査を有効にできない": {rules: []fakegh.Rule{{Match: `^api -X PATCH repos/Tester/alpha`, Code: 1}}, want: "PATCH"},
+		"個人情報がある": {setup: func(f *factory) {
+			privacyScan = func(_ *env, repo string) []string { return []string{"個人情報の検査に通らない: " + repo} }
+		}, want: "個人情報の検査に通らない: Tester/alpha"},
 		"履歴が書けない":      {setup: func(f *factory) { f.block("ideas_wakuwaku/00001-alpha/idea.md") }, want: "idea.md"},
 		"設定が壊れている":     {setup: func(f *factory) { f.write("factory.json", "{") }, want: "factory.json"},
 	}
@@ -567,4 +574,60 @@ func TestScaffoldCannotSaveAtTheEnd(t *testing.T) {
 	scaffoldFactory(t, fakegh.Rule{Match: `^issue create`, Shell: "mkdir -p state/portfolio.json.tmp/x"})
 	_, err := capture(t, func() error { return cmdScaffold([]string{"--plan", planJSON(t, goodPlan())}) })
 	errHas(t, err, "portfolio.json")
+}
+
+var realPrivacyScan = privacyScan
+
+func TestPrivacyScan(t *testing.T) {
+	script, err := filepath.Abs("../../scripts/privacy-scan.mjs")
+	must(t, err)
+	f := newFactory(t)
+	privacyScan = realPrivacyScan
+	src, err := os.ReadFile(script)
+	must(t, err)
+	f.write("scripts/privacy-scan.mjs", string(src))
+	e, err := load()
+	must(t, err)
+
+	// まだ repo がない: clone できない
+	if got := privacyScan(e, "Tester/alpha"); len(got) != 1 || !strings.Contains(got[0], "clone") {
+		t.Fatal(got)
+	}
+
+	work := filepath.Join(t.TempDir(), "alpha")
+	must(t, os.MkdirAll(work, 0o755))
+	git := func(args ...string) {
+		t.Helper()
+		if out, err := runGit(work, args...); err != nil {
+			t.Fatal(out, err)
+		}
+	}
+	git("init", "-q")
+	must(t, os.WriteFile(filepath.Join(work, "a.txt"), []byte("hello\n"), 0o644))
+	git("add", ".")
+	git("commit", "-qm", "first")
+	must(t, os.MkdirAll(filepath.Join(f.remote, "Tester"), 0o755))
+	_, err = runGit(filepath.Join(f.remote, "Tester"), "clone", "-q", "--bare", work, "alpha.git")
+	must(t, err)
+	if got := privacyScan(e, "Tester/alpha"); got != nil {
+		t.Fatal(got)
+	}
+
+	// 消したファイルも履歴に残る
+	must(t, os.WriteFile(filepath.Join(work, "b.txt"), []byte("someone@gmail.com\n"), 0o644))
+	git("add", ".")
+	git("commit", "-qm", "second")
+	git("rm", "-q", "b.txt")
+	git("commit", "-qm", "third")
+	git("push", "-q", filepath.Join(f.remote, "Tester", "alpha.git"), "HEAD:main")
+	got := privacyScan(e, "Tester/alpha")
+	if len(got) != 1 || !strings.Contains(got[0], "個人情報の検査に通らない") || !strings.Contains(got[0], "メールアドレス") || strings.Contains(got[0], "someone") {
+		t.Fatal(got)
+	}
+
+	// 一時ディレクトリを作れない
+	t.Setenv("TMPDIR", filepath.Join(t.TempDir(), "none"))
+	if got := privacyScan(e, "Tester/alpha"); len(got) != 1 || !strings.Contains(got[0], "none") {
+		t.Fatal(got)
+	}
 }

@@ -99,6 +99,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_COMMENTS: "false"
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
+      - name: 個人情報 (メールアドレス・家のパス・名前。今のファイルと、このコミットたちの作者・メッセージ・足した行)
+        env:
+          RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || format('{0}..{1}', github.event.before, github.sha) }}
+        run: |
+          node scripts/privacy-scan.mjs tree
+          node scripts/privacy-scan.mjs range "$RANGE"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: 24 }
       - name: npm audit (高以上の既知の脆弱性)

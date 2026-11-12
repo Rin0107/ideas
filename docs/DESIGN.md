@@ -186,8 +186,9 @@ cmd/wk, internal/      制御 CLI
 
 ### ship (公開する)
 - `wk publish-check`: README (雛形どおり)・LICENSE・description・topics・CI green・秘密情報の検査 (gitleaks)
+- 個人情報の検査 (`scripts/privacy-scan.mjs all`): 全履歴の全ファイル・全コミットの作者とメッセージに、メールアドレス・家のパス・名前がないか。消したファイルも履歴に残るので全部を見る。工場の正本で見る (アプリの写しが緩められても効く)。毎回の CI でも、今のファイルと新しいコミットを見る
 - Web は評価したプレビューと同じものを配信用 repo の main に置き、本番 `https://wakuwaku-site.<サブドメイン>.workers.dev/<名前>/` を検査する
-- 全部通れば public にする。工場の README の「作ったもの」表に足す
+- 全部通れば public にする。public にしたら secret scanning と push protection を有効にする (鍵の push を GitHub の側で止める)。工場の README の「作ったもの」表に足す
 
 ### drop (捨てる)
 - 捨てる理由を 1〜3 行で idea.md と portfolio に書く (「核が無料枠で成立しない」など、次の選定に効く形で)

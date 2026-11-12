@@ -535,7 +535,8 @@ func cmdShip(args []string) error {
 		}
 		*url = strings.TrimRight(e.cfg.Site.URL, "/") + "/" + filepath.Base(p.Repo) + "/"
 	}
-	if probs := publishCheck(p.Repo, *url, p.Stack == "web"); len(probs) > 0 {
+	probs := publishCheck(p.Repo, *url, p.Stack == "web")
+	if probs = append(probs, privacyScan(e, p.Repo)...); len(probs) > 0 {
 		return errors.New("公開の点検に通らない:\n  " + strings.Join(probs, "\n  "))
 	}
 	if p.Stack == "web" {
@@ -546,6 +547,12 @@ func cmdShip(args []string) error {
 		*url = got
 	}
 	if _, err := gh.GH("repo", "edit", p.Repo, "--visibility", "public", "--accept-visibility-change-consequences"); err != nil {
+		return err
+	}
+	// public になったら、鍵の push を GitHub の側で止める (secret scanning と push protection。public は無料)
+	if _, err := gh.GH("api", "-X", "PATCH", "repos/"+p.Repo,
+		"-f", "security_and_analysis[secret_scanning][status]=enabled",
+		"-f", "security_and_analysis[secret_scanning_push_protection][status]=enabled"); err != nil {
 		return err
 	}
 	p.Status, p.URL, p.Preview, p.Verdict = state.Shipped, *url, "", ""
@@ -585,6 +592,25 @@ func publishCheck(repo, url string, web bool) []string {
 		probs = append(probs, fmt.Sprintf("%s が %d", url, code))
 	}
 	return probs
+}
+
+// privacyScan は public にする前に、repo の全履歴 (全ブランチの全コミットの作者・メッセージ・全ファイル) に
+// 個人情報がないかを見る。消したファイルも履歴に残るので、今のファイルだけでは足りない。
+// 見るのは工場の scripts/privacy-scan.mjs (守りの部分。アプリの写しは使わない: アプリの側で緩められても効くように)。
+var privacyScan = func(e *env, repo string) []string {
+	tmp, err := os.MkdirTemp("", "wk-privacy-")
+	if err != nil {
+		return []string{err.Error()}
+	}
+	defer os.RemoveAll(tmp)
+	dir := filepath.Join(tmp, "repo")
+	if err := gh.Clone(repo, dir); err != nil {
+		return []string{err.Error()}
+	}
+	if _, err := gh.Run(dir, "node", filepath.Join(e.cfg.MainCheckout, "scripts", "privacy-scan.mjs"), "all"); err != nil {
+		return []string{"個人情報の検査に通らない: " + err.Error()}
+	}
+	return nil
 }
 
 func httpStatus(url string) int {
