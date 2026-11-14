@@ -12,8 +12,7 @@
         "total": 5,
         "phase": 4
       },
-      "url": "https://github.com/Rin0107/terminal-sky/releases/tag/v0.1.0",
-      "verdict": "drop",
+      "url": "https://github.com/Rin0107/terminal-sky/releases/tag/v0.4.0",
       "history": [
         {
           "date": "2026-11-10",
@@ -31,9 +30,14 @@
           "note": "v0.1.0"
         },
         {
+          "date": "2026-11-13",
+          "event": "released",
+          "note": "v0.2.0〜v0.4.0 (main eee4e10d。tick の sync が落ちて記録されていなかった)"
+        },
+        {
           "date": "2026-11-14",
-          "event": "evaluated",
-          "note": "drop: 体験の核が本番で動かない"
+          "event": "note",
+          "note": "11-14 の drop は v0.1.0 (main より古い) を採点した誤りなので取り消し。v0.4.0 で評価し直す"
         }
       ]
     }
