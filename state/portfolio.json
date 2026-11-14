@@ -3,16 +3,17 @@
     {
       "idea": "00003-terminal-planetarium",
       "repo": "Rin0107/terminal-sky",
-      "status": "building",
+      "status": "evaluating",
       "stack": "go-cli",
       "started": "2026-11-10",
       "milestone": "MVP",
       "iteration": 0,
       "ticks": {
-        "total": 4,
+        "total": 5,
         "phase": 4
       },
       "url": "https://github.com/Rin0107/terminal-sky/releases/tag/v0.1.0",
+      "verdict": "drop",
       "history": [
         {
           "date": "2026-11-10",
@@ -28,6 +29,11 @@
           "date": "2026-11-12",
           "event": "released",
           "note": "v0.1.0"
+        },
+        {
+          "date": "2026-11-14",
+          "event": "evaluated",
+          "note": "drop: 体験の核が本番で動かない"
         }
       ]
     }
