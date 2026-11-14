@@ -147,8 +147,9 @@ func cmdNext(args []string) error {
 	}
 	if stale != nil {
 		// 前の tick が終わらずに消えた。ロックを引き継げば直るので、失敗には数えない (自分で直せること)
+		// state は公開されるので、家のディレクトリ (ユーザー名) が入る絶対パスではなく worktree の名前だけを書く (issue #5)
 		_ = state.AppendTick(e.cfg.Root, state.Tick{Start: stale.Since, End: e.now, Phase: stale.Phase, Result: "aborted",
-			Note: "ロックが " + stale.Worktree + " に残っていた"})
+			Note: "ロックが " + filepath.Base(stale.Worktree) + " に残っていた"})
 	}
 	if a.Phase == state.PhaseIdle {
 		_ = lock.Release(e.cfg.RuntimeDir)

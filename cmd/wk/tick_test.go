@@ -120,13 +120,14 @@ func TestNextIdleReleasesLock(t *testing.T) {
 
 func TestNextRecordsStaleLockAsAborted(t *testing.T) {
 	f := newFactory(t)
-	_, err := lock.Acquire(f.runtime, lock.Info{Since: time.Now().Add(-5 * time.Hour), Phase: "build", Worktree: "/old"}, time.Hour)
+	_, err := lock.Acquire(f.runtime, lock.Info{Since: time.Now().Add(-5 * time.Hour), Phase: "build", Worktree: "/srv/ws/run-1"}, time.Hour)
 	must(t, err)
 	if _, err := capture(t, func() error { return cmdNext(nil) }); err != nil {
 		t.Fatal(err)
 	}
 	ts, _ := state.ReadTicks(f.root)
-	if len(ts) != 1 || ts[0].Result != "aborted" || !strings.Contains(ts[0].Note, "/old") {
+	// 家のパスは公開してはいけないので、worktree の名前だけが残る
+	if len(ts) != 1 || ts[0].Result != "aborted" || ts[0].Note != "ロックが run-1 に残っていた" {
 		t.Fatal(ts)
 	}
 	rt, _ := state.LoadRuntime(f.runtime, time.Now())
