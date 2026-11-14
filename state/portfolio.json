@@ -9,10 +9,11 @@
       "milestone": "MVP",
       "iteration": 0,
       "ticks": {
-        "total": 5,
+        "total": 6,
         "phase": 4
       },
       "url": "https://github.com/Rin0107/terminal-sky/releases/tag/v0.4.0",
+      "verdict": "iterate",
       "history": [
         {
           "date": "2026-11-10",
@@ -38,6 +39,11 @@
           "date": "2026-11-14",
           "event": "note",
           "note": "11-14 の drop は v0.1.0 (main より古い) を採点した誤りなので取り消し。v0.4.0 で評価し直す"
+        },
+        {
+          "date": "2026-11-14",
+          "event": "evaluated",
+          "note": "iterate: 核は動く・わくわく 3・品質 4 (ブラッシュアップ 1/2)"
         }
       ]
     }
