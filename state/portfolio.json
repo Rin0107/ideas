@@ -74,7 +74,7 @@
         "phase": 3
       },
       "url": "",
-      "preview": "https://preview-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/",
+      "preview": "https://a5719172-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/",
       "history": [
         {
           "date": "2026-11-15",
@@ -90,6 +90,11 @@
           "date": "2026-11-15",
           "event": "preview",
           "note": "https://preview-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/"
+        },
+        {
+          "date": "2026-11-15",
+          "event": "preview",
+          "note": "https://a5719172-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/"
         }
       ]
     }
