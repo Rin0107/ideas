@@ -12,7 +12,8 @@ func TestDefaultWaits(t *testing.T) {
 		"mergeWait": {mergeWait, 30 * time.Minute}, "mergeNoCI": {mergeNoCI, 5 * time.Minute},
 		"checkPoll": {checkPoll, 20 * time.Second}, "checkNoRun": {checkNoRun, 5 * time.Minute},
 		"checkWait": {checkWait, 20 * time.Minute}, "previewE2EWait": {previewE2EWait, 10 * time.Minute},
-		"previewPoll": {previewPoll, 15 * time.Second},
+		"previewPoll": {previewPoll, 15 * time.Second}, "stateWait": {stateWait, 45 * time.Minute},
+		"statePoll": {statePoll, 500 * time.Millisecond},
 	} {
 		if c.got != c.want {
 			t.Errorf("%s = %v (既定は %v)", name, c.got, c.want)

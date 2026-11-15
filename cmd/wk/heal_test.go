@@ -18,7 +18,7 @@ func startAction(t *testing.T, f *factory, a next.Action) {
 	t.Helper()
 	e, err := load()
 	must(t, err)
-	_, err = lock.Acquire(f.runtime, lock.Info{Since: time.Now(), Phase: a.Phase}, time.Hour)
+	_, err = lock.Acquire(f.runtime, "factory", lock.Info{Since: time.Now(), Phase: a.Phase}, time.Hour)
 	must(t, err)
 	if a.Reason == "" {
 		a.Reason = "テスト"
@@ -40,7 +40,7 @@ func doneWith(t *testing.T, f *factory, args ...string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(f.runtime, "tick.lock")); err == nil {
+	if _, err := os.Stat(filepath.Join(f.runtime, "tick-factory.lock")); err == nil {
 		t.Fatal("ロックが残った")
 	}
 	return string(b[:n])

@@ -59,10 +59,13 @@ func run(args []string, stderr io.Writer) int {
 		printUsage(stderr)
 		return 2
 	}
-	stateMode, loaded = !localCommands[args[0]], nil
+	stateMode, readOnlyCmd, loaded = !localCommands[args[0]], readOnlyCommands[args[0]], nil
 	err := commands[args[0]].run(args[1:])
 	// v3: 状態の clone に書いた記録を、成功でも失敗でも commit して push する (記録を落とさない)
-	if serr := finishState(args); serr != nil {
+	serr := finishState(args)
+	releaseState()
+	releaseState = func() {}
+	if serr != nil {
 		fmt.Fprintln(stderr, "wk "+args[0]+": 記録の push:", serr)
 		if err == nil {
 			err = errors.New("記録を push できない (次のコマンドがもう一度試す)")

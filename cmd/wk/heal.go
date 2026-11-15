@@ -83,7 +83,7 @@ func bumpFix(e *env, repo string, is next.Issue, note string) (bool, error) {
 
 // fixTarget は直す issue を立てる repo とマイルストーン。アプリの tick ならアプリ、それ以外 (と --in factory) は工場。
 func fixTarget(e *env, a next.Action, in string) (string, string) {
-	if p := e.pf.Active(); in != "factory" && p != nil && a.Repo == p.Repo && a.Repo != "" {
+	if p := e.pf.ByRepo(a.Repo); in != "factory" && p != nil && p.Active() {
 		return p.Repo, p.Milestone
 	}
 	return e.factoryRepo(), ""

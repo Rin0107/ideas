@@ -102,12 +102,34 @@ func issueBody(is PlanIssue) string {
 // 引数は各コマンドで flag.NewFlagSet で読む (関数を渡す形にすると、その後ろの err != nil がカバレッジの区切りから外れ、
 // ミューテーションが「テストが通らない」と数える。2026-11-10)
 
+// project はこのコマンドが扱うアプリ。v3.1 は作りかけが何件もあるので、
+// tick の中なら wk next が渡したアプリ、アプリの repo の中ならその repo、作りかけが 1 つならそれ。
 func (e *env) project() (*state.Project, error) {
-	p := e.pf.Active()
-	if p == nil {
+	if a, _, err := readCurrent(e); err == nil {
+		if p := e.pf.ByRepo(a.Repo); p != nil && p.Active() {
+			return p, nil
+		}
+		if p := e.pf.ByIdea(a.Idea); p != nil {
+			return p, nil
+		}
+	}
+	act := e.pf.Actives()
+	wd, _ := os.Getwd()
+	if rel, err := filepath.Rel(e.cfg.AppsDir, wd); err == nil && rel != "." && !strings.HasPrefix(rel, "..") {
+		name := strings.Split(rel, string(filepath.Separator))[0]
+		for _, p := range act {
+			if p.Repo != "" && filepath.Base(p.Repo) == name {
+				return p, nil
+			}
+		}
+	}
+	if len(act) == 1 {
+		return act[0], nil
+	}
+	if len(act) == 0 {
 		return nil, errors.New("作っているアプリがない")
 	}
-	return p, nil
+	return nil, fmt.Errorf("作りかけが %d 件あり、どれのことか分からない (wk next の tick の中か、アプリの repo の中で実行する)", len(act))
 }
 
 func (e *env) save() error { return state.SavePortfolio(e.cfg.Root, e.pf) }
@@ -143,8 +165,8 @@ func cmdSelect(args []string) error {
 	if err != nil {
 		return err
 	}
-	if p := e.pf.Active(); p != nil {
-		return fmt.Errorf("作りかけがある: %s (%s)", p.Idea, p.Status)
+	if act := e.pf.Actives(); len(act) >= e.cfg.WIP() {
+		return fmt.Errorf("作りかけが上限まである (%d 件。最初は %s %s)", len(act), act[0].Idea, act[0].Status)
 	}
 	var scores []verdict.SelectScore
 	if err := verdict.ReadJSON(*scoresPath, &scores); err != nil {
@@ -181,6 +203,10 @@ func cmdSelect(args []string) error {
 	e.event(p, "selected", note)
 	e.pf.Projects = append(e.pf.Projects, p)
 	if err := e.appendIdeaHistory(best.Idea, "選定: "+note); err != nil {
+		return err
+	}
+	// この実行が選んだものとして、ほかの実行に取られないようにする
+	if err := bindCurrent(e, "", best.Idea); err != nil {
 		return err
 	}
 	if err := e.save(); err != nil {

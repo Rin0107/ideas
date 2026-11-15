@@ -87,3 +87,14 @@ func TestHardProtected(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestParallelAndWIP(t *testing.T) {
+	c := &Config{}
+	if c.Parallel() != 1 || c.WIP() != 1 {
+		t.Fatal("0 は 1")
+	}
+	c.MaxParallel, c.MaxWIP = 2, 3
+	if c.Parallel() != 2 || c.WIP() != 3 {
+		t.Fatal(c.Parallel(), c.WIP())
+	}
+}

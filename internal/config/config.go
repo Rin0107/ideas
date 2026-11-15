@@ -80,6 +80,11 @@ type Config struct {
 	// MaxMVPIssues は最初の版 (試作) の issue の上限。0 なら max_open_issues
 	MaxMVPIssues int `json:"max_mvp_issues"`
 
+	// 同時に進める (v3.1、docs/DESIGN-v3.md §8)
+	// MaxParallel は同時に動いてよい実行の数。MaxWIP は同時に持ってよい作りかけのアプリの数。0 以下は 1
+	MaxParallel int `json:"max_parallel"`
+	MaxWIP      int `json:"max_wip"`
+
 	// Site は公開した Web アプリをまとめて配る repo (Cloudflare の GitHub 連携で配信する)
 	Site Site `json:"site"`
 
@@ -155,3 +160,9 @@ func (c *Config) HardProtected() []string {
 	}
 	return out
 }
+
+// Parallel は同時に動いてよい実行の数 (1 以上)。
+func (c *Config) Parallel() int { return max(c.MaxParallel, 1) }
+
+// WIP は同時に持ってよい作りかけのアプリの数 (1 以上)。
+func (c *Config) WIP() int { return max(c.MaxWIP, 1) }
