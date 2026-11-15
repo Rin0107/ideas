@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 const good = `{"owner":"o","main_checkout":"~/m","apps_dir":"~/a","runtime_dir":"/r","ticks_per_day":6,"max_ticks_mvp":30,
@@ -96,5 +97,16 @@ func TestParallelAndWIP(t *testing.T) {
 	c.MaxParallel, c.MaxWIP = 2, 3
 	if c.Parallel() != 2 || c.WIP() != 3 {
 		t.Fatal(c.Parallel(), c.WIP())
+	}
+}
+
+func TestLimitsPolicy(t *testing.T) {
+	p := Limits{}.Policy()
+	if p.FiveHourMax != 70 || p.SevenDayMax != 85 || p.MaxAge != 3*time.Hour {
+		t.Fatalf("既定 = %+v", p)
+	}
+	p = Limits{FiveHourMax: 50, SevenDayMax: 60, MaxAgeMinutes: 30}.Policy()
+	if p.FiveHourMax != 50 || p.SevenDayMax != 60 || p.MaxAge != 30*time.Minute {
+		t.Fatalf("指定 = %+v", p)
 	}
 }

@@ -9,6 +9,9 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
+
+	"github.com/Rin0107/ideas/internal/limits"
 )
 
 type Select struct {
@@ -22,6 +25,30 @@ type Evaluate struct {
 	ShipMinQuality  int `json:"ship_min_quality"`
 	// IterateMinWakuwaku は磨く価値があるとみなすわくわくの下限 (v3)。届かなければ磨かずに捨てる。0 なら下限なし
 	IterateMinWakuwaku int `json:"iterate_min_wakuwaku"`
+}
+
+// Limits: File は scripts/claude-statusline.sh が書く利用上限の記録。空なら使わない (1 日の予算だけで止める)。
+// FiveHourMax・SevenDayMax は工場が使ってよい割合 (%)。MaxAgeMinutes より古い記録は使わない。0 は既定 (70・85・180)
+type Limits struct {
+	File          string  `json:"file"`
+	FiveHourMax   float64 `json:"five_hour_max_pct"`
+	SevenDayMax   float64 `json:"seven_day_max_pct"`
+	MaxAgeMinutes int     `json:"max_age_minutes"`
+}
+
+// Policy は Limits の既定を埋めた、工場が使ってよい範囲。
+func (l Limits) Policy() limits.Policy {
+	p := limits.Policy{FiveHourMax: 70, SevenDayMax: 85, MaxAge: 3 * time.Hour}
+	if l.FiveHourMax > 0 {
+		p.FiveHourMax = l.FiveHourMax
+	}
+	if l.SevenDayMax > 0 {
+		p.SevenDayMax = l.SevenDayMax
+	}
+	if l.MaxAgeMinutes > 0 {
+		p.MaxAge = time.Duration(l.MaxAgeMinutes) * time.Minute
+	}
+	return p
 }
 
 // Site: Repo は配信用の repo (owner/name)。URL は Cloudflare に連携したあとの本番の URL (https://wakuwaku-site.<sub>.workers.dev)。
@@ -75,6 +102,8 @@ type Config struct {
 	RunHours []int `json:"run_hours"`
 	// MaxTokensPerDay は 1 日に使ってよい量 (入力 + キャッシュ作成 + 出力 + キャッシュの読み出しの 1/10。usage.Weighted)。0 なら上限なし
 	MaxTokensPerDay int `json:"max_tokens_per_day"`
+	// Limits は Claude の利用上限 (5 時間・週) で止める (docs/DESIGN-v3.md §9)。記録が新しければ max_tokens_per_day の代わりに使う
+	Limits Limits `json:"limits"`
 	// Reviewers は PR に approve が要るロール。空ならファイルから決める (sre・engineer・画面なら designer)
 	Reviewers []string `json:"reviewers"`
 	// MaxMVPIssues は最初の版 (試作) の issue の上限。0 なら max_open_issues
@@ -110,6 +139,7 @@ func Load(dir string) (*Config, error) {
 			c.AppsDir = Expand(c.AppsDir)
 			c.RuntimeDir = Expand(c.RuntimeDir)
 			c.StateCheckout = Expand(c.StateCheckout)
+			c.Limits.File = Expand(c.Limits.File)
 			return &c, c.validate()
 		}
 		parent := filepath.Dir(d)

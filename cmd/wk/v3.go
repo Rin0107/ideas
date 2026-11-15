@@ -14,6 +14,7 @@ import (
 
 	"github.com/Rin0107/ideas/internal/config"
 	"github.com/Rin0107/ideas/internal/gh"
+	"github.com/Rin0107/ideas/internal/limits"
 	"github.com/Rin0107/ideas/internal/lock"
 	"github.com/Rin0107/ideas/internal/state"
 	"github.com/Rin0107/ideas/internal/usage"
@@ -176,8 +177,12 @@ func dayStart(t time.Time) time.Time {
 	return time.Date(y, m, d, 0, 0, 0, 0, t.Location())
 }
 
-// budgetProblem は今日のトークンが予算を超えていれば理由を返す。
+// budgetProblem は使ってよい量を超えていれば理由を返す。
+// Claude の利用上限 (5 時間・週) の新しい記録があればそれで決め、なければ 1 日の予算 (max_tokens_per_day) で決める (docs/DESIGN-v3.md §9)
 func budgetProblem(e *env) string {
+	if r := e.limits(); r != nil {
+		return limits.Problem(r, e.now, e.cfg.Limits.Policy())
+	}
 	if e.cfg.MaxTokensPerDay <= 0 {
 		return ""
 	}
@@ -189,6 +194,26 @@ func budgetProblem(e *env) string {
 		return fmt.Sprintf("今日のトークンは予算に達した (%d/%d)", u.Weighted(), e.cfg.MaxTokensPerDay)
 	}
 	return ""
+}
+
+// limits は利用上限の新しい記録 (なければ・古ければ・読めなければ nil。そのときは 1 日の予算で止める)。
+func (e *env) limits() *limits.Reading {
+	if e.cfg.Limits.File == "" {
+		return nil
+	}
+	r, err := limits.Read(e.cfg.Limits.File)
+	if err != nil || r == nil || !r.Fresh(e.now, e.cfg.Limits.Policy().MaxAge) {
+		return nil
+	}
+	return r
+}
+
+// limitsLine は利用上限の今を 1 行で返す (wk usage)。
+func limitsLine(e *env) string {
+	if r := e.limits(); r != nil {
+		return "利用上限: " + limits.Summary(r, e.now, e.cfg.Limits.Policy())
+	}
+	return fmt.Sprintf("利用上限: 新しい記録がない (1 日の予算 %d で止める)", e.cfg.MaxTokensPerDay)
 }
 
 // hourProblem は今が tick を始めてよい時でなければ理由を返す。
@@ -210,6 +235,7 @@ func cmdUsage(args []string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println(limitsLine(e))
 	fmt.Println("日ごと (会話の記録から。利用上限に効く量 = トークン + キャッシュの読み出しの 1/10):")
 	for i := *days - 1; i >= 0; i-- {
 		from := dayStart(e.now).AddDate(0, 0, -i)
