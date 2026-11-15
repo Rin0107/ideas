@@ -63,8 +63,8 @@
     },
     {
       "idea": "00161-onsen-passport",
-      "repo": "",
-      "status": "selected",
+      "repo": "Rin0107/yu-no-passport",
+      "status": "building",
       "stack": "web",
       "started": "2026-11-15",
       "milestone": "MVP",
@@ -79,6 +79,11 @@
           "date": "2026-11-15",
           "event": "selected",
           "note": "合計 20/25 (わくわく3・軽さ4・無料5・自分ごと4・Findy4) 温泉分析書の数値から療養泉の泉質名を決める判定が、仕様の決まった計算として静的ファイルで書ける。10 泉質の制覇スタンプは日本の暮らしに近い"
+        },
+        {
+          "date": "2026-11-15",
+          "event": "scaffolded",
+          "note": "Rin0107/yu-no-passport / issue 2 件"
         }
       ]
     }
