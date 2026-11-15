@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Rin0107/ideas/internal/fakegh"
+	"github.com/Rin0107/ideas/internal/guard"
 	"github.com/Rin0107/ideas/internal/lock"
 	"github.com/Rin0107/ideas/internal/next"
 	"github.com/Rin0107/ideas/internal/state"
@@ -560,4 +561,21 @@ func TestCheckReviewableMustBeProtected(t *testing.T) {
 	f.writeConfig(map[string]any{"reviewable_paths": []string{"templates/"}})
 	_, err := capture(t, func() error { return cmdCheck(nil) })
 	errHas(t, err, "reviewable_paths の templates/ が protected_paths にない")
+}
+
+// web-db: ログインとセッションは工場が変えられない。DB・写真・表は守りのレビューを通す (docs/DESIGN-v3.md §10)
+func TestWebDBProtected(t *testing.T) {
+	for _, p := range []string{"src/worker/db.ts", "src/worker/photo.ts", "migrations/0002_theme.sql", "src/worker/auth.ts"} {
+		if got := reviewersFor([]string{p}, []string{"sre"}); got[len(got)-1] != guardianReviewer {
+			t.Errorf("%s: %v", p, got)
+		}
+	}
+	for _, p := range []string{"src/worker/auth.ts", "src/worker/session.ts"} {
+		if hit := guard.TouchesProtected([]string{p}, appHard); len(hit) != 1 {
+			t.Errorf("%s は変えられない: %v", p, hit)
+		}
+	}
+	if hit := guard.TouchesProtected([]string{"src/worker/api.ts", "src/App.tsx"}, appHard); len(hit) != 0 {
+		t.Errorf("機能の側は変えてよい: %v", hit)
+	}
 }
