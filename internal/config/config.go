@@ -58,6 +58,21 @@ type Site struct {
 	URL  string `json:"url"`
 }
 
+// WebDB は web-db (Cloudflare Worker + D1、主力のアプリ) の配信 (docs/DESIGN-v3.md §10・docs/SETUP.md)。
+// Subdomain は workers.dev のサブドメイン。D1 は repo (owner/name) → D1 の database_id (人が Cloudflare で作る。秘密ではない)。
+type WebDB struct {
+	Subdomain string            `json:"subdomain"`
+	D1        map[string]string `json:"d1"`
+}
+
+// URL は repo の Worker の URL (末尾は /)。サブドメインが空なら空。
+func (w WebDB) URL(repo string) string {
+	if w.Subdomain == "" {
+		return ""
+	}
+	return "https://" + filepath.Base(repo) + "." + w.Subdomain + ".workers.dev/"
+}
+
 type Config struct {
 	Owner        string `json:"owner"`
 	MainCheckout string `json:"main_checkout"`
@@ -119,6 +134,8 @@ type Config struct {
 
 	// Site は公開した Web アプリをまとめて配る repo (Cloudflare の GitHub 連携で配信する)
 	Site Site `json:"site"`
+	// WebDB は web-db のアプリ (Worker + D1) の配信
+	WebDB WebDB `json:"web_db"`
 
 	// Root は factory.json があるディレクトリ (今の worktree)。読み込み時に入る
 	Root string `json:"-"`

@@ -143,7 +143,12 @@ v2 との違い:
 依頼: 「次のプロジェクトは『今日の服を選ぶアプリ』にして。… しばらくはずっとこれを機能開発＆改善（パフォーマンスやUX）、セキュリティ対策とやっていく」。決定は okuos の decisions/2026-11-15-wakuwaku-closet-focus.md。
 
 - `focus` (アイディアの ID) があれば、`wk next` はそのアプリだけを進める。ほかの作りかけは止まり (状態はそのまま)、intake・select はしない。repair と retro はする
-- 主力のアプリがまだ作りかけになければ idle (土台を人の側が作っている間)
+- 主力のアプリがまだ作りかけになければ、雛形 (`templates/web-db/wk.json`) ができるまで idle。できたら主力のアイディアの select から始める (`wk candidates` は主力だけを出し、`wk select` は主力の点数だけを使う。stack は `web-db`、足切りはしない)。web-db はほかのアイディアには選ばない
+- **web-db の配信** (`cmd/wk/webdb.go`): Cloudflare Worker + D1。`wk deploy` が本番に出す (プレビューはない。ship はしない)
+  - ビルド (`npm ci --ignore-scripts`・`verify`・`build`・`bundle`) は手元で、鍵らしい環境変数を消して動かす
+  - アプリの repo の `deploy` ブランチに 1 コミットで force push する: `public/` (dist)・`worker.js` (bundle)・`migrations/*.sql`・wk が作る `wrangler.jsonc` と `package.json` (版固定の wrangler だけ、scripts なし)。エージェントの書いた package.json・wrangler の設定は入れない
+  - Cloudflare の Workers Builds が deploy ブランチを `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy` で出す。鍵のある所で動くのは版固定の wrangler だけ。worker.js は Worker の中でだけ動く
+  - URL は `https://<repo 名>.<web_db.subdomain>.workers.dev/`。D1 の database_id は `factory.json` の `web_db.d1` (人が作る。docs/SETUP.md §7)。空なら deploy は人の作業待ちで止まる
 - 評価が ship でも drop でも iterate にする。捨てず、出して終わりにせず、磨き続ける
 - 主力のアプリ `00502-kisekae-closet` は §7.1 (サーバーを持たない・ログインを作らない) の、持ち主が決めた例外。
   - ログインはパスキーだけ。サーバーにあるのはランダムな利用者 ID・公開鍵・使った回数

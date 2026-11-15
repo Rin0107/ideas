@@ -56,11 +56,14 @@ exit 0
 func cloudflare(t *testing.T, siteGit string, headers bool) {
 	t.Helper()
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		branch := "preview"
+		branch, gitDir := "preview", siteGit
 		if strings.HasPrefix(r.Host, "wakuwaku-site.") {
 			branch = "main"
 		}
-		out, err := exec.Command("git", "--git-dir", siteGit, "show", branch+":public"+r.URL.Path+"index.html").Output()
+		if strings.HasPrefix(r.Host, "alpha.") { // web-db のアプリの Worker は、アプリの repo の deploy ブランチ
+			branch, gitDir = "deploy", filepath.Join(filepath.Dir(siteGit), "alpha.git")
+		}
+		out, err := exec.Command("git", "--git-dir", gitDir, "show", branch+":public"+r.URL.Path+"index.html").Output()
 		if headers {
 			w.Header().Set("Content-Security-Policy", "default-src 'self'")
 			w.Header().Set("X-Content-Type-Options", "nosniff")

@@ -58,6 +58,8 @@ type Snapshot struct {
 	Claimed map[string]bool
 	// Prefer はこの実行が前の段で進めた repo。続けて同じアプリを進める (読んだものを使い回せる)
 	Prefer string
+	// FocusReady は主力のアプリの雛形 (templates/web-db) があるか。なければ主力を始めずに待つ (docs/DESIGN-v3.md §10)
+	FocusReady bool
 }
 
 // App は作りかけのアプリ 1 つと、その今の issue・提案。
@@ -275,5 +277,12 @@ func decideFocus(s Snapshot, apps []App) Action {
 		}
 		return decideApp(s, ap)
 	}
-	return Action{Phase: state.PhaseIdle, Reason: "主力のアプリ (" + s.Cfg.Focus + ") の土台を待っている (作りかけにない)"}
+	// まだ作りかけにない: 雛形 (templates/web-db) ができていれば、主力のアイディアの select から始める
+	if !s.FocusReady {
+		return Action{Phase: state.PhaseIdle, Reason: "主力のアプリ (" + s.Cfg.Focus + ") の土台 (雛形) を待っている"}
+	}
+	if s.Claimed[state.PhaseSelect] {
+		return Action{Phase: state.PhaseIdle, Reason: "ほかの実行が主力のアプリ (" + s.Cfg.Focus + ") を始めている"}
+	}
+	return Action{Phase: state.PhaseSelect, Idea: s.Cfg.Focus, Reason: "主力のアプリ (" + s.Cfg.Focus + ") を始める"}
 }

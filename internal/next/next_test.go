@@ -191,8 +191,14 @@ func TestDecideParallel(t *testing.T) {
 			func(s *Snapshot) { s.Cfg.Focus = b.Idea }, state.PhaseTriage, b.Repo},
 		{"主力のアプリをほかの実行が持っていれば、ほかを進めず idle",
 			func(s *Snapshot) { s.Cfg.Focus, s.Claimed = b.Idea, map[string]bool{b.Repo: true} }, state.PhaseIdle, ""},
-		{"主力のアプリがまだ作りかけになければ、選ばずに待つ",
+		{"主力のアプリがまだ作りかけになく、雛形もなければ、選ばずに待つ",
 			func(s *Snapshot) { s.Cfg.Focus = "00999-closet" }, state.PhaseIdle, ""},
+		{"主力のアプリの雛形ができていれば、主力の select から始める",
+			func(s *Snapshot) { s.Cfg.Focus, s.FocusReady = "00999-closet", true }, state.PhaseSelect, ""},
+		{"主力の select をほかの実行がしていれば idle",
+			func(s *Snapshot) {
+				s.Cfg.Focus, s.FocusReady, s.Claimed = "00999-closet", true, map[string]bool{state.PhaseSelect: true}
+			}, state.PhaseIdle, ""},
 		{"主力のアプリがあっても retro はする",
 			func(s *Snapshot) {
 				s.Cfg.Focus = b.Idea
@@ -216,6 +222,11 @@ func TestDecideParallel(t *testing.T) {
 		})
 	}
 	s := base()
+	s.Cfg.Focus, s.FocusReady = "00999-closet", true
+	if got := Decide(s); got.Idea != "00999-closet" || got.Role == "" {
+		t.Fatalf("主力の select にアイディアがない: %+v", got)
+	}
+	s = base()
 	s.Cfg.MaxWIP = 0 // 0 は 1
 	s.Apps, s.Claimed = apps[:1], map[string]bool{a.Repo: true}
 	if got := Decide(s); got.Phase != state.PhaseIdle || got.Reason != "作りかけが 1 件 (上限 1)。どれもほかの実行が進めている" {

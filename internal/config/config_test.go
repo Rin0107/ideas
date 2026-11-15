@@ -110,3 +110,12 @@ func TestLimitsPolicy(t *testing.T) {
 		t.Fatalf("指定 = %+v", p)
 	}
 }
+
+func TestWebDBURL(t *testing.T) {
+	if u := (WebDB{}).URL("Rin0107/kisekae-closet"); u != "" {
+		t.Fatal(u)
+	}
+	if u := (WebDB{Subdomain: "f"}).URL("Rin0107/kisekae-closet"); u != "https://kisekae-closet.f.workers.dev/" {
+		t.Fatal(u)
+	}
+}

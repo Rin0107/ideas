@@ -155,26 +155,31 @@ func (e *env) appendIdeaHistory(idea, line string) error {
 
 // ---- select ----
 
-func cmdSelect(args []string) error {
-	fs := flag.NewFlagSet("select", flag.ContinueOnError)
-	scoresPath := fs.String("scores", "", "点数の JSON (- で標準入力)")
-	if err := fs.Parse(args); err != nil {
-		return err
+// focusTemplateReady は主力のアプリの雛形 (templates/web-db) があるか。なければ主力を始めずに待つ (docs/DESIGN-v3.md §10)。
+func focusTemplateReady(e *env) bool {
+	if e.cfg.Focus == "" {
+		return false
 	}
-	e, err := load()
-	if err != nil {
-		return err
+	_, err := os.Stat(filepath.Join(e.cfg.Root, "templates", verdict.StackWebDB, "wk.json"))
+	return err == nil
+}
+
+// notFocus は主力のアイディアでないものを見分ける (wk candidates が主力だけを出す)。
+func notFocus(focus string) func(*ideas.Idea) bool {
+	return func(i *ideas.Idea) bool { return i.Dir != focus }
+}
+
+// chooseIdea は点数から 1 件選ぶ。主力 (focus) があれば、その点数だけを使う (候補・足切り・配信の準備は見ない)。
+func chooseIdea(e *env, scores []verdict.SelectScore) (verdict.SelectScore, error) {
+	if e.cfg.Focus != "" {
+		return verdict.ChooseFocus(scores, e.cfg.Focus)
 	}
 	if act := e.pf.Actives(); len(act) >= e.cfg.WIP() {
-		return fmt.Errorf("作りかけが上限まである (%d 件。最初は %s %s)", len(act), act[0].Idea, act[0].Status)
-	}
-	var scores []verdict.SelectScore
-	if err := verdict.ReadJSON(*scoresPath, &scores); err != nil {
-		return err
+		return verdict.SelectScore{}, fmt.Errorf("作りかけが上限まである (%d 件。最初は %s %s)", len(act), act[0].Idea, act[0].Status)
 	}
 	all, err := ideas.Load(filepath.Join(e.cfg.Root, e.cfg.IdeasDir))
 	if err != nil {
-		return err
+		return verdict.SelectScore{}, err
 	}
 	allowed := map[string]bool{}
 	for _, c := range ideas.Candidates(all, e.pf.Tried(), e.cfg.Select.Candidates, e.today()) {
@@ -194,8 +199,29 @@ func cmdSelect(args []string) error {
 	for _, l := range append(skipped, log...) {
 		fmt.Fprintln(os.Stderr, l)
 	}
+	return best, err
+}
+
+func cmdSelect(args []string) error {
+	fs := flag.NewFlagSet("select", flag.ContinueOnError)
+	scoresPath := fs.String("scores", "", "点数の JSON (- で標準入力)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	e, err := load()
 	if err != nil {
 		return err
+	}
+	var scores []verdict.SelectScore
+	if err := verdict.ReadJSON(*scoresPath, &scores); err != nil {
+		return err
+	}
+	best, err := chooseIdea(e, scores)
+	if err != nil {
+		return err
+	}
+	if e.pf.ByIdea(best.Idea) != nil {
+		return fmt.Errorf("%s はもう作りかけ・作ったものにある", best.Idea)
 	}
 	note := fmt.Sprintf("合計 %d/25 (わくわく%d・軽さ%d・無料%d・自分ごと%d・Findy%d) %s", best.Total(), best.Wakuwaku, best.Light,
 		best.Free, best.Own, best.Findy, best.Reason)
@@ -260,9 +286,13 @@ func cmdScaffold(args []string) error {
 		return err
 	}
 	if !exists {
+		url := "(まだ公開していません)"
+		if u := e.cfg.WebDB.URL(repo); p.Stack == verdict.StackWebDB && u != "" {
+			url = u // web-db は wk deploy が本番に出す。URL は repo の名前で決まる
+		}
 		if err := copyTemplate(filepath.Join(e.cfg.Root, "templates", p.Stack), dir, map[string]string{
 			"{{NAME}}": plan.RepoName, "{{DESCRIPTION}}": plan.Description, "{{REPO}}": repo, "{{GOAL}}": plan.Goal,
-			"{{IDEA}}": p.Idea, "{{URL}}": "(まだ公開していません)",
+			"{{IDEA}}": p.Idea, "{{URL}}": url,
 		}); err != nil {
 			return err
 		}
@@ -557,6 +587,9 @@ func cmdShip(args []string) error {
 	p, err := e.project()
 	if err != nil {
 		return err
+	}
+	if p.Stack == verdict.StackWebDB {
+		return errors.New("web-db は wk deploy が本番に出す (ship はしない。docs/DESIGN-v3.md §10)")
 	}
 	if p.Verdict != "ship" {
 		return fmt.Errorf("評価が ship でない (%q)", p.Verdict)

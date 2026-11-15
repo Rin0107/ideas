@@ -97,6 +97,36 @@ orca-ide automations create --name "wakuwaku tick" --provider claude --timezone 
 precheck は Windows の cmd.exe で動くので、`wsl.exe -d NixOS --` を付ける (付けないと毎回 exit 1 で飛ばされる)。
 最初の 1 回は、登録後に手で動かして見届ける: `orca-ide automations run --id <automation の id>`
 
+## 7. 主力のアプリ (web-db: Worker + D1) の配信 — アプリ 1 つにつき 1 回
+主力のアプリ (`factory.json` の `focus`、今は `Rin0107/kisekae-closet`) は DB を持つので、配信用の repo ではなく
+**アプリの repo の `deploy` ブランチ** を Cloudflare が配る (docs/DESIGN-v3.md §10)。`deploy` ブランチは wk deploy が作る
+(ビルドしたもの・migration・wk が作る wrangler の設定と版固定の wrangler だけ。エージェントのコードは鍵のある所で動かない)。
+工場が repo を作り、最初の `wk deploy` が「人の作業待ち」で止まったら、次をする。
+
+1. **D1 を作る**: Workers & Pages → D1 SQL Database → Create。名前は repo の名前 (`kisekae-closet`)。
+   出た **Database ID** を控える (秘密ではない)
+2. **GitHub App にアプリの repo を見せる**: GitHub の Settings → Applications → Cloudflare Workers and Pages → Configure →
+   Only select repositories に `Rin0107/kisekae-closet` を足す (工場の repo は見せない)
+3. **Workers & Pages → Create → Import a repository** で `Rin0107/kisekae-closet` を選ぶ:
+   | 項目 | 値 |
+   |---|---|
+   | Project name | `kisekae-closet` (repo の名前。wrangler.jsonc の name と同じ) |
+   | Production branch | **`deploy`** |
+   | Build command | **空のまま** |
+   | Deploy command | `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy` |
+   | Non-production branch builds | **無効** (main や作業ブランチを Cloudflare でビルドしない) |
+   | Root directory | `/` |
+4. Database ID を `factory.json` に書いてコミットする:
+   ```bash
+   cd ~/src/okuos/repos/ideas
+   $EDITOR factory.json   # "web_db": { "subdomain": "wakuwaku-factory", "d1": { "Rin0107/kisekae-closet": "<Database ID>" } }
+   git commit -am "web_db: kisekae-closet の D1" && git push
+   ```
+   次の `wk deploy` が `deploy` ブランチを push し、Cloudflare のビルドを待って `https://kisekae-closet.wakuwaku-factory.workers.dev/` を確かめる
+
+おかしなものが出たかもしれないときは、Workers & Pages → kisekae-closet → Deployments で前の版に Rollback する。
+D1 のデータは Time Travel (D1 の Settings) で 30 日まで戻せる。
+
 ---
 
 ## 動作確認

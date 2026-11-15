@@ -36,7 +36,11 @@ type SelectScore struct {
 
 func (s SelectScore) Total() int { return s.Wakuwaku + s.Light + s.Free + s.Own + s.Findy }
 
-var stacks = map[string]bool{"web": true, "go-cli": true}
+// web-db (Worker + D1) は主力のアプリ (focus) だけ (docs/DESIGN-v3.md §10)。ChooseIdea では選ばない
+var stacks = map[string]bool{"web": true, "go-cli": true, "web-db": true}
+
+// StackWebDB は主力のアプリのスタック。
+const StackWebDB = "web-db"
 
 func (s SelectScore) validate() error {
 	for name, v := range map[string]int{"wakuwaku": s.Wakuwaku, "light": s.Light, "free": s.Free, "own": s.Own, "findy": s.Findy} {
@@ -48,7 +52,7 @@ func (s SelectScore) validate() error {
 		return errors.New("idea が空")
 	}
 	if !stacks[s.Stack] {
-		return fmt.Errorf("%s: stack %q は web / go-cli のどちらか", s.Idea, s.Stack)
+		return fmt.Errorf("%s: stack %q は web / go-cli / web-db のどれか", s.Idea, s.Stack)
 	}
 	if strings.TrimSpace(s.Reason) == "" {
 		return fmt.Errorf("%s: reason が空", s.Idea)
@@ -70,6 +74,11 @@ func ChooseIdea(scores []SelectScore, allowed map[string]bool, c config.Select) 
 		}
 		if !allowed[s.Idea] {
 			return SelectScore{}, nil, fmt.Errorf("%s は候補にない", s.Idea)
+		}
+		// switch の case の条件はミューテーションの道具がカバレッジの外と数えるので、足すものは if で書く
+		if s.Stack == StackWebDB {
+			log = append(log, s.Idea+": web-db は主力のアプリ (focus) だけなので除外")
+			continue
 		}
 		switch {
 		case s.Sensitive:
@@ -100,6 +109,24 @@ func ChooseIdea(scores []SelectScore, allowed map[string]bool, c config.Select) 
 		return a.Idea < b.Idea
 	})
 	return ok[0], log, nil
+}
+
+// ChooseFocus は主力のアイディア (focus) の点数だけを使う (ほかの点数は見ない)。主力は持ち主が決めたので足切りはしないが、
+// 点数の形は確かめ、stack は web-db であること (docs/DESIGN-v3.md §10)。
+func ChooseFocus(scores []SelectScore, focus string) (SelectScore, error) {
+	for _, s := range scores {
+		if s.Idea != focus {
+			continue
+		}
+		if err := s.validate(); err != nil {
+			return SelectScore{}, err
+		}
+		if s.Stack != StackWebDB {
+			return SelectScore{}, fmt.Errorf("%s: 主力のアプリの stack は %s (%q でない)", s.Idea, StackWebDB, s.Stack)
+		}
+		return s, nil
+	}
+	return SelectScore{}, fmt.Errorf("主力のアイディア %s の点数がない", focus)
 }
 
 // EvalScore は evaluate で、別の Claude が本番を触って付ける点。
