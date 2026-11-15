@@ -646,3 +646,20 @@ func TestPrivacyScan(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+// 主力のアプリは ship でも drop でも磨き続ける (docs/DESIGN-v3.md §10)
+func TestEvaluateFocusKeepsIterating(t *testing.T) {
+	f := newFactory(t)
+	f.writeConfig(map[string]any{"focus": "00001-alpha"})
+	f.projects(active())
+	for _, c := range []struct {
+		core       bool
+		w, q       int
+		want, from string
+	}{{true, 5, 4, "iterate", "ship"}, {false, 1, 1, "iterate", "drop"}} {
+		out, err := capture(t, func() error { return cmdEvaluate([]string{"--scores", evalScores(t, c.core, c.w, c.q)}) })
+		if err != nil || !strings.Contains(out, `"verdict": "`+c.want+`"`) || !strings.Contains(out, "主力のアプリなので "+c.from+" にせず磨き続ける") {
+			t.Fatal(out, err)
+		}
+	}
+}

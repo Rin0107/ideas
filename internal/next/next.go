@@ -132,6 +132,10 @@ func decide(s Snapshot) Action {
 		s.Meta.LastRetro == "" && started) {
 		return Action{Phase: state.PhaseRetro, Reason: "前回の retro から " + fmt.Sprint(c.RetroEveryDays) + " 日以上"}
 	}
+	// 主力のアプリ (focus) があれば、それだけを進める。ほかの作りかけは止め、新しいアイディアは選ばない (docs/DESIGN-v3.md §10)
+	if c.Focus != "" {
+		return decideFocus(s, apps)
+	}
 	// 作りかけのアプリを、ほかの実行が進めていないものから 1 つ進める
 	for _, ap := range apps {
 		if !s.claimed(ap.Project) {
@@ -258,4 +262,18 @@ func batch(is []Issue, first Issue) []int {
 		}
 	}
 	return out
+}
+
+// decideFocus は主力のアプリだけを進める。まだ portfolio になければ (土台を人の側が作っている) 待つ。
+func decideFocus(s Snapshot, apps []App) Action {
+	for _, ap := range apps {
+		if ap.Project.Idea != s.Cfg.Focus {
+			continue
+		}
+		if s.claimed(ap.Project) {
+			return Action{Phase: state.PhaseIdle, Reason: "主力のアプリ (" + s.Cfg.Focus + ") はほかの実行が進めている"}
+		}
+		return decideApp(s, ap)
+	}
+	return Action{Phase: state.PhaseIdle, Reason: "主力のアプリ (" + s.Cfg.Focus + ") の土台を待っている (作りかけにない)"}
 }

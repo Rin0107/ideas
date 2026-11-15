@@ -114,6 +114,9 @@ type Config struct {
 	MaxParallel int `json:"max_parallel"`
 	MaxWIP      int `json:"max_wip"`
 
+	// Focus は主力のアプリのアイディア (v3.3、docs/DESIGN-v3.md §10)。空でなければ工場はそれだけを進め、捨てず・出して終わりにせず磨き続ける
+	Focus string `json:"focus"`
+
 	// Site は公開した Web アプリをまとめて配る repo (Cloudflare の GitHub 連携で配信する)
 	Site Site `json:"site"`
 

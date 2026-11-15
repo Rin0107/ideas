@@ -16,6 +16,7 @@
   "max_mvp_issues": 3,
   "max_parallel": 2,
   "max_wip": 3,
+  "focus": "00502-kisekae-closet",
   "lock_ttl_minutes": 240,
   "max_consecutive_failures": 3,
 

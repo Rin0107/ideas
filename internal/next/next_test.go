@@ -187,6 +187,18 @@ func TestDecideParallel(t *testing.T) {
 				s.Meta = &state.Meta{LastIntake: "2026-11-09"}
 				s.Apps = []App{apps[0], {Project: &state.Project{Idea: "x", Repo: "R/x", Status: state.Building, Ticks: state.Ticks{Total: 30}}}}
 			}, state.PhaseRetro, ""},
+		{"主力のアプリがあれば、それだけを進める (古いものより先)",
+			func(s *Snapshot) { s.Cfg.Focus = b.Idea }, state.PhaseTriage, b.Repo},
+		{"主力のアプリをほかの実行が持っていれば、ほかを進めず idle",
+			func(s *Snapshot) { s.Cfg.Focus, s.Claimed = b.Idea, map[string]bool{b.Repo: true} }, state.PhaseIdle, ""},
+		{"主力のアプリがまだ作りかけになければ、選ばずに待つ",
+			func(s *Snapshot) { s.Cfg.Focus = "00999-closet" }, state.PhaseIdle, ""},
+		{"主力のアプリがあっても retro はする",
+			func(s *Snapshot) {
+				s.Cfg.Focus = b.Idea
+				s.Meta = &state.Meta{LastIntake: "2026-11-09"}
+				s.Apps = []App{apps[0], {Project: &state.Project{Idea: "x", Repo: "R/x", Status: state.Building, Ticks: state.Ticks{Total: 30}}}}
+			}, state.PhaseRetro, ""},
 		{"工場の直す issue もほかの実行がやっていれば飛ばす",
 			func(s *Snapshot) {
 				s.FactoryFixes = []Issue{{Number: 9, Labels: []string{LabelFix}}}
