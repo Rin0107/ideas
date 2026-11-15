@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -49,12 +50,25 @@ func load() (*env, error) {
 		work = cfg.Root
 	}
 	// v3: 状態と記録は wk だけが書く clone に置く (worktree・手元の main からは書かない。docs/DESIGN-v3.md §2)
+	// v3.1: 実行が何本も同時に動くので、clone に触るあいだは状態のロックを持つ (読むだけのコマンドは読む間だけ)
 	if stateMode && cfg.StateCheckout != "" {
+		releaseState() // 同じプロセスで前に持ったもの (テストで何度も load する)
+		rel, err := holdState(cfg)
+		if err != nil {
+			return nil, err
+		}
 		if err := openState(cfg); err != nil {
+			rel()
 			return nil, err
 		}
 		if cfg, err = config.Load(cfg.StateCheckout); err != nil {
+			rel()
 			return nil, err
+		}
+		releaseState = rel
+		if readOnlyCmd {
+			releaseState, stateMode = func() {}, false
+			rel()
 		}
 	}
 	pf, err := state.LoadPortfolio(cfg.Root)
@@ -87,22 +101,85 @@ func (e *env) snapshot() (next.Snapshot, error) {
 	if err != nil {
 		return next.Snapshot{}, err
 	}
-	s := next.Snapshot{Now: e.now, Cfg: e.cfg, Meta: meta, Active: e.pf.Active(), Untried: ideas.Untried(all, e.pf.Tried()),
-		FactoryRepo: e.factoryRepo()}
+	s := next.Snapshot{Now: e.now, Cfg: e.cfg, Meta: meta, Untried: ideas.Untried(all, e.pf.Tried()),
+		FactoryRepo: e.factoryRepo(), Claimed: map[string]bool{}}
 	if s.FactoryFixes, err = gh.LabeledIssues(s.FactoryRepo, next.LabelFix); err != nil {
 		return next.Snapshot{}, err
 	}
-	if p := s.Active; p != nil && p.Repo != "" && (p.Status == state.Building || p.Status == state.Iterating) {
-		if s.Issues, err = gh.OpenIssues(p.Repo, p.Milestone); err != nil {
-			return next.Snapshot{}, err
+	for _, p := range e.pf.Actives() {
+		ap := next.App{Project: p}
+		if p.Repo != "" && (p.Status == state.Building || p.Status == state.Iterating) {
+			if ap.Issues, err = gh.OpenIssues(p.Repo, p.Milestone); err != nil {
+				return next.Snapshot{}, err
+			}
+			proposals, err := gh.OpenWithLabel(p.Repo, labelProposal)
+			if err != nil {
+				return next.Snapshot{}, err
+			}
+			ap.Proposals = len(proposals)
 		}
-		proposals, err := gh.OpenWithLabel(p.Repo, labelProposal)
-		if err != nil {
-			return next.Snapshot{}, err
+		s.Apps = append(s.Apps, ap)
+	}
+	// ほかの実行が進めているもの (v3.1、docs/DESIGN-v3.md §8)
+	others, err := e.otherRuns()
+	if err != nil {
+		return next.Snapshot{}, err
+	}
+	for _, l := range others {
+		for _, k := range []string{l.Repo, l.Idea} {
+			if k != "" {
+				s.Claimed[k] = true
+			}
 		}
-		s.Proposals = len(proposals)
+		if next.Global[l.Phase] {
+			s.Claimed[l.Phase] = true
+		}
 	}
 	return s, nil
+}
+
+// runKey は今の実行の名前 (tick の worktree の名前)。ロックと今の段の記録は実行ごとに分ける
+func (e *env) runKey() string {
+	d := e.work
+	if d == "" {
+		d, _ = os.Getwd()
+	}
+	return filepath.Base(d)
+}
+
+// otherRuns は、ほかの実行の生きているロック (key → 中身)。
+func (e *env) otherRuns() (map[string]*lock.Info, error) { return e.liveRuns(e.runKey()) }
+
+// liveRuns は生きているロック (key → 中身)。skip の実行は除く
+func (e *env) liveRuns(skip string) (map[string]*lock.Info, error) {
+	all, err := lock.List(e.cfg.RuntimeDir)
+	if err != nil {
+		return nil, err
+	}
+	for k, l := range all {
+		if k == skip || l.Stale(e.now, e.ttl()) {
+			delete(all, k)
+		}
+	}
+	return all, nil
+}
+
+// reapStale は落ちた実行のロックを外し、aborted と記録する (ロックを引き継げば直るので、失敗には数えない。自分で直せること)。
+// state は公開されるので、家のディレクトリ (ユーザー名) が入る絶対パスではなく worktree の名前だけを書く (issue #5)
+func (e *env) reapStale() error {
+	all, err := lock.List(e.cfg.RuntimeDir)
+	if err != nil {
+		return err
+	}
+	for k, l := range all {
+		if k != e.runKey() && l.Stale(e.now, e.ttl()) {
+			_ = state.AppendTick(e.cfg.Root, state.Tick{Start: l.Since, End: e.now, Phase: l.Phase, Repo: l.Repo, Result: "aborted",
+				Note: "ロックが " + filepath.Base(l.Worktree) + " に残っていた"})
+			_ = lock.Release(e.cfg.RuntimeDir, k)
+			_ = os.Remove(e.currentPath(k))
+		}
+	}
+	return nil
 }
 
 func cmdDue(args []string) error {
@@ -130,12 +207,20 @@ func cmdDue(args []string) error {
 	if why := budgetProblem(e); why != "" {
 		return exitError{1, why}
 	}
-	if l, err := lock.Read(e.cfg.RuntimeDir); err != nil {
+	// 同時に動く実行は max_parallel 本まで (v3.1)。ロックは実行ごと。due は始める前 (Orca の precheck) なので、全部を数える
+	others, err := e.liveRuns("")
+	if err != nil {
 		return err
-	} else if l != nil && !l.Stale(e.now, e.ttl()) {
-		return exitError{1, fmt.Sprintf("ほかの tick が動いている (%s から %s)", l.Since.Format(time.TimeOnly), l.Phase)}
 	}
-	fmt.Printf("ok (今日 %d/%d tick)\n", rt.TicksToday, e.cfg.TicksPerDay)
+	if len(others) >= e.cfg.Parallel() {
+		var now []string
+		for _, l := range others {
+			now = append(now, fmt.Sprintf("%s %s から", l.Phase, l.Since.Format(time.TimeOnly)))
+		}
+		slices.Sort(now)
+		return exitError{1, fmt.Sprintf("同時に動ける実行は %d 本まで (今: %s)", e.cfg.Parallel(), strings.Join(now, "・"))}
+	}
+	fmt.Printf("ok (今日 %d/%d tick、ほかの実行 %d/%d 本)\n", rt.TicksToday, e.cfg.TicksPerDay, len(others), e.cfg.Parallel())
 	return nil
 }
 
@@ -157,31 +242,37 @@ func cmdNext(args []string) error {
 	if why := stepLimit(e, rt, wd); why != "" {
 		return printJSON(next.Action{Phase: state.PhaseIdle, Role: role.Leader, Reason: why})
 	}
+	if err := e.reapStale(); err != nil {
+		return err
+	}
 	s, err := e.snapshot()
 	if err != nil {
 		return err
 	}
+	if run := rt.Current(wd, e.now, e.ttl()); run != nil {
+		s.Prefer = run.Repo
+	}
 	a := next.Decide(s)
-	stale, err := lock.Acquire(e.cfg.RuntimeDir, lock.Info{Since: e.now, Phase: a.Phase, Worktree: wd}, e.ttl())
+	key := e.runKey()
+	stale, err := lock.Acquire(e.cfg.RuntimeDir, key, lock.Info{Since: e.now, Phase: a.Phase, Worktree: wd, Repo: a.Repo, Idea: a.Idea}, e.ttl())
 	if err != nil {
 		return err
 	}
 	if stale != nil {
-		// 前の tick が終わらずに消えた。ロックを引き継げば直るので、失敗には数えない (自分で直せること)
-		// state は公開されるので、家のディレクトリ (ユーザー名) が入る絶対パスではなく worktree の名前だけを書く (issue #5)
-		_ = state.AppendTick(e.cfg.Root, state.Tick{Start: stale.Since, End: e.now, Phase: stale.Phase, Result: "aborted",
+		// この実行の前の段が終わらずに消えた
+		_ = state.AppendTick(e.cfg.Root, state.Tick{Start: stale.Since, End: e.now, Phase: stale.Phase, Repo: stale.Repo, Result: "aborted",
 			Note: "ロックが " + filepath.Base(stale.Worktree) + " に残っていた"})
 	}
 	if a.Phase == state.PhaseIdle {
-		_ = lock.Release(e.cfg.RuntimeDir)
+		_ = lock.Release(e.cfg.RuntimeDir, key)
 		return printJSON(a)
 	}
 	rt.TicksToday++
-	rt.Step(wd, e.now, e.ttl())
+	rt.Step(wd, e.now, e.ttl()).Repo = a.Repo
 	if err := state.SaveRuntime(e.cfg.RuntimeDir, rt); err != nil {
 		return err
 	}
-	if p := e.pf.Active(); p != nil && a.Repo == p.Repo {
+	if p := e.pf.ByRepo(a.Repo); p != nil && p.Active() {
 		p.Ticks.Total++
 		// 作る・見回る・仕分けるは、この段階の tick を使う (だから時間切れが必ず来る。spec/Factory.tla)
 		if a.Phase == state.PhaseBuild || a.Phase == state.PhasePatrol || a.Phase == state.PhaseTriage {
@@ -205,8 +296,8 @@ func stepLimit(e *env, rt *state.Runtime, wd string) string {
 	if rt.TicksToday >= e.cfg.TicksPerDay {
 		return fmt.Sprintf("今日の tick は上限 (%d/%d)", rt.TicksToday, e.cfg.TicksPerDay)
 	}
-	if e.cfg.StepsPerRun > 0 && rt.SameRun(wd, e.now, e.ttl()) && rt.RunSteps >= e.cfg.StepsPerRun {
-		return fmt.Sprintf("この実行で進める段の上限 (%d/%d)", rt.RunSteps, e.cfg.StepsPerRun)
+	if run := rt.Current(wd, e.now, e.ttl()); e.cfg.StepsPerRun > 0 && run != nil && run.Steps >= e.cfg.StepsPerRun {
+		return fmt.Sprintf("この実行で進める段の上限 (%d/%d)", run.Steps, e.cfg.StepsPerRun)
 	}
 	return budgetProblem(e)
 }
@@ -217,7 +308,30 @@ func writeCurrent(e *env, a next.Action) error {
 		next.Action
 		Start time.Time `json:"start"`
 	}{a, e.now})
-	return os.WriteFile(filepath.Join(e.cfg.RuntimeDir, "current.json"), b, 0o644)
+	return os.WriteFile(e.currentPath(e.runKey()), b, 0o644)
+}
+
+// currentPath は実行 key の今の段の記録。
+func (e *env) currentPath(key string) string {
+	return filepath.Join(e.cfg.RuntimeDir, "current-"+key+".json")
+}
+
+// bindCurrent は今の段に、決まったアプリを書き足す (select でアイディアが決まったとき)。ほかの実行はそれを選ばない。
+// tick の外 (今の段がない) なら何もしない
+func bindCurrent(e *env, repo, idea string) error {
+	a, start, err := readCurrent(e)
+	if err != nil {
+		return nil
+	}
+	a.Repo, a.Idea = repo, idea
+	b, _ := json.Marshal(struct {
+		next.Action
+		Start time.Time `json:"start"`
+	}{a, start})
+	if err := os.WriteFile(e.currentPath(e.runKey()), b, 0o644); err != nil {
+		return err
+	}
+	return lock.Claim(e.cfg.RuntimeDir, e.runKey(), repo, idea)
 }
 
 func readCurrent(e *env) (next.Action, time.Time, error) {
@@ -225,7 +339,7 @@ func readCurrent(e *env) (next.Action, time.Time, error) {
 		next.Action
 		Start time.Time `json:"start"`
 	}
-	b, err := os.ReadFile(filepath.Join(e.cfg.RuntimeDir, "current.json"))
+	b, err := os.ReadFile(e.currentPath(e.runKey()))
 	if err != nil {
 		return next.Action{}, time.Time{}, errors.New("今の tick がない (wk next を先に実行する)")
 	}
@@ -306,8 +420,8 @@ func cmdDone(args []string) error {
 			fmt.Fprintln(os.Stderr, "incident の作成に失敗:", err)
 		}
 	}
-	_ = os.Remove(filepath.Join(e.cfg.RuntimeDir, "current.json"))
-	if err := lock.Release(e.cfg.RuntimeDir); err != nil {
+	_ = os.Remove(e.currentPath(e.runKey()))
+	if err := lock.Release(e.cfg.RuntimeDir, e.runKey()); err != nil {
 		return err
 	}
 	fmt.Printf("%s %s (連続失敗 %d/%d)\n", a.Phase, *result, rt.ConsecutiveFailures, e.cfg.MaxConsecutiveFailures)
@@ -368,6 +482,11 @@ func cmdSync(args []string) error {
 	main, merge := e.cfg.MainCheckout, []string{"merge", "--no-edit", br}
 	if e.cfg.StateCheckout != "" {
 		// v3: 手元の main ではなく、wk だけが書く clone に入れる (手元の main が汚れていても止まらない)
+		rel, err := holdState(e.cfg)
+		if err != nil {
+			return err
+		}
+		defer rel()
 		if err := openState(e.cfg); err != nil {
 			return err
 		}
@@ -412,21 +531,34 @@ func cmdStatus(args []string) error {
 	}
 	rt, _ := state.LoadRuntime(e.cfg.RuntimeDir, e.now)
 	stop := e.stopFile()
-	p := e.pf.Active()
+	act := e.pf.Actives()
 	if short {
-		switch {
-		case stop != "":
+		var parts []string
+		for _, p := range act {
+			parts = append(parts, fmt.Sprintf("%s を %s (%d tick)", p.Idea, p.Status, p.Ticks.Total))
+		}
+		// switch の case の条件はミューテーションの道具がカバレッジの外と数えるので、if で書く
+		if stop != "" {
 			b, _ := os.ReadFile(stop)
 			fmt.Printf("wakuwaku: 停止中 — %s", b)
-		case p != nil:
-			fmt.Printf("wakuwaku: %s を %s (%d tick)\n", p.Idea, p.Status, p.Ticks.Total)
-		default:
-			fmt.Println("wakuwaku: 作っているものはない")
+			return nil
 		}
+		if len(act) > 0 {
+			fmt.Printf("wakuwaku: %s\n", strings.Join(parts, "・"))
+			return nil
+		}
+		fmt.Println("wakuwaku: 作っているものはない")
 		return nil
 	}
 	fmt.Printf("工場: %s\n停止: %v\n今日の tick: %d/%d (連続失敗 %d)\n", e.cfg.Root, stop != "", rt.TicksToday, e.cfg.TicksPerDay, rt.ConsecutiveFailures)
-	if p != nil {
+	if runs, err := lock.List(e.cfg.RuntimeDir); err == nil {
+		fmt.Printf("動いている実行: %d 本 (同時に %d 本まで、作りかけは %d 件まで)\n", len(runs), e.cfg.Parallel(), e.cfg.WIP())
+		for _, k := range slices.Sorted(maps.Keys(runs)) {
+			l := runs[k]
+			fmt.Printf("  %s: %s %s%s (%s から)\n", k, l.Phase, l.Repo, l.Idea, l.Since.Format(time.TimeOnly))
+		}
+	}
+	for _, p := range act {
 		fmt.Printf("作っているもの: %s (%s) %s %s tick %d (この段階 %d)\n", p.Idea, p.Repo, p.Status, p.Milestone, p.Ticks.Total, p.Ticks.Phase)
 		if p.Preview != "" {
 			fmt.Println("プレビューの URL:", p.Preview)
@@ -465,7 +597,7 @@ func cmdCheck(args []string) error {
 		return err
 	}
 	var errs []string
-	errs = append(errs, e.pf.Validate()...)
+	errs = append(errs, e.pf.Validate(e.cfg.WIP())...)
 	all, err := ideas.Load(filepath.Join(e.cfg.Root, e.cfg.IdeasDir))
 	if err != nil {
 		return err

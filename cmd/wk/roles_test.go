@@ -108,7 +108,7 @@ func TestProposeErrors(t *testing.T) {
 		"設定が壊れている":    {setup: func(f *factory) { f.write("factory.json", "{") }, want: "factory.json"},
 		"作っているものがない":  {setup: func(f *factory) { f.projects() }, want: "作っているアプリがない"},
 		"作っている途中でない":  {setup: func(f *factory) { f.projects(active(func(p *state.Project) { p.Status = state.Evaluating })) }, want: "作っている途中でない (evaluating)"},
-		"今の tick がない": {setup: func(f *factory) { must(t, os.Remove(filepath.Join(f.runtime, "current.json"))) }, want: "wk next"},
+		"今の tick がない": {setup: func(f *factory) { must(t, os.Remove(filepath.Join(f.runtime, "current-factory.json"))) }, want: "wk next"},
 		"見回りの tick でない": {setup: func(f *factory) {
 			patrolTick(t, next.Action{Phase: state.PhaseBuild, Repo: "Tester/alpha", Role: "engineer"})
 		}, want: "提案は見回り (patrol) の tick の中だけ (今は build)"},

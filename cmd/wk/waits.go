@@ -16,6 +16,9 @@ var (
 	previewE2EWait time.Duration // L のテスト (プレビューの e2e) の結果を待つ長さ (ジョブは 5 分で打ち切られる)
 	previewPoll    time.Duration // L のテストの結果を見に行く間隔
 
+	stateWait time.Duration // 状態のロックを待つ長さ (ほかの実行のコマンドが終わるまで)
+	statePoll time.Duration // 状態のロックを見に行く間隔
+
 	sysRoot string // /proc と /sys を読む場所 (wk due が機械の余裕を見る。テストでは偽物に向ける)
 )
 
@@ -24,5 +27,6 @@ func init() {
 	mergePoll, mergeWait, mergeNoCI = 20*time.Second, 30*time.Minute, 5*time.Minute
 	checkPoll, checkNoRun, checkWait = 20*time.Second, 5*time.Minute, 20*time.Minute
 	previewE2EWait, previewPoll = 10*time.Minute, 15*time.Second
+	stateWait, statePoll = 45*time.Minute, 500*time.Millisecond
 	sysRoot = "/"
 }

@@ -103,7 +103,7 @@ func TestTickFlow(t *testing.T) {
 
 	must(t, cmdDue(nil))
 	must(t, cmdNext(nil))
-	cur, err := os.ReadFile(filepath.Join(f.runtime, "current.json"))
+	cur, err := os.ReadFile(filepath.Join(f.runtime, "current-factory.json"))
 	must(t, err)
 	if !strings.Contains(string(cur), `"phase":"select"`) {
 		t.Fatalf("最初は select のはず: %s", cur)
@@ -134,7 +134,7 @@ func TestTickFlow(t *testing.T) {
 	}
 
 	must(t, cmdDone([]string{"--result", "ok", "--note", "選定"}))
-	if _, err := os.Stat(filepath.Join(f.runtime, "tick.lock")); err == nil {
+	if _, err := os.Stat(filepath.Join(f.runtime, "tick-factory.lock")); err == nil {
 		t.Fatal("done のあとにロックが残っている")
 	}
 	ticks, _ := state.ReadTicks(f.root)

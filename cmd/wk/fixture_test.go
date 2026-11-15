@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Rin0107/ideas/internal/fakegh"
 	"github.com/Rin0107/ideas/internal/gh"
@@ -54,6 +55,9 @@ func newFactory(t *testing.T, rules ...fakegh.Rule) *factory {
 	privacyScan = func(*env, string) []string { return nil }
 	t.Cleanup(func() { privacyScan = realPrivacyScan })
 	fakeMachine(t, roomyMem, idleLoad)
+	oldWait := stateWait
+	stateWait = 2 * time.Second
+	t.Cleanup(func() { stateWait = oldWait; releaseState(); releaseState = func() {} })
 	t.Chdir(f.root)
 	return f
 }

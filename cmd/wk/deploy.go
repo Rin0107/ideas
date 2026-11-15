@@ -87,9 +87,9 @@ func deployPreview(e *env, p *state.Project, dir string) error {
 		probs := smoke(url, want)
 		if len(probs) == 0 {
 			if p.Preview != url {
-				p.Preview = url
-				e.event(p, "preview", url)
-				if err := e.save(); err != nil {
+				// 関数を渡す形の後ろの err != nil はミューテーションがカバレッジの外と数えるので、関数を先に作る
+				set := func(q *state.Project) { q.Preview = url; e.event(q, "preview", url) }
+				if err := e.update(p, set); err != nil {
 					return err
 				}
 			}
@@ -289,9 +289,8 @@ func releaseGo(e *env, p *state.Project, dir string) error {
 		return err
 	}
 	url := "https://github.com/" + p.Repo + "/releases/tag/" + tag
-	p.URL = url
-	e.event(p, "released", tag)
-	if err := e.save(); err != nil {
+	set := func(q *state.Project) { q.URL = url; e.event(q, "released", tag) }
+	if err := e.update(p, set); err != nil {
 		return err
 	}
 	fmt.Println("タグを push した (リリースは Actions が作る):", url)

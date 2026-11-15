@@ -138,3 +138,82 @@ func TestBatch(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+// v3.1: 作りかけを何件も持ち、ほかの実行が進めているもの (Claimed) は選ばない
+func TestDecideParallel(t *testing.T) {
+	a := building(3)
+	b := &state.Project{Idea: "00200-b", Repo: "Rin0107/b", Status: state.Building, Milestone: "MVP"}
+	sel := &state.Project{Idea: "00300-c", Status: state.Selected}
+	apps := []App{{Project: a, Issues: []Issue{{Number: 2}}}, {Project: b, Issues: []Issue{{Number: 7}}, Proposals: 1}}
+	base := func() Snapshot {
+		c := cfg()
+		c.MaxWIP = 3
+		return Snapshot{Now: now, Cfg: c, Meta: meta(), Untried: 500, Apps: apps}
+	}
+	cases := []struct {
+		name  string
+		mut   func(*Snapshot)
+		phase string
+		repo  string
+	}{
+		{"いちばん古いものから", func(s *Snapshot) {}, state.PhaseBuild, a.Repo},
+		{"前の段と同じアプリを続ける", func(s *Snapshot) { s.Prefer = b.Repo }, state.PhaseTriage, b.Repo},
+		{"ほかの実行が進めているものは飛ばす", func(s *Snapshot) { s.Claimed = map[string]bool{a.Repo: true} }, state.PhaseTriage, b.Repo},
+		{"続けたいものでも、ほかの実行が持っていれば飛ばす",
+			func(s *Snapshot) { s.Prefer, s.Claimed = b.Repo, map[string]bool{b.Repo: true} }, state.PhaseBuild, a.Repo},
+		{"全部が持たれていて WIP に空きがあれば、新しいものを選ぶ",
+			func(s *Snapshot) { s.Claimed = map[string]bool{a.Repo: true, b.Repo: true} }, state.PhaseSelect, ""},
+		{"repo のない選定中のものは idea で見分ける",
+			func(s *Snapshot) {
+				s.Apps = []App{{Project: sel}, apps[0]}
+				s.Claimed = map[string]bool{sel.Idea: true, state.PhaseSelect: true}
+			}, state.PhaseBuild, a.Repo},
+		{"選定中のものを持つ実行がいなければ、選定を再開",
+			func(s *Snapshot) { s.Apps = []App{{Project: sel}} }, state.PhaseSelect, ""},
+		{"WIP がいっぱいで全部持たれていれば idle",
+			func(s *Snapshot) { s.Cfg.MaxWIP = 2; s.Claimed = map[string]bool{a.Repo: true, b.Repo: true} }, state.PhaseIdle, ""},
+		{"ほかの実行が選んでいる最中なら、選ばずに idle",
+			func(s *Snapshot) { s.Claimed = map[string]bool{a.Repo: true, b.Repo: true, state.PhaseSelect: true} }, state.PhaseIdle, ""},
+		{"ほかの実行がアイディアを足している最中も idle",
+			func(s *Snapshot) { s.Claimed = map[string]bool{a.Repo: true, b.Repo: true, state.PhaseIntake: true} }, state.PhaseIdle, ""},
+		{"retro はほかの実行がやっていれば飛ばす",
+			func(s *Snapshot) {
+				s.Meta = &state.Meta{LastIntake: "2026-11-09"}
+				s.Claimed = map[string]bool{state.PhaseRetro: true}
+			},
+			state.PhaseBuild, a.Repo},
+		{"初回の retro は、どれかのアプリが進んでから (2 つ目でも)",
+			func(s *Snapshot) {
+				s.Meta = &state.Meta{LastIntake: "2026-11-09"}
+				s.Apps = []App{apps[0], {Project: &state.Project{Idea: "x", Repo: "R/x", Status: state.Building, Ticks: state.Ticks{Total: 30}}}}
+			}, state.PhaseRetro, ""},
+		{"工場の直す issue もほかの実行がやっていれば飛ばす",
+			func(s *Snapshot) {
+				s.FactoryFixes = []Issue{{Number: 9, Labels: []string{LabelFix}}}
+				s.Claimed = map[string]bool{state.PhaseRepair: true}
+			}, state.PhaseBuild, a.Repo},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			s := base()
+			c.mut(&s)
+			got := Decide(s)
+			if got.Phase != c.phase || got.Repo != c.repo {
+				t.Fatalf("got %s %s (%s), want %s %s", got.Phase, got.Repo, got.Reason, c.phase, c.repo)
+			}
+		})
+	}
+	s := base()
+	s.Cfg.MaxWIP = 0 // 0 は 1
+	s.Apps, s.Claimed = apps[:1], map[string]bool{a.Repo: true}
+	if got := Decide(s); got.Phase != state.PhaseIdle || got.Reason != "作りかけが 1 件 (上限 1)。どれもほかの実行が進めている" {
+		t.Fatalf("%+v", got)
+	}
+	s.Apps, s.Cfg.MaxWIP = nil, 2
+	if got := Decide(s); got.Reason != "作りかけが 0 件 (上限 2)" {
+		t.Fatalf("%+v", got)
+	}
+	if !Global[state.PhaseSelect] || Global[state.PhaseBuild] {
+		t.Fatal("全体で 1 つの段")
+	}
+}

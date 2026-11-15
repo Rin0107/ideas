@@ -127,7 +127,7 @@ func TestReadTicksMissingAndEmptyIdea(t *testing.T) {
 	if ts, err := ReadTicks(t.TempDir()); ts != nil || err != nil {
 		t.Fatal("ないときは空", ts, err)
 	}
-	errs := (&Portfolio{Projects: []*Project{{Status: Building, Started: "2026-11-10"}}}).Validate()
+	errs := (&Portfolio{Projects: []*Project{{Status: Building, Started: "2026-11-10"}}}).Validate(1)
 	if len(errs) != 1 || !strings.Contains(errs[0], "idea が空") {
 		t.Fatal(errs)
 	}

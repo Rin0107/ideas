@@ -77,10 +77,39 @@ type Portfolio struct {
 	Projects []*Project `json:"projects"`
 }
 
-// Active は作りかけのアプリを返す (なければ nil)。WIP=1 なので 1 つだけのはず。
+// Active は最初 (いちばん古い) の作りかけのアプリを返す (なければ nil)。
 func (pf *Portfolio) Active() *Project {
+	if a := pf.Actives(); len(a) > 0 {
+		return a[0]
+	}
+	return nil
+}
+
+// Actives は作りかけのアプリ全部 (古い順)。v3.1 は max_wip 個まで同時に持つ
+func (pf *Portfolio) Actives() []*Project {
+	var out []*Project
 	for _, p := range pf.Projects {
 		if p.Active() {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// ByRepo は repo のアプリ (なければ nil)。
+func (pf *Portfolio) ByRepo(repo string) *Project {
+	for _, p := range pf.Projects {
+		if repo != "" && p.Repo == repo {
+			return p
+		}
+	}
+	return nil
+}
+
+// ByIdea は作りかけのうち、idea のアプリ (なければ nil)。
+func (pf *Portfolio) ByIdea(idea string) *Project {
+	for _, p := range pf.Actives() {
+		if p.Idea == idea {
 			return p
 		}
 	}
@@ -107,8 +136,8 @@ func (pf *Portfolio) Repos() map[string]bool {
 	return m
 }
 
-// Validate は portfolio の矛盾を返す。
-func (pf *Portfolio) Validate() []string {
+// Validate は portfolio の矛盾を返す (作りかけは maxWIP 個まで)。
+func (pf *Portfolio) Validate(maxWIP int) []string {
 	var errs []string
 	active, seenIdea, seenRepo := 0, map[string]bool{}, map[string]bool{}
 	for i, p := range pf.Projects {
@@ -139,8 +168,8 @@ func (pf *Portfolio) Validate() []string {
 			errs = append(errs, at+": shipped なのに url が空")
 		}
 	}
-	if active > 1 {
-		errs = append(errs, fmt.Sprintf("作りかけが %d 個ある (WIP は 1)", active))
+	if active > maxWIP {
+		errs = append(errs, fmt.Sprintf("作りかけが %d 個ある (WIP は %d)", active, maxWIP))
 	}
 	return errs
 }
@@ -157,26 +186,46 @@ type Runtime struct {
 	Day                 string `json:"day"`
 	TicksToday          int    `json:"ticks_today"`
 	ConsecutiveFailures int    `json:"consecutive_failures"`
-	// 1 回の実行 (run) で進めた段の数。run は worktree と時間で見分ける (Orca は毎回新しい worktree を作るが、
-	// 同じ worktree が使い回されても、前の段からロックの有効期限より空いていれば別の実行とみなす)
-	RunWorktree string    `json:"run_worktree,omitempty"`
-	RunSteps    int       `json:"run_steps,omitempty"`
-	RunSince    time.Time `json:"run_since,omitzero"` // この実行の最初の段
-	RunLast     time.Time `json:"run_last,omitzero"`  // この実行の最後の段
+	// Runs は実行 (run) ごとの数え上げ (key は tick の worktree)。同時に何本も動くので分けて持つ (docs/DESIGN-v3.md §8)。
+	// run は worktree と時間で見分ける (Orca は毎回新しい worktree を作るが、同じ worktree が使い回されても、
+	// 前の段からロックの有効期限より空いていれば別の実行とみなす)
+	Runs map[string]*Run `json:"runs,omitempty"`
 }
 
-// SameRun は、wd で now に始める段が、記録している実行の続きか (同じ worktree で、前の段から gap 以内)。
-func (r *Runtime) SameRun(wd string, now time.Time, gap time.Duration) bool {
-	return r.RunWorktree == wd && !now.After(r.RunLast.Add(gap))
+// Run は 1 回の実行の数え上げ。
+type Run struct {
+	Steps int       `json:"steps"`          // この実行で進めた段の数
+	Since time.Time `json:"since"`          // この実行の最初の段
+	Last  time.Time `json:"last"`           // この実行の最後の段
+	Repo  string    `json:"repo,omitempty"` // 最後の段のアプリ (次の段も同じアプリを続ける)
 }
 
-// Step は wd で now に始める段を数える。続きでなければ新しい実行として 1 段目から数える。
-func (r *Runtime) Step(wd string, now time.Time, gap time.Duration) {
-	if !r.SameRun(wd, now, gap) {
-		r.RunWorktree, r.RunSteps, r.RunSince = wd, 0, now
+// Current は wd の実行が now にまだ続いていれば、その数え上げを返す (前の段から gap 以内。なければ nil)。
+func (r *Runtime) Current(wd string, now time.Time, gap time.Duration) *Run {
+	if run := r.Runs[wd]; run != nil && !now.After(run.Last.Add(gap)) {
+		return run
 	}
-	r.RunSteps++
-	r.RunLast = now
+	return nil
+}
+
+// Step は wd で now に始める段を数える。続きでなければ新しい実行として 1 段目から数える。終わった実行の記録は消す
+func (r *Runtime) Step(wd string, now time.Time, gap time.Duration) *Run {
+	run := r.Current(wd, now, gap)
+	for k := range r.Runs {
+		if r.Current(k, now, gap) == nil {
+			delete(r.Runs, k)
+		}
+	}
+	if run == nil {
+		if r.Runs == nil {
+			r.Runs = map[string]*Run{}
+		}
+		run = &Run{Since: now}
+		r.Runs[wd] = run
+	}
+	run.Steps++
+	run.Last = now
+	return run
 }
 
 // Tick は 1 tick の記録。
@@ -258,7 +307,7 @@ func LoadRuntime(dir string, now time.Time) (*Runtime, error) {
 	}
 	if today := now.Format(time.DateOnly); r.Day != today {
 		r.Day, r.TicksToday = today, 0
-		r.RunWorktree, r.RunSteps, r.RunSince, r.RunLast = "", 0, time.Time{}, time.Time{}
+		r.Runs = nil
 	}
 	return r, nil
 }

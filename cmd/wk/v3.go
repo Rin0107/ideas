@@ -14,6 +14,7 @@ import (
 
 	"github.com/Rin0107/ideas/internal/config"
 	"github.com/Rin0107/ideas/internal/gh"
+	"github.com/Rin0107/ideas/internal/lock"
 	"github.com/Rin0107/ideas/internal/state"
 	"github.com/Rin0107/ideas/internal/usage"
 )
@@ -22,11 +23,56 @@ import (
 // check は CI が worktree の中身を検査する。sync は worktree のブランチを工場に入れる。guard は毎回の道具の呼び出しで動くので速くする
 var localCommands = map[string]bool{"check": true, "sync": true, "guard-bash": true, "guard-edit": true}
 
-// stateMode は今のコマンドが状態の clone を使うか (run が決める)。loaded は load した env (run が最後に記録を push する)
+// readOnlyCommands は状態を読むだけのコマンド。状態のロックは読む間だけ持つ (CI やビルドを長く待つ review・merge・deploy が、
+// ほかの実行を止めないように)。deploy は書くときだけ e.update で取り直す (docs/DESIGN-v3.md §8)
+var readOnlyCommands = map[string]bool{"due": true, "status": true, "usage": true, "candidates": true,
+	"review": true, "merge": true, "deploy": true}
+
+// stateMode は今のコマンドが状態の clone を使うか (run が決める)。loaded は load した env (run が最後に記録を push する)。
+// readOnlyCmd は読むだけのコマンドか。releaseState は状態のロックを外す (run がコマンドの終わりに呼ぶ)
 var (
-	stateMode bool
-	loaded    *env
+	stateMode    bool
+	readOnlyCmd  bool
+	loaded       *env
+	releaseState = func() {}
 )
+
+// holdState は状態のロック (clone に同時に 1 つのコマンドしか触らない) を取る。
+func holdState(cfg *config.Config) (func(), error) {
+	return lock.Hold(filepath.Join(cfg.RuntimeDir, "state.lock"), stateWait, statePoll)
+}
+
+// update は、状態のロックを持たないコマンド (deploy) が書くとき、ロックを取り直して最新の状態の同じアプリに f を当てて push する。
+// ロックを持っているコマンドや v2 の形では、そのまま書く
+func (e *env) update(p *state.Project, f func(*state.Project)) error {
+	if stateMode || e.cfg.StateCheckout == "" {
+		f(p)
+		return e.save()
+	}
+	rel, err := holdState(e.cfg)
+	if err != nil {
+		return err
+	}
+	defer rel()
+	if err := openState(e.cfg); err != nil {
+		return err
+	}
+	pf, err := state.LoadPortfolio(e.cfg.Root)
+	if err != nil {
+		return err
+	}
+	q := pf.ByRepo(p.Repo)
+	if q == nil {
+		return fmt.Errorf("%s が portfolio にない", p.Repo)
+	}
+	f(p)
+	f(q)
+	e.pf = pf
+	if err := e.save(); err != nil {
+		return err
+	}
+	return settleState(e.cfg.StateCheckout, "wk: "+p.Repo+" の記録")
+}
 
 // openState は状態の clone を用意して最新にする (なければ clone する)。
 func openState(cfg *config.Config) error {

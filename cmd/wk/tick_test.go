@@ -47,7 +47,7 @@ func TestLoadFallsBackToFactory(t *testing.T) {
 func TestDue(t *testing.T) {
 	f := newFactory(t)
 	out, err := capture(t, func() error { return cmdDue(nil) })
-	if err != nil || !strings.Contains(out, "ok (今日 0/6 tick)") {
+	if err != nil || !strings.Contains(out, "ok (今日 0/6 tick、ほかの実行 0/1 本)") {
 		t.Fatal(out, err)
 	}
 	// 機械に余裕がない (メモリ 1GB しかない・CPU が詰まっている) なら始めない
@@ -58,16 +58,16 @@ func TestDue(t *testing.T) {
 	}
 	fakeMachine(t, roomyMem, idleLoad)
 	// 生きているロック
-	_, err = lock.Acquire(f.runtime, lock.Info{Since: time.Now(), Phase: "build"}, time.Hour)
+	_, err = lock.Acquire(f.runtime, "factory", lock.Info{Since: time.Now(), Phase: "build"}, time.Hour)
 	must(t, err)
 	if code(cmdDue(nil)) != 1 {
 		t.Fatal("ロックがあるのに通った")
 	}
-	must(t, lock.Release(f.runtime))
+	must(t, lock.Release(f.runtime, "factory"))
 	// ロックが読めない
-	f.block(filepath.Join(f.runtime, "tick.lock"))
-	errHas(t, cmdDue(nil), "tick.lock")
-	must(t, os.RemoveAll(filepath.Join(f.runtime, "tick.lock")))
+	f.block(filepath.Join(f.runtime, "tick-factory.lock"))
+	errHas(t, cmdDue(nil), "tick-factory.lock")
+	must(t, os.RemoveAll(filepath.Join(f.runtime, "tick-factory.lock")))
 	// 今日の上限
 	f.write(filepath.Join(f.runtime, "runtime.json"), `{"day":"`+time.Now().Format(time.DateOnly)+`","ticks_today":6}`)
 	if err := cmdDue(nil); code(err) != 1 || !strings.Contains(err.Error(), "上限") {
@@ -113,14 +113,14 @@ func TestNextIdleReleasesLock(t *testing.T) {
 	if err != nil || !strings.Contains(out, `"phase": "idle"`) || !strings.Contains(out, `"role": "leader"`) {
 		t.Fatal(out, err)
 	}
-	if l, _ := lock.Read(f.runtime); l != nil {
+	if l, _ := lock.Read(f.runtime, "factory"); l != nil {
 		t.Fatal("idle なのにロックが残った")
 	}
 }
 
 func TestNextRecordsStaleLockAsAborted(t *testing.T) {
 	f := newFactory(t)
-	_, err := lock.Acquire(f.runtime, lock.Info{Since: time.Now().Add(-5 * time.Hour), Phase: "build", Worktree: "/srv/ws/run-1"}, time.Hour)
+	_, err := lock.Acquire(f.runtime, "factory", lock.Info{Since: time.Now().Add(-5 * time.Hour), Phase: "build", Worktree: "/srv/ws/run-1"}, time.Hour)
 	must(t, err)
 	if _, err := capture(t, func() error { return cmdNext(nil) }); err != nil {
 		t.Fatal(err)
@@ -142,14 +142,14 @@ func TestNextErrors(t *testing.T) {
 		"meta が壊れている":         func(f *factory) { f.write("state/meta.json", "{") },
 		"アイディアが読めない":          func(f *factory) { must(t, os.RemoveAll(filepath.Join(f.root, "ideas_wakuwaku"))) },
 		"issue が読めない":         func(f *factory) { f.projects(active(func(p *state.Project) { p.Repo = "Tester/broken" })) },
-		"ロックが生きている":           func(f *factory) { _, _ = lock.Acquire(f.runtime, lock.Info{Since: time.Now()}, time.Hour) },
+		"ロックが生きている":           func(f *factory) { _, _ = lock.Acquire(f.runtime, "factory", lock.Info{Since: time.Now()}, time.Hour) },
 		"runtime.json が壊れている": func(f *factory) { f.write(filepath.Join(f.runtime, "runtime.json"), "{") },
 		"runtime を書けない":       func(f *factory) { f.block(filepath.Join(f.runtime, "runtime.json.tmp")) },
 		"portfolio を書けない": func(f *factory) {
 			f.projects(active())
 			f.block("state/portfolio.json.tmp")
 		},
-		"current.json を書けない": func(f *factory) { f.block(filepath.Join(f.runtime, "current.json")) },
+		"current.json を書けない": func(f *factory) { f.block(filepath.Join(f.runtime, "current-factory.json")) },
 		"設定が壊れている":           func(f *factory) { f.write("factory.json", "{") },
 	}
 	for name, breakIt := range cases {
@@ -170,7 +170,7 @@ func nextJSON(t *testing.T, f *factory) next.Action {
 	must(t, err)
 	var a next.Action
 	must(t, json.Unmarshal([]byte(out), &a))
-	must(t, lock.Release(f.runtime))
+	must(t, lock.Release(f.runtime, "factory"))
 	return a
 }
 
@@ -188,10 +188,10 @@ func TestNextIdleWhenNoRoom(t *testing.T) {
 	if a.Phase != state.PhaseIdle || a.Role != "leader" || !strings.HasPrefix(a.Reason, "機械に余裕がない: メモリが足りない") {
 		t.Fatalf("%+v", a)
 	}
-	if rt := runtimeNow(t, f); rt.TicksToday != 0 || rt.RunSteps != 0 {
+	if rt := runtimeNow(t, f); rt.TicksToday != 0 || len(rt.Runs) != 0 {
 		t.Fatalf("始めていないのに数えた: %+v", rt)
 	}
-	if _, err := os.Stat(filepath.Join(f.runtime, "current.json")); err == nil {
+	if _, err := os.Stat(filepath.Join(f.runtime, "current-factory.json")); err == nil {
 		t.Fatal("始めていないのに今の tick がある")
 	}
 }
@@ -222,7 +222,7 @@ func TestNextStepsPerRun(t *testing.T) {
 		if a := nextJSON(t, f); a.Phase != state.PhaseSelect {
 			t.Fatalf("%d 段目: %+v", i, a)
 		}
-		if rt := runtimeNow(t, f); rt.RunSteps != i || rt.RunWorktree != wd || rt.TicksToday != i {
+		if rt := runtimeNow(t, f); rt.Runs[wd] == nil || rt.Runs[wd].Steps != i || rt.TicksToday != i {
 			t.Fatalf("%d 段目: %+v", i, rt)
 		}
 	}
@@ -238,7 +238,7 @@ func TestNextStepsPerRun(t *testing.T) {
 	if a := nextJSON(t, f); a.Phase != state.PhaseSelect {
 		t.Fatalf("別の実行: %+v", a)
 	}
-	if rt := runtimeNow(t, f); rt.RunSteps != 1 || rt.RunWorktree != otherWd || rt.TicksToday != 3 {
+	if rt := runtimeNow(t, f); rt.Runs[otherWd] == nil || rt.Runs[otherWd].Steps != 1 || rt.Runs[wd].Steps != 2 || rt.TicksToday != 3 {
 		t.Fatalf("別の実行: %+v", rt)
 	}
 }
@@ -250,7 +250,7 @@ func TestNextStepsPerRunReusedWorktree(t *testing.T) {
 	wd, _ := os.Getwd()
 	setLast := func(ago time.Duration) {
 		rt := runtimeNow(t, f)
-		rt.RunWorktree, rt.RunSteps, rt.RunLast = wd, 2, time.Now().Add(-ago)
+		rt.Runs = map[string]*state.Run{wd: {Steps: 2, Last: time.Now().Add(-ago)}}
 		must(t, state.SaveRuntime(f.runtime, rt))
 	}
 	setLast(149 * time.Minute) // まだ同じ実行: 上限で止まる
@@ -261,7 +261,7 @@ func TestNextStepsPerRunReusedWorktree(t *testing.T) {
 	if a := nextJSON(t, f); a.Phase != state.PhaseSelect {
 		t.Fatalf("新しい実行: %+v", a)
 	}
-	if rt := runtimeNow(t, f); rt.RunSteps != 1 || rt.RunWorktree != wd || time.Since(rt.RunSince) > time.Minute {
+	if rt := runtimeNow(t, f); rt.Runs[wd] == nil || rt.Runs[wd].Steps != 1 || time.Since(rt.Runs[wd].Since) > time.Minute {
 		t.Fatalf("新しい実行: %+v", rt)
 	}
 }
@@ -269,12 +269,13 @@ func TestNextStepsPerRunReusedWorktree(t *testing.T) {
 func TestNextStepsPerRunZeroMeansNoCap(t *testing.T) {
 	f := newFactory(t)
 	f.writeConfig(map[string]any{"steps_per_run": 0})
+	wd, _ := os.Getwd()
 	for i := 1; i <= 3; i++ {
 		if a := nextJSON(t, f); a.Phase != state.PhaseSelect {
 			t.Fatalf("%d 段目: %+v", i, a)
 		}
 	}
-	if rt := runtimeNow(t, f); rt.RunSteps != 3 {
+	if rt := runtimeNow(t, f); rt.Runs[wd].Steps != 3 {
 		t.Fatalf("%+v", rt)
 	}
 }
@@ -320,7 +321,7 @@ func TestNextProposalsUnreadable(t *testing.T) {
 	f.projects(active())
 	_, err := capture(t, func() error { return cmdNext(nil) })
 	errHas(t, err, "wk:proposal")
-	if l, _ := lock.Read(f.runtime); l != nil {
+	if l, _ := lock.Read(f.runtime, "factory"); l != nil {
 		t.Fatal("読めないのにロックを取った")
 	}
 }
@@ -338,7 +339,7 @@ func TestDoneAfterPatrol(t *testing.T) {
 			f.write("state/meta.json", c.meta)
 			e, err := load()
 			must(t, err)
-			_, err = lock.Acquire(f.runtime, lock.Info{Since: time.Now(), Phase: state.PhasePatrol}, time.Hour)
+			_, err = lock.Acquire(f.runtime, "factory", lock.Info{Since: time.Now(), Phase: state.PhasePatrol}, time.Hour)
 			must(t, err)
 			must(t, writeCurrent(e, next.Action{Phase: state.PhasePatrol, Repo: "Tester/alpha", Role: "sre", Reason: "テスト"}))
 			if _, err := capture(t, func() error { return cmdDone([]string{"--result", "ok", "--note", "提案 1 件"}) }); err != nil {
@@ -364,7 +365,7 @@ func TestDonePatrolFailKeepsDate(t *testing.T) {
 	f := newFactory(t)
 	e, err := load()
 	must(t, err)
-	_, err = lock.Acquire(f.runtime, lock.Info{Since: time.Now(), Phase: state.PhasePatrol}, time.Hour)
+	_, err = lock.Acquire(f.runtime, "factory", lock.Info{Since: time.Now(), Phase: state.PhasePatrol}, time.Hour)
 	must(t, err)
 	must(t, writeCurrent(e, next.Action{Phase: state.PhasePatrol, Role: "designer", Reason: "テスト"}))
 	if _, err := capture(t, func() error { return cmdDone([]string{"--result", "fix"}) }); err != nil {
@@ -379,7 +380,7 @@ func startTick(t *testing.T, f *factory, phase string) {
 	t.Helper()
 	e, err := load()
 	must(t, err)
-	_, err = lock.Acquire(f.runtime, lock.Info{Since: time.Now(), Phase: phase}, time.Hour)
+	_, err = lock.Acquire(f.runtime, "factory", lock.Info{Since: time.Now(), Phase: phase}, time.Hour)
 	must(t, err)
 	must(t, writeCurrent(e, nextAction(phase)))
 }
@@ -408,8 +409,8 @@ func TestDoneErrors(t *testing.T) {
 		"知らない引数":              {[]string{"--nope"}, nil, "nope"},
 		"result が不正":          {[]string{"--result", "fail"}, nil, "ok・retry・fix・human のどれか"},
 		"設定が壊れている":            {[]string{"--result", "ok"}, func(f *factory) { f.write("factory.json", "{") }, "factory.json"},
-		"今の tick がない":         {[]string{"--result", "ok"}, func(f *factory) { os.Remove(filepath.Join(f.runtime, "current.json")) }, "wk next"},
-		"current.json が壊れている": {[]string{"--result", "ok"}, func(f *factory) { f.write(filepath.Join(f.runtime, "current.json"), "{") }, "JSON"},
+		"今の tick がない":         {[]string{"--result", "ok"}, func(f *factory) { os.Remove(filepath.Join(f.runtime, "current-factory.json")) }, "wk next"},
+		"current.json が壊れている": {[]string{"--result", "ok"}, func(f *factory) { f.write(filepath.Join(f.runtime, "current-factory.json"), "{") }, "JSON"},
 		"runtime.json が壊れている": {[]string{"--result", "ok"}, func(f *factory) { f.write(filepath.Join(f.runtime, "runtime.json"), "{") }, "runtime.json"},
 		"meta が壊れている": {[]string{"--result", "ok"}, func(f *factory) {
 			setPhase(t, state.PhaseIntake)
@@ -422,9 +423,9 @@ func TestDoneErrors(t *testing.T) {
 		"ticks を書けない":   {[]string{"--result", "human"}, func(f *factory) { f.block("state/ticks.jsonl") }, "ticks.jsonl"},
 		"runtime を書けない": {[]string{"--result", "human"}, func(f *factory) { f.block(filepath.Join(f.runtime, "runtime.json.tmp")) }, "runtime.json"},
 		"ロックを外せない": {[]string{"--result", "ok"}, func(f *factory) {
-			must(t, os.Remove(filepath.Join(f.runtime, "tick.lock")))
-			f.block(filepath.Join(f.runtime, "tick.lock"))
-		}, "tick.lock"},
+			must(t, os.Remove(filepath.Join(f.runtime, "tick-factory.lock")))
+			f.block(filepath.Join(f.runtime, "tick-factory.lock"))
+		}, "tick-factory.lock"},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {

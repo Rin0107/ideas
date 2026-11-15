@@ -18,6 +18,8 @@ JSON が出る (`phase` `repo` `idea` `issue` `issues` `reason`)。
 - `phase` が `idle` なら、そこで終わる (`reason` に理由)
 - エラー (ほかの tick が動いている・STOP がある) なら、そこで終わる
 - `role` は気にしない。どの段も自分でやる (engineer・designer・sre の目は手順書の中で使い分ける)
+- **ほかの実行が同時に動いている** (v3.1、`docs/DESIGN-v3.md` §8)。`wk next` は、ほかの実行が進めていないアプリを渡す。渡された `repo` (select なら選んだアイディア) だけを触る。ほかのアプリの repo・ブランチ・PR に手を出さない
+- 次の段が別のアプリになることもある。そのときは前の段で読んだものを捨て、新しいアプリの repo から読み直す
 
 ## 2. 段をやる
 `harness/prompts/<phase>.md` を読み、**この 1 段を自分でやる**。
