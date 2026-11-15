@@ -19,7 +19,8 @@ gh issue view <N> --repo <repo>      # issues の全部
 - **体験の核が動くことを最初に**。核に効く issue から順に作る。見た目・文言・使い心地も自分で決める (designer の目)
 - issue の範囲だけ。AC ごとにテストを書き、テスト名に `AC-<issue>-<k>` を入れる (CI の ac-coverage が検査する)
 - 試作の段階 (ship の前) は **軽い関門だけ**: lint・型・AC のテスト・ビルド・守りの検査 (`npm run verify` / `make verify`)。
-  カバレッジ 100%・ミューテーション・TLA+/Z3・fuzz は ship の前に回す (docs/DESIGN-v3.md §5)。spec/ は書かなくてよい
+  カバレッジ 100%・ミューテーション・TLA+/Z3・fuzz は ship の前に回す (docs/DESIGN-v3.md §5)。spec/ は書かなくてよい。
+  **守りの部分 (spec/・.github/・雛形の検査の scripts など) のファイルを PR で足さない・変えない** (wk merge が止める。terminal-sky PR #6 は spec/README.md を足して merge できなかった)
 - **重要な情報を持たない**。サーバーに何かを置く・外と通信するなら、まず DATA.md を更新し、本当に要るかを考え直す
 - 依存はなるべく足さない。足すなら `npm install -E` / `go get` し、PR に理由を書く
 

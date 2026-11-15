@@ -10,6 +10,10 @@ wk status                         # プレビューの URL (CLI はリリース�
 - URL がなければ (一度も出していない): `wk deploy`。それも落ちたら、
   `{"core_works": false, "wakuwaku": 1, "quality": 1, "bugs": ["プレビューに出せない"], "weakest": "プレビューに出せない", "summary": "…"}`
   を `/tmp/wk-eval.json` に書いて手順 3 へ
+- **古い版を採点しない**: go-cli はリリースのタグが main の HEAD を指しているかを確かめる
+  (`gh release view --repo <repo> --json tagName` と `git -C ~/src/wakuwaku/<名前> rev-parse <タグ>^{commit} origin/main`)。
+  食い違えば、`cd ~/src/wakuwaku/<名前> && git pull --ff-only origin main && wk deploy` で作り直してから採点を頼む。
+  web もプレビューが main より前なら同じく `wk deploy` (2026-11-14、main より古い v0.1.0 を採点して誤って drop した)
 
 ## 2. 採点を頼む (別の目)
 **Agent ツールで general-purpose のサブエージェントを 1 つ** 起動し、次を渡す。あなたが採点しない。
