@@ -33,8 +33,10 @@ wk done --result <ok|retry|fix|human> --note "<1 行>" [--detail <本文のフ�
 ```
 この worktree で工場のファイル (idea.md・手順書・雛形) を変えたときだけ:
 ```bash
-git add -A && git commit -m "<phase>: <何を>" && wk sync
+git add -A && git commit -m "<phase>: <何を>" && git fetch -q origin main && git rebase -q origin/main && wk sync
 ```
+- `wk sync` の前に必ず origin/main の上に載せ直す (早送りで入るようにする)。`wk done`・`wk fix`・`wk evaluate` が main に記録を push すると main が進み、
+  早送りできないと wk sync が merge コミットを作る。その 1 行目に worktree のパス (家のパス) が入り、pre-push の個人情報の検査で落ちる (2026-11-15、ideas#11)
 そして 1 に戻る。
 
 - `wk done` を呼ばずに終わると、ロックが残って次の実行が待たされる
