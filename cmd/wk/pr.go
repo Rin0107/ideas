@@ -335,12 +335,15 @@ func reviewersFor(files, only []string) []string {
 const guardianReviewer = "guardian"
 
 // appHard はアプリ repo の守りの部分のうち、工場が変えられないもの (フックの設定と、工場の検査が読む設定)。
-var appHard = []string{".claude/", "wk.json"}
+// web-db のログインとセッション (誰のデータかを決める所) も、機能を足すのに変える必要がないので変えさせない (docs/DESIGN-v3.md §10)
+var appHard = []string{".claude/", "wk.json", "src/worker/auth.ts", "src/worker/session.ts"}
 
 // appProtected はアプリ repo の守りの部分 (エージェントは変えられない。雛形から来たまま)。
 // テストの基準 (カバレッジ 100%・ミューテーション・5 分) を書いたファイルも含む。
 var appProtected = []string{".github/", ".claude/", "scripts/", "src/worker/security.ts", "wk.json", "wrangler.jsonc", ".npmrc",
-	"Makefile", "vitest.config.ts", "stryker.config.json", "playwright.config.ts", "spec/README.md"}
+	"Makefile", "vitest.config.ts", "stryker.config.json", "playwright.config.ts", "spec/README.md",
+	// web-db: DB の読み書き・写真の検査・表は、機能を足すと変わるので守りのレビューを通す
+	"src/worker/auth.ts", "src/worker/session.ts", "src/worker/db.ts", "src/worker/photo.ts", "migrations/"}
 
 func prFiles(repo string, pr int) ([]string, error) {
 	out, err := gh.GH("pr", "view", fmt.Sprint(pr), "--repo", repo, "--json", "files", "--jq", ".files[].path")
