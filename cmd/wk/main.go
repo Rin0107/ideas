@@ -4,6 +4,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -24,6 +25,7 @@ var commands = map[string]command{
 	"human": {"--title ... [--detail file]: 人に頼む (工場 repo に wk:human の issue。持ち主にメールが届く)", cmdHuman},
 	"sync":  {"今の worktree のブランチを工場の main に merge して push する", cmdSync},
 	// 状態
+	"usage":      {"[--days 7]: 日ごと・アプリごとのトークンと、わくわく 1 点あたり (docs/DESIGN-v3.md)", cmdUsage},
 	"status":     {"[--short] 工場の状態", cmdStatus},
 	"check":      {"状態・アイディア・設定の矛盾を検査 (CI でも使う)", cmdCheck},
 	"candidates": {"[-n 15] 選定の候補を JSON で出す", cmdCandidates},
@@ -54,10 +56,22 @@ func main() { os.Exit(run(os.Args[1:], os.Stderr)) }
 // run は main の中身。終了コードを返す (0: 成功、1: 失敗、2: 使い方の誤り、exitError はその code)。
 func run(args []string, stderr io.Writer) int {
 	if len(args) == 0 || commands[args[0]].run == nil {
-		usage(stderr)
+		printUsage(stderr)
 		return 2
 	}
-	if err := commands[args[0]].run(args[1:]); err != nil {
+	stateMode, loaded = !localCommands[args[0]], nil
+	err := commands[args[0]].run(args[1:])
+	// v3: 状態の clone に書いた記録を、成功でも失敗でも commit して push する (記録を落とさない)
+	if serr := finishState(args); serr != nil {
+		fmt.Fprintln(stderr, "wk "+args[0]+": 記録の push:", serr)
+		if err == nil {
+			err = errors.New("記録を push できない (次のコマンドがもう一度試す)")
+		}
+	}
+	if err == nil && args[0] == "next" && loaded != nil && loaded.cfg.StateCheckout != "" {
+		refreshWorktree(loaded.work)
+	}
+	if err != nil {
 		fmt.Fprintln(stderr, "wk "+args[0]+":", err)
 		if e, ok := err.(exitError); ok {
 			return e.code
@@ -67,7 +81,7 @@ func run(args []string, stderr io.Writer) int {
 	return 0
 }
 
-func usage(w io.Writer) {
+func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "使い方: wk <コマンド>")
 	names := make([]string, 0, len(commands))
 	for n := range commands {

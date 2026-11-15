@@ -6,6 +6,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  # v3: 重い検査 (fuzz・mutation・formal) は公開の前に手で起動する (harness/prompts/ship.md の 1.5。docs/DESIGN-v3.md §5)
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -36,6 +38,7 @@ jobs:
   # fuzzing: 時間を区切って新しい入力を探す
   fuzz:
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -47,6 +50,7 @@ jobs:
   # ミューテーション: 変えたコードを壊して、テストが気づくか (efficacy 95% 以上・mutant coverage 100%)
   mutation:
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -59,6 +63,7 @@ jobs:
   # 仕様: TLA+ (TLC) と Z3。道具は版と sha256 を固定する
   formal:
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

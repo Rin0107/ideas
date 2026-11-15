@@ -1,0 +1,4 @@
+# v3: idea.md の履歴は、worktree (手順書) と wk の clone (wk evaluate など) の両方が末尾に行を足す。
+# 両方の行を残す (docs/DESIGN-v3.md §2)
+ideas_wakuwaku/*/idea.md merge=union
+ideas_wakuwaku/INDEX.md merge=union

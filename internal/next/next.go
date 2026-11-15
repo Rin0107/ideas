@@ -53,12 +53,14 @@ type Snapshot struct {
 }
 
 type Action struct {
-	Phase  string `json:"phase"`
-	Repo   string `json:"repo,omitempty"`
-	Idea   string `json:"idea,omitempty"`
-	Issue  int    `json:"issue,omitempty"`
-	Fix    bool   `json:"fix,omitempty"` // Issue が直す issue (wk:fix) か
-	Role   string `json:"role"`          // 担当のロール (docs/ROLES.md)
+	Phase string `json:"phase"`
+	Repo  string `json:"repo,omitempty"`
+	Idea  string `json:"idea,omitempty"`
+	Issue int    `json:"issue,omitempty"`
+	Fix   bool   `json:"fix,omitempty"` // Issue が直す issue (wk:fix) か
+	// Issues は build で一度に作る issue (v3: 1 回の実行で 1 版を作り切る。docs/DESIGN-v3.md §3)。Issue はその先頭
+	Issues []int  `json:"issues,omitempty"`
+	Role   string `json:"role"` // 担当のロール (docs/ROLES.md)
 	Reason string `json:"reason"`
 }
 
@@ -126,6 +128,7 @@ func decide(s Snapshot) Action {
 		for _, is := range sorted(s.Issues) {
 			if !is.Blocked() {
 				a.Phase, a.Issue, a.Fix, a.Role = state.PhaseBuild, is.Number, is.Fix(), role.ForIssue(is.Labels)
+				a.Issues = batch(s.Issues, is)
 				a.Reason = fmt.Sprintf("未完了の issue #%d (%d/%d tick)", is.Number, p.Ticks.Phase, limit)
 				return a
 			}
@@ -178,5 +181,19 @@ func sorted(is []Issue) []Issue {
 		}
 		return a.Number - b.Number
 	})
+	return out
+}
+
+// batch は first と一緒に作る issue。直す issue はそれだけで解く。ふつうの issue は、ブロックされていないものを全部まとめる
+func batch(is []Issue, first Issue) []int {
+	if first.Fix() {
+		return []int{first.Number}
+	}
+	var out []int
+	for _, i := range sorted(is) {
+		if !i.Blocked() && !i.Fix() {
+			out = append(out, i.Number)
+		}
+	}
 	return out
 }

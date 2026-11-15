@@ -1,6 +1,7 @@
 package verdict
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Rin0107/ideas/internal/config"
@@ -75,5 +76,17 @@ func TestDecide(t *testing.T) {
 	}
 	if _, _, err := Decide(EvalScore{CoreWorks: true, Wakuwaku: 4, Quality: 4}, 0, 2, c); err == nil {
 		t.Error("summary なしを通した")
+	}
+}
+
+func TestDecideIterateMin(t *testing.T) {
+	c := config.Evaluate{ShipMinWakuwaku: 4, ShipMinQuality: 3, IterateMinWakuwaku: 3}
+	e := EvalScore{CoreWorks: true, Wakuwaku: 2, Quality: 4, Summary: "s", Weakest: "w"}
+	if v, why, err := Decide(e, 0, 2, c); err != nil || v != "drop" || !strings.Contains(why, "わくわく 2 < 3") {
+		t.Fatal(v, why, err)
+	}
+	e.Wakuwaku = 3
+	if v, _, _ := Decide(e, 0, 2, c); v != "iterate" {
+		t.Fatal(v)
 	}
 }

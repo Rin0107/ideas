@@ -14,7 +14,13 @@ wakuwaku factory が作るアプリ。工場の設計: `~/src/okuos/repos/ideas/
 - 生の HTML を差し込まない。入力は zod で検査し、サイズの上限をかける
 - 秘密情報を repo に置かない。鍵の要るものを作らない (鍵はどこにも用意しない)
 
-## 正しさの決まり (CI が全部検査する。docs/TESTING.md)
+## 正しさの決まり (docs/TESTING.md)
+
+**v3: 関門は段階に合わせる** (工場の docs/DESIGN-v3.md §5)。
+- **試作のあいだ (ship の前)**: lint・型・AC のテスト・ビルド・守りの検査 (`make verify` / `npm run verify`)。セキュリティの決まり (上) はいつも全部
+- **公開の前 (ship)**: 下の決まりを全部 (`make verify-ship` / `npm run verify-ship`、CI の fuzz・mutation・formal を手で起動)
+
+公開の前にかける決まり:
 - **仕様が先**: 振る舞いを変えるときは、先に `spec/` (TLA+ の状態の流れ・Z3 の性質) を書き換える。cfg の INVARIANT ごとに `"Spec_<名前>: …"` のテストで実装を検査する
 - **カバレッジ 100%** (src/ の全部、行・分岐・関数・文)。`npm test` が下回ると落ちる
 - **テストの種類をそろえる**: 境界値 (端とその 1 つ外)・全件ループ (小さな範囲は全部)・PBT (fast-check、回数は `tests/unit/fc.ts` の `runs()`)・fuzz (名前に `fuzz` を含むテスト。入力を受け取る関数ごとに)・M (`tests/e2e`、手元の Worker をブラウザで)・L (プレビューの URL で同じ e2e。wk deploy が起動)
@@ -24,13 +30,13 @@ wakuwaku factory が作るアプリ。工場の設計: `~/src/okuos/repos/ideas/
 
 ## 進め方
 
-- 1 issue = 1 ブランチ = 1 PR (`Closes #N`)。main に直接 push しない
+- 1 版 = 1 ブランチ = 1 PR (`Closes #N` を issue の数だけ並べる)。main に直接 push しない
 - issue の受け入れ条件ごとにテストを書く。テスト名に `AC-<issue>-<n>` を入れる (`scripts/ac-coverage.mjs` が CI で検査)
 - `npm run verify` が通ってから PR。プレビューは `wk deploy` (工場がやる)。`wk review` → `wk merge` (gh pr merge は使わない)
 - 依存を足すのは最後の手段。足すなら `npm install -E` で固定し、PR に理由を書く
 
 ## ロールと持ち場の文書 (工場の docs/ROLES.md)
-変えるときは、同じ PR で持ち場の文書も直す。レビューはロールごと (sre・engineer、画面に触れたら designer)。
+変えるときは、同じ PR で持ち場の文書も直す。レビューは sre の目 (セキュリティと壊れ方)。画面の良し悪しは評価で見る (v3)。
 - `docs/design-system.md` — **designer**: トークン・部品・状態・文言・アクセシビリティ。画面はここに書いたものだけで作る
 - `docs/architecture.md` — **engineer**: ドメインの言葉・層と依存の向き・仕様との対応
 - `docs/runbook.md` — **sre**: 動かし方・失敗の種類と扱い・戻し方・テストの体制

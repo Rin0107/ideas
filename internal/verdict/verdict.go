@@ -130,10 +130,12 @@ func Decide(e EvalScore, iteration, maxIterations int, c config.Evaluate) (strin
 	switch {
 	case e.CoreWorks && e.Wakuwaku >= c.ShipMinWakuwaku && e.Quality >= c.ShipMinQuality:
 		return "ship", fmt.Sprintf("核が動く・わくわく %d・品質 %d", e.Wakuwaku, e.Quality), nil
-	case e.CoreWorks && iteration < maxIterations:
+	case e.CoreWorks && iteration < maxIterations && e.Wakuwaku >= c.IterateMinWakuwaku:
 		return "iterate", fmt.Sprintf("核は動く・わくわく %d・品質 %d (ブラッシュアップ %d/%d)", e.Wakuwaku, e.Quality, iteration+1, maxIterations), nil
 	case !e.CoreWorks:
 		return "drop", "体験の核が本番で動かない", nil
+	case iteration < maxIterations:
+		return "drop", fmt.Sprintf("磨いても伸びる見込みが薄い (わくわく %d < %d)", e.Wakuwaku, c.IterateMinWakuwaku), nil
 	default:
 		return "drop", fmt.Sprintf("ブラッシュアップ %d 回でも基準に届かない (わくわく %d・品質 %d)", iteration, e.Wakuwaku, e.Quality), nil
 	}

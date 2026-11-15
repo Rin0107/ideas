@@ -23,4 +23,4 @@
 ```bash
 wk check
 ```
-通るまで直す。leader に報告する。note は「intake: 新規 5 件・磨き 3 件」。
+通るまで直す。TICK.md の手順 3 で記録する。note は「intake: 新規 5 件・磨き 3 件」。

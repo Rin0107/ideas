@@ -3,7 +3,7 @@
 #   M: 手元で完結する複数プロセス (実行ファイルを作って動かす)                   make test-m
 #   L: 本物の外部 (リリースした実行ファイル)                                  release.yml
 # 速さ: CI のジョブはどれも 5 分で打ち切る (超えたら落ちる = merge できない)
-.PHONY: verify lint test test-m cover fuzz mutate formal guards build
+.PHONY: verify verify-ship lint test test-m cover fuzz mutate formal guards build
 export CGO_ENABLED ?= 0
 
 # 手元の機械を守る (2026-11-10 にメモリが尽きて PC ごと落ちた。docs/TESTING.md の「手元の機械を守る」):
@@ -15,7 +15,10 @@ export GOMAXPROCS := $(JOBS)
 export GOMEMLIMIT ?= 1GiB
 LIMIT = sh scripts/limit.sh $(MEM) $(JOBS)
 
-verify: lint cover guards build
+# v3: 試作のあいだ (ship の前) は軽い関門。カバレッジ 100% は公開の前 (verify-ship) にかける (docs/DESIGN-v3.md §5)
+verify: lint test guards build
+
+verify-ship: lint cover guards build
 
 lint:
 	@test -z "$$(gofmt -l .)" || (echo "gofmt が必要:"; gofmt -l .; exit 1)

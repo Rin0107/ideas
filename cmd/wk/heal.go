@@ -231,7 +231,7 @@ func cmdFix(args []string) error {
 // guardianSync は、工場の変えてよい守りの部分の差分を、守りのレビュー (会話を引き継がない別の Claude) に見せる。
 // approve のときだけ main に入れてよい。指示は main の側から読む (作業ブランチで書き換えられないように)。
 func guardianSync(e *env, wd string, files []string) error {
-	instr, err := os.ReadFile(filepath.Join(e.cfg.MainCheckout, "harness", "reviewers", guardianReviewer+".md"))
+	instr, err := os.ReadFile(filepath.Join(e.factoryMain(), "harness", "reviewers", guardianReviewer+".md"))
 	if err != nil {
 		return err
 	}

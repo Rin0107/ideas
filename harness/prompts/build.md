@@ -1,26 +1,25 @@
-# build — issue を 1 つ実装して、merge・デプロイする
+# build — 今のマイルストーンの issue を全部、1 つの PR で作り切る (v3)
 
-`wk next` の `repo` と `issue` が対象。アプリの main の checkout は `~/src/wakuwaku/<repo の名前>`。
-担当は `role` (issue の `role:<名前>` のラベル。なければ engineer)。手順は同じで、**自分のロールのやり方で** 作る
-(engineer: 設計と `docs/architecture.md`、designer: デザインシステムと `docs/design-system.md`、sre: 失敗の扱い・テストの体制と `docs/runbook.md`)。
+`wk next` の `repo` と `issues` が対象 (`issue` はその先頭)。アプリの main の checkout は `~/src/wakuwaku/<repo の名前>`。
+v3 では **1 回で版を作り切る**。issue ごとに PR とレビューを回さない (継ぎ目ごとに手間と失敗が出るため。docs/DESIGN-v3.md §0)。
+`fix: true` (直す issue) のときは、その 1 件だけを直す。
 
 ## 1. 準備
 ```bash
-APP=~/src/wakuwaku/<名前>; N=<issue>
+APP=~/src/wakuwaku/<名前>
 git -C $APP fetch origin
-git -C $APP worktree add ~/src/wakuwaku/.wt/<名前>-$N -b wk/issue-$N origin/main
-cd ~/src/wakuwaku/.wt/<名前>-$N
-gh issue view $N --repo <repo>
+git -C $APP worktree add ~/src/wakuwaku/.wt/<名前>-<先頭の issue> -b wk/v-<先頭の issue> origin/main
+cd ~/src/wakuwaku/.wt/<名前>-<先頭の issue>
+gh issue view <N> --repo <repo>      # issues の全部
 ```
 アプリの `CLAUDE.md` と `DATA.md`、idea.md の「体験の核」を読む。
-同じ issue に前の試行のコメント (`wakuwaku factory: 試行 … が失敗`) があれば、その理由を読んで同じ失敗をしない。
+前の試行のコメント (`wakuwaku factory: 試行 … が失敗`) があれば、その理由を読んで同じ失敗をしない。
 
-## 2. 実装する
-- issue の範囲だけ。AC ごとにテストを書き、テスト名に `AC-<N>-<k>` を入れる
-- **仕様が先** (docs/TESTING.md・アプリの CLAUDE.md): 振る舞いを変えるなら、先に `spec/` (TLA+・Z3) を書き換え、
-  不変条件ごとの `TestSpec_` で実装を確かめる。境界値・全件ループ・PBT・fuzz をそろえ、カバレッジは 100%
-  - web: 画面の動きは `tests/e2e/`、ロジックは `tests/unit/`
-  - go-cli: `_test.go` のテスト名かコメント
+## 2. 作る
+- **体験の核が動くことを最初に**。核に効く issue から順に作る。見た目・文言・使い心地も自分で決める (designer の目)
+- issue の範囲だけ。AC ごとにテストを書き、テスト名に `AC-<issue>-<k>` を入れる (CI の ac-coverage が検査する)
+- 試作の段階 (ship の前) は **軽い関門だけ**: lint・型・AC のテスト・ビルド・守りの検査 (`npm run verify` / `make verify`)。
+  カバレッジ 100%・ミューテーション・TLA+/Z3・fuzz は ship の前に回す (docs/DESIGN-v3.md §5)。spec/ は書かなくてよい
 - **重要な情報を持たない**。サーバーに何かを置く・外と通信するなら、まず DATA.md を更新し、本当に要るかを考え直す
 - 依存はなるべく足さない。足すなら `npm install -E` / `go get` し、PR に理由を書く
 
@@ -29,52 +28,40 @@ gh issue view $N --repo <repo>
 npm ci && npm run verify          # web
 make verify                       # go-cli
 ```
-通るまで直す。web で Playwright が動くなら `npm run e2e` も (動かなければ CI に任せる)。
-仕様 (TLA+・Z3) とミューテーションは手元に道具がないことがある。そのときは CI の formal・mutation を見て直す
-(PR の CI が赤なら手順 4 の CI の扱いに従う)。
-**テストを消す・弱める・skip して通すのは禁止**。どうしても通らなければ手順 6。
+通るまで直す。**テストを消す・弱める・skip して通すのは禁止**。
+自分で触って確かめる: web は `npm run dev` を Playwright で開く、CLI は README どおりに動かす。核が動かないなら PR にしない。
 
-## 4. PR → レビュー → merge
+## 4. PR → レビュー → merge (1 回だけ)
 ```bash
-git add -A && git commit -m "<issue のタイトル> (#$N)"
-git push -u origin wk/issue-$N
-gh pr create --repo <repo> --base main --title "<タイトル>" --body "Closes #$N
+git add -A && git commit -m "<版の goal> (#a #b #c)"
+git push -u origin wk/v-<先頭の issue>
+gh pr create --repo <repo> --base main --title "<版の goal>" --body "Closes #a
+Closes #b
 
-<何をしたか 2〜3 行。依存を足したら理由。DATA.md を変えたら何を>"
+<何をしたか 3〜5 行。依存を足したら理由。DATA.md を変えたら何を>"
 wk review <repo> <PR 番号>
 ```
-- `wk review` はロールごとに別の reviewer が見る (sre・engineer はいつも、画面や表示に触れたら designer も)。結果はロールごとに PR のコメントに出る。**全員が approve して初めて approve**
-- `request_changes` なら、**どのロールの指摘も全部** 直して 1 回で push し、もう一度 `wk review`。**最大 2 回**。3 回目も通らなければ手順 6
-- approve されたら:
-```bash
-wk merge <repo> <PR 番号>     # CI を待ち、全部 green なら merge
-```
-CI が赤なら、ログ (`gh run view --repo <repo> --log-failed`) を読んで直し、push → `wk review` からやり直す (この tick の中で 1 回まで)。
-- 原因がこの issue のコードでなく、**CI・雛形・工場の側** (権限・道具の版・手順書の誤りなど) なら、ここで止めて `result: fix` で報告する。
-  detail にエラーの文そのままと、どこをどう直せばよいかを書く。工場 (`templates/`・`harness/`・CI) の問題なら `in: factory` も付ける
-- 直すのにアプリの守りの部分 (`.github/workflows/`・`scripts/`・`Makefile`・`spec/README.md` など) を変えるなら、変えてよい。同じ PR で直すと、`wk review` に守りのレビュー (guardian) が加わる。守りを弱める変更は通らない
-- `.claude/` と `wk.json` は工場が変えられない (工場の力を広げるため)。それを変えるしかないときだけ `result: human`
-- `reports/weekly/notes.md` に書いて終わりにはしない (誰も直さず、同じ所で詰まり続ける)
+- `wk review` は sre の目 (セキュリティと壊れ方) で見る。守りの部分に触れたら guardian も加わる
+- `request_changes` なら全部直して 1 回で push し、もう一度 `wk review`。**最大 2 回**
+- approve されたら `wk merge <repo> <PR 番号>` (CI を待ち、全部 green なら merge)
+- CI が赤なら `gh run view --repo <repo> --log-failed` を読んで直し、push → `wk review` からやり直す (この段の中で 1 回まで)
+- 原因がこの版のコードでなく **CI・雛形・工場の側** なら、`result: fix` で報告する (工場の問題なら `--in factory`)。detail にエラーの文そのままと直し方
+- `.claude/` と `wk.json` は工場が変えられない。それを変えるしかないときだけ `result: human`
 
-CI が始まらない (run が `queued` のまま jobs 0 で 15 分以上) なら、GitHub 側で run が壊れている。cancel・rerun は効かない (矛盾した答えが返る)。
-PR を閉じて開き直すと、新しい run が始まる:
-```bash
-gh pr close <PR 番号> --repo <repo> && gh pr reopen <PR 番号> --repo <repo>
-```
-そのあと `wk merge` をやり直す。古い run は `queued` のまま残るが、害はない。
-これでも始まらず、Actions の使用量の上限 (billing) かもしれないときだけ `result: human`。
+CI が始まらない (run が `queued` のまま jobs 0 で 15 分以上) なら、PR を閉じて開き直す:
+`gh pr close <PR 番号> --repo <repo> && gh pr reopen <PR 番号> --repo <repo>`。そのあと `wk merge` をやり直す。
 
-## 5. デプロイして片付ける
+## 5. 出して片付ける
 ```bash
 cd $APP && git pull --ff-only origin main
-wk deploy                      # プレビューに出して、守りのヘッダーと中身を検査 (鍵は要らない)
-git -C $APP worktree remove ~/src/wakuwaku/.wt/<名前>-$N
+wk deploy                      # プレビュー (CLI はリリース) に出して検査する (鍵は要らない)
+git -C $APP worktree remove ~/src/wakuwaku/.wt/<名前>-<先頭の issue>
 ```
-`wk deploy` が落ちたら `result: fix` で終える (detail に出力。wk が直す issue を立て、次の tick で直す)。
-leader に報告する (result ok)。
+`wk deploy` が落ちたら `result: fix` (detail に出力)。
 
-## 6. 失敗したとき
+## 6. 作り切れなかった issue
+merge した PR に入らなかった issue ごとに:
 ```bash
-wk attempt $N --note "<なぜ通らないか。次の試行への申し送り>"
+wk attempt <N> --note "<なぜ作れなかったか。次の試行への申し送り>"
 ```
-PR は閉じず、ブランチも残す (次の試行が読める)。worktree だけ消す。leader に報告する (`result: retry`。試行は issue に数えてあり、上限で blocked になる)。
+PR が merge できたら `result: ok` (残りは次の実行が作る)。1 つも merge できなければ `result: retry`。

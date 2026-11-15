@@ -189,6 +189,9 @@ type Tick struct {
 	Role   string    `json:"role,omitempty"` // 担当したロール
 	Result string    `json:"result"`         // ok / fail / aborted / skipped
 	Note   string    `json:"note,omitempty"`
+	// Tokens はこの段で使ったトークン (入力 + キャッシュ作成 + 出力。キャッシュの読み出しは CacheRead)。v3 の予算と「わくわく 1 点あたり」の材料
+	Tokens    int `json:"tokens,omitempty"`
+	CacheRead int `json:"cache_read,omitempty"`
 }
 
 func readJSON(path string, v any) error {

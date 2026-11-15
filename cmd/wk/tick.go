@@ -28,10 +28,13 @@ type env struct {
 	cfg *config.Config
 	pf  *state.Portfolio
 	now time.Time
+	// work は呼ばれた worktree (工場の中から呼ばれたとき)。状態は cfg.Root (v3 では wk だけが書く clone) にある
+	work string
 }
 
 func load() (*env, error) {
 	wd, _ := os.Getwd()
+	work := ""
 	cfg, err := config.Load(wd)
 	if err != nil {
 		// アプリ repo の中から呼ばれたとき (フックなど) は工場の main を見る
@@ -42,12 +45,24 @@ func load() (*env, error) {
 		if cfg, err = config.Load(root); err != nil {
 			return nil, err
 		}
+	} else {
+		work = cfg.Root
+	}
+	// v3: 状態と記録は wk だけが書く clone に置く (worktree・手元の main からは書かない。docs/DESIGN-v3.md §2)
+	if stateMode && cfg.StateCheckout != "" {
+		if err := openState(cfg); err != nil {
+			return nil, err
+		}
+		if cfg, err = config.Load(cfg.StateCheckout); err != nil {
+			return nil, err
+		}
 	}
 	pf, err := state.LoadPortfolio(cfg.Root)
 	if err != nil {
 		return nil, err
 	}
-	return &env{cfg: cfg, pf: pf, now: time.Now()}, nil
+	loaded = &env{cfg: cfg, pf: pf, now: time.Now(), work: work}
+	return loaded, nil
 }
 
 func (e *env) factoryRepo() string { return e.cfg.Owner + "/" + filepath.Base(e.cfg.MainCheckout) }
@@ -102,12 +117,18 @@ func cmdDue(args []string) error {
 	if why := room.Problems(sysRoot, runtime.NumCPU(), room.Default()); len(why) > 0 {
 		return exitError{1, "機械に余裕がない: " + strings.Join(why, " / ")}
 	}
+	if why := hourProblem(e); why != "" {
+		return exitError{1, why}
+	}
 	rt, err := state.LoadRuntime(e.cfg.RuntimeDir, e.now)
 	if err != nil {
 		return err
 	}
 	if rt.TicksToday >= e.cfg.TicksPerDay {
 		return exitError{1, fmt.Sprintf("今日の tick は上限 (%d/%d)", rt.TicksToday, e.cfg.TicksPerDay)}
+	}
+	if why := budgetProblem(e); why != "" {
+		return exitError{1, why}
 	}
 	if l, err := lock.Read(e.cfg.RuntimeDir); err != nil {
 		return err
@@ -187,7 +208,7 @@ func stepLimit(e *env, rt *state.Runtime, wd string) string {
 	if e.cfg.StepsPerRun > 0 && rt.SameRun(wd, e.now, e.ttl()) && rt.RunSteps >= e.cfg.StepsPerRun {
 		return fmt.Sprintf("この実行で進める段の上限 (%d/%d)", rt.RunSteps, e.cfg.StepsPerRun)
 	}
-	return ""
+	return budgetProblem(e)
 }
 
 // 今の tick の段階を runtime_dir に残す (done が読む)
@@ -264,8 +285,13 @@ func cmdDone(args []string) error {
 			}
 		}
 	}
+	// この段で使ったトークン (v3 の予算と、わくわく 1 点あたりの材料)。数えられなくても記録は残す
+	u, err := e.usageBetween(start, e.now.Add(time.Second))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "トークンを数えられない:", err)
+	}
 	if err := state.AppendTick(e.cfg.Root, state.Tick{Start: start, End: e.now, Phase: a.Phase, Repo: a.Repo,
-		Issue: a.Issue, Role: a.Role, Result: *result, Note: *note}); err != nil {
+		Issue: a.Issue, Role: a.Role, Result: *result, Note: *note, Tokens: u.Tokens, CacheRead: u.CacheRead}); err != nil {
 		return err
 	}
 	// 人の手が要るものだけを失敗に数える。gh が落ちても tick は終える (ロックを残さない)
@@ -339,12 +365,24 @@ func cmdSync(args []string) error {
 	if br == "" || br == "main" {
 		return errors.New("worktree の作業ブランチで実行する")
 	}
-	main := e.cfg.MainCheckout
-	if out, _ := gh.Run(main, "git", "status", "--porcelain", "--untracked-files=no"); strings.TrimSpace(out) != "" {
-		return errors.New("工場の main に未コミットの変更がある: " + main)
-	}
-	if _, err := gh.Run(main, "git", "pull", "--ff-only", "origin", "main"); err != nil {
-		return err
+	main, merge := e.cfg.MainCheckout, []string{"merge", "--no-edit", br}
+	if e.cfg.StateCheckout != "" {
+		// v3: 手元の main ではなく、wk だけが書く clone に入れる (手元の main が汚れていても止まらない)
+		if err := openState(e.cfg); err != nil {
+			return err
+		}
+		if _, err := gh.Run(wd, "git", "fetch", "-q", "origin", "main"); err != nil {
+			return err
+		}
+		// clone は別の repo なので、worktree のブランチを直接取り込む
+		main, merge = e.cfg.StateCheckout, []string{"pull", "-q", "--no-rebase", "--no-edit", wd, br}
+	} else {
+		if out, _ := gh.Run(main, "git", "status", "--porcelain", "--untracked-files=no"); strings.TrimSpace(out) != "" {
+			return errors.New("工場の main に未コミットの変更がある: " + main)
+		}
+		if _, err := gh.Run(main, "git", "pull", "--ff-only", "origin", "main"); err != nil {
+			return err
+		}
 	}
 	if out, err := gh.Run(wd, "git", "diff", "--name-only", "origin/main...HEAD"); err != nil {
 		return err
@@ -355,7 +393,7 @@ func cmdSync(args []string) error {
 			return err
 		}
 	}
-	if _, err := gh.Run(main, "git", "merge", "--no-edit", br); err != nil {
+	if _, err := gh.Run(main, "git", merge...); err != nil {
 		_, _ = gh.Run(main, "git", "merge", "--abort")
 		return fmt.Errorf("merge が衝突した (中止した): %w", err)
 	}

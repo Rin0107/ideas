@@ -17,7 +17,7 @@
 {"goal": "解いたあとに結果を画像で共有でき、達成感がある",
  "issues": [{"title": "…", "body": "…", "ac": ["…"], "role": "designer"}]}
 ```
-- issue は 1〜5 件、1 件 = 1 tick。`role` は engineer・designer・sre (省けば engineer)
+- issue は 1〜5 件。**全部を 1 回の実行で作り切れる大きさ** (v3。次の build が 1 つの PR でまとめて作る)。`role` は省いてよい
 - 新しく情報を持つ方向の改善はしない (共有は「画像を端末に保存する」まで。サーバーに上げない)
 ```bash
 wk iterate --plan /tmp/wk-plan.json
@@ -26,4 +26,4 @@ wk iterate --plan /tmp/wk-plan.json
 ```bash
 gh issue close <番号> --repo <repo> --comment "v0.<n> の計画に入れ直した"
 ```
-leader に報告する。
+TICK.md の手順 3 で記録する。
