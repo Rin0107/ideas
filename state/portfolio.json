@@ -75,7 +75,7 @@
       },
       "url": "",
       "preview": "https://a5719172-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/",
-      "verdict": "drop",
+      "verdict": "iterate",
       "history": [
         {
           "date": "2026-11-15",
@@ -101,6 +101,11 @@
           "date": "2026-11-15",
           "event": "evaluated",
           "note": "drop: 体験の核が本番で動かない"
+        },
+        {
+          "date": "2026-11-15",
+          "event": "evaluated",
+          "note": "iterate: 核は動く・わくわく 3・品質 3 (ブラッシュアップ 1/2)"
         }
       ]
     }
