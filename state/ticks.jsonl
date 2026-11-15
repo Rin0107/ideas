@@ -11,3 +11,4 @@
 {"start":"2026-11-15T11:46:39.207398917+09:00","end":"2026-11-15T11:49:53.384397222+09:00","phase":"patrol","repo":"Rin0107/terminal-sky","role":"sre","result":"ok","note":"sre の見回り: 提案 1 件 (main に docs/runbook.md がない)"}
 {"start":"2026-11-15T14:31:05.90545526+09:00","end":"2026-11-15T14:34:04.372996628+09:00","phase":"retro","role":"leader","result":"ok","note":"retro: 直した 2 か所","tokens":28955,"cache_read":1187586}
 {"start":"2026-11-15T14:34:09.770429972+09:00","end":"2026-11-15T14:34:45.769757147+09:00","phase":"triage","repo":"Rin0107/terminal-sky","role":"leader","result":"ok","note":"仕分け: 今やる 0・あとで 0・やらない 1","tokens":3404,"cache_read":282054}
+{"start":"2026-11-15T14:34:50.922694283+09:00","end":"2026-11-15T14:38:32.471804874+09:00","phase":"evaluate","repo":"Rin0107/terminal-sky","role":"leader","result":"ok","note":"評価: drop 体験の核が本番で動かない (v0.4.0、見どころが描いた空を指さない・昼に太陽と言わない・幅 40 で見出しが切れる)","tokens":87929,"cache_read":1361163}
