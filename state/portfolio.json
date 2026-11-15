@@ -64,18 +64,17 @@
     {
       "idea": "00161-onsen-passport",
       "repo": "Rin0107/yu-no-passport",
-      "status": "evaluating",
+      "status": "iterating",
       "stack": "web",
       "started": "2026-11-15",
-      "milestone": "MVP",
-      "iteration": 0,
+      "milestone": "v0.2",
+      "iteration": 1,
       "ticks": {
         "total": 5,
-        "phase": 3
+        "phase": 0
       },
       "url": "",
       "preview": "https://a5719172-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/",
-      "verdict": "iterate",
       "history": [
         {
           "date": "2026-11-15",
@@ -106,6 +105,11 @@
           "date": "2026-11-15",
           "event": "evaluated",
           "note": "iterate: 核は動く・わくわく 3・品質 3 (ブラッシュアップ 1/2)"
+        },
+        {
+          "date": "2026-11-15",
+          "event": "iterating",
+          "note": "v0.2: 判子を押した瞬間に見せ場があり (制覇の演出・残りの泉質を次の行き先に変える一言)、旅券を 1 枚の絵として端末に保存して友だちに見せたくなる"
         }
       ]
     }
