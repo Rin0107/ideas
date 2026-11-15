@@ -64,7 +64,7 @@
     {
       "idea": "00161-onsen-passport",
       "repo": "Rin0107/yu-no-passport",
-      "status": "building",
+      "status": "evaluating",
       "stack": "web",
       "started": "2026-11-15",
       "milestone": "MVP",
@@ -75,6 +75,7 @@
       },
       "url": "",
       "preview": "https://a5719172-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/",
+      "verdict": "drop",
       "history": [
         {
           "date": "2026-11-15",
@@ -95,6 +96,11 @@
           "date": "2026-11-15",
           "event": "preview",
           "note": "https://a5719172-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/"
+        },
+        {
+          "date": "2026-11-15",
+          "event": "evaluated",
+          "note": "drop: 体験の核が本番で動かない"
         }
       ]
     }
