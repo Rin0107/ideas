@@ -16,6 +16,7 @@ import (
 	"github.com/Rin0107/ideas/internal/gh"
 	"github.com/Rin0107/ideas/internal/guard"
 	"github.com/Rin0107/ideas/internal/role"
+	"github.com/Rin0107/ideas/internal/usage"
 )
 
 const maxDiffBytes = 150_000
@@ -95,7 +96,7 @@ func cmdReview(args []string) error {
 	// ロールごとに、会話を引き継がない別の Claude が自分の持ち場の目で見る (docs/ROLES.md)。
 	// 途中で request_changes が出ても全員に見せる (直す側が 1 回で全部の指摘を受け取れるように)。
 	result := reviews{Verdict: "approve"}
-	for _, who := range reviewersFor(files) {
+	for _, who := range reviewersFor(files, e.cfg.Reviewers) {
 		instr, err := os.ReadFile(filepath.Join(e.cfg.Root, "harness", "reviewers", who+".md"))
 		if err != nil {
 			return err
@@ -143,7 +144,7 @@ func runClaude(e *env, prompt string) (string, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), claudeTimeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "claude", "-p", "--no-session-persistence", "--tools", "", "--output-format", "text")
+	cmd := exec.CommandContext(ctx, "claude", "-p", "--no-session-persistence", "--tools", "", "--output-format", "json")
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(), "OKUOS_JOURNAL=1")
 	cmd.Stdin = strings.NewReader(prompt)
@@ -152,7 +153,11 @@ func runClaude(e *env, prompt string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("claude -p: %w", err)
 	}
-	return string(out), nil
+	text, u := usage.FromResult(string(out))
+	if err := usage.Append(extraUsagePath(e), time.Now(), u); err != nil {
+		fmt.Fprintln(os.Stderr, "claude -p のトークンを記録できない:", err)
+	}
+	return text, nil
 }
 
 // extractJSON は出力の中の最初の { から最後の } までを取り出す (```json で囲まれていても読めるように)。
@@ -314,8 +319,12 @@ func cmdGuardEdit(args []string) error {
 }
 
 // reviewersFor は PR を通すのに approve が要るレビュアー。守りの部分に触れたら、最後に守りのレビュー (guardian) が入る。
-func reviewersFor(files []string) []string {
+func reviewersFor(files, only []string) []string {
 	rs := role.Reviewers(files)
+	if len(only) > 0 {
+		// v3: approve が要るロールを絞る (画面の良し悪しは PR ごとではなく評価で見る。docs/DESIGN-v3.md §5)
+		rs = slices.DeleteFunc(rs, func(r string) bool { return !slices.Contains(only, r) })
+	}
 	if len(guard.TouchesProtected(files, appProtected)) > 0 {
 		rs = append(rs, guardianReviewer)
 	}

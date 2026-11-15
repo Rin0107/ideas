@@ -2,6 +2,8 @@
 
 守りの部分 (エージェントは変えられない)。決まりのコードは `internal/role`・`internal/next`・`cmd/wk/roles.go`。
 
+**v3 (2026-11-15) で変わった**: 段をロールに渡さず、1 つの Claude が自分でやる。PR のレビューは sre (+guardian) だけ、見回りと仕分けは止めた。`docs/DESIGN-v3.md`。
+
 ## ロール
 
 | ロール | 使命 | 持ち場 (アプリごと) | 定義 |

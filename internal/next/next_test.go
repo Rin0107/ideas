@@ -1,6 +1,7 @@
 package next
 
 import (
+	"slices"
 	"testing"
 	"time"
 
@@ -125,5 +126,15 @@ func TestRepairAction(t *testing.T) {
 	s.Issues = []Issue{{Number: 1}}
 	if a := Decide(s); a.Fix {
 		t.Fatalf("%+v", a)
+	}
+}
+
+func TestBatch(t *testing.T) {
+	is := []Issue{{Number: 4}, {Number: 2}, {Number: 3, Labels: []string{LabelBlocked}}, {Number: 9, Labels: []string{LabelFix}}}
+	if got := batch(is, is[0]); !slices.Equal(got, []int{2, 4}) {
+		t.Fatal(got)
+	}
+	if got := batch(is, is[3]); !slices.Equal(got, []int{9}) {
+		t.Fatal(got)
 	}
 }

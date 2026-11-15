@@ -1,6 +1,7 @@
 package verdict
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Rin0107/ideas/internal/config"
@@ -75,5 +76,42 @@ func TestDecide(t *testing.T) {
 	}
 	if _, _, err := Decide(EvalScore{CoreWorks: true, Wakuwaku: 4, Quality: 4}, 0, 2, c); err == nil {
 		t.Error("summary なしを通した")
+	}
+}
+
+func TestDecideIterateMin(t *testing.T) {
+	c := config.Evaluate{ShipMinWakuwaku: 4, ShipMinQuality: 3, IterateMinWakuwaku: 3}
+	e := EvalScore{CoreWorks: true, Wakuwaku: 2, Quality: 4, Summary: "s", Weakest: "w"}
+	if v, why, err := Decide(e, 0, 2, c); err != nil || v != "drop" || !strings.Contains(why, "わくわく 2 < 3") {
+		t.Fatal(v, why, err)
+	}
+	e.Wakuwaku = 3
+	if v, _, _ := Decide(e, 0, 2, c); v != "iterate" {
+		t.Fatal(v)
+	}
+}
+
+func TestDecideIterateMinEdges(t *testing.T) {
+	c := config.Evaluate{ShipMinWakuwaku: 5, ShipMinQuality: 3, IterateMinWakuwaku: 3}
+	base := EvalScore{CoreWorks: true, Wakuwaku: 3, Quality: 4, Summary: "s", Weakest: "w"}
+	cases := []struct {
+		name      string
+		mut       func(*EvalScore)
+		iteration int
+		want, why string
+	}{
+		{"核が動かない (わくわくは高い)", func(e *EvalScore) { e.CoreWorks, e.Wakuwaku = false, 4 }, 0, "drop", "核が本番で動かない"},
+		{"ちょうど下限", func(e *EvalScore) {}, 1, "iterate", "ブラッシュアップ 2/2"},
+		{"下限の 1 つ下", func(e *EvalScore) { e.Wakuwaku = 2 }, 1, "drop", "わくわく 2 < 3"},
+		{"回数の上限 (わくわくは足りる)", func(e *EvalScore) {}, 2, "drop", "ブラッシュアップ 2 回でも"},
+		{"回数の上限でわくわくも足りない", func(e *EvalScore) { e.Wakuwaku = 2 }, 2, "drop", "ブラッシュアップ 2 回でも"},
+	}
+	for _, k := range cases {
+		e := base
+		k.mut(&e)
+		v, why, err := Decide(e, k.iteration, 2, c)
+		if err != nil || v != k.want || !strings.Contains(why, k.why) {
+			t.Fatal(k.name, v, why, err)
+		}
 	}
 }

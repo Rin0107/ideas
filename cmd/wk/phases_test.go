@@ -35,9 +35,13 @@ func TestPlanValidate(t *testing.T) {
 	}
 	bad := Plan{RepoName: "Bad_Name", Description: strings.Repeat("あ", 121), Issues: []PlanIssue{{AC: []string{"短い"}}}}
 	err := bad.validate(true, 8)
-	for _, want := range []string{"repo_name", "description", "topics", "goal", "issue は 3〜8", "title が空", "短すぎる"} {
+	for _, want := range []string{"repo_name", "description", "topics", "goal", "title が空", "短すぎる"} {
 		errHas(t, err, want)
 	}
+	none := goodPlan()
+	none.Issues = nil
+	errHas(t, none.validate(true, 8), "issue は 1〜8 件 (今 0 件)")
+	errHas(t, goodPlan().validate(true, 2), "issue は 1〜2 件 (今 3 件)")
 	tooMany := goodPlan()
 	tooMany.Issues[0].AC = []string{"a", "b", "c", "d", "e", "f"}
 	errHas(t, tooMany.validate(true, 8), "ac は 1〜5")

@@ -474,10 +474,10 @@ func TestReviewAddsGuardianForProtected(t *testing.T) {
 }
 
 func TestReviewersFor(t *testing.T) {
-	if got := reviewersFor([]string{"internal/a.go"}); len(got) != 2 {
+	if got := reviewersFor([]string{"internal/a.go"}, nil); len(got) != 2 {
 		t.Fatal(got)
 	}
-	if got := reviewersFor([]string{"spec/README.md"}); len(got) != 3 || got[2] != guardianReviewer {
+	if got := reviewersFor([]string{"spec/README.md"}, nil); len(got) != 3 || got[2] != guardianReviewer {
 		t.Fatal(got)
 	}
 }

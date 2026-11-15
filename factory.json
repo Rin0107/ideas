@@ -3,23 +3,29 @@
   "main_checkout": "~/src/okuos/repos/ideas",
   "apps_dir": "~/src/wakuwaku",
   "runtime_dir": "~/.local/state/wakuwaku",
+  "state_checkout": "~/.local/state/wakuwaku/factory",
   "ideas_dir": "ideas_wakuwaku",
 
-  "ticks_per_day": 12,
-  "steps_per_run": 3,
-  "max_ticks_mvp": 30,
-  "max_ticks_iteration": 15,
+  "ticks_per_day": 8,
+  "steps_per_run": 4,
+  "max_ticks_mvp": 3,
+  "max_ticks_iteration": 2,
   "max_iterations": 2,
   "max_attempts_per_issue": 3,
   "max_open_issues": 8,
-  "lock_ttl_minutes": 150,
+  "max_mvp_issues": 3,
+  "lock_ttl_minutes": 240,
   "max_consecutive_failures": 3,
+
+  "run_hours": [1, 4],
+  "max_tokens_per_day": 2000000,
+  "reviewers": ["sre"],
 
   "intake_every_days": 7,
   "retro_every_days": 7,
   "min_untried_ideas": 30,
 
-  "patrol_every_days": 3,
+  "patrol_every_days": 0,
   "patrol_min_ticks": 5,
   "max_proposals": 3,
 
@@ -30,7 +36,8 @@
   },
   "evaluate": {
     "ship_min_wakuwaku": 4,
-    "ship_min_quality": 3
+    "ship_min_quality": 3,
+    "iterate_min_wakuwaku": 3
   },
 
   "allowed_services": ["github", "cloudflare-free", "github-releases"],
@@ -45,6 +52,7 @@
     "harness/rubric.md",
     ".github/workflows/",
     "docs/DESIGN.md",
+    "docs/DESIGN-v3.md",
     "harness/reviewers/",
     "docs/ROLES.md",
     "templates/web/.github/",
@@ -71,6 +79,7 @@
     "harness/TICK.md",
     "harness/rubric.md",
     "docs/DESIGN.md",
+    "docs/DESIGN-v3.md",
     "docs/ROLES.md",
     "docs/TESTING.md",
     "templates/web/.github/",

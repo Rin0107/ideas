@@ -20,6 +20,8 @@ type Select struct {
 type Evaluate struct {
 	ShipMinWakuwaku int `json:"ship_min_wakuwaku"`
 	ShipMinQuality  int `json:"ship_min_quality"`
+	// IterateMinWakuwaku は磨く価値があるとみなすわくわくの下限 (v3)。届かなければ磨かずに捨てる。0 なら下限なし
+	IterateMinWakuwaku int `json:"iterate_min_wakuwaku"`
 }
 
 // Site: Repo は配信用の repo (owner/name)。URL は Cloudflare に連携したあとの本番の URL (https://wakuwaku-site.<sub>.workers.dev)。
@@ -65,6 +67,19 @@ type Config struct {
 	// 残り (制御のコード・設定・フック・レビューの指示・工場の CI) は工場の力を広げるので、人だけが変える (docs/DESIGN.md §9)
 	ReviewablePaths []string `json:"reviewable_paths"`
 
+	// v3 (docs/DESIGN-v3.md)
+	// StateCheckout は wk だけが書く工場の clone。状態と記録はここに書き、コマンドの終わりに commit して push する。
+	// 空なら今の worktree に書く (テストと v2 の形)
+	StateCheckout string `json:"state_checkout"`
+	// RunHours は tick を始めてよい時 (0〜23、手元の時刻)。空ならいつでも
+	RunHours []int `json:"run_hours"`
+	// MaxTokensPerDay は 1 日に使ってよい量 (入力 + キャッシュ作成 + 出力 + キャッシュの読み出しの 1/10。usage.Weighted)。0 なら上限なし
+	MaxTokensPerDay int `json:"max_tokens_per_day"`
+	// Reviewers は PR に approve が要るロール。空ならファイルから決める (sre・engineer・画面なら designer)
+	Reviewers []string `json:"reviewers"`
+	// MaxMVPIssues は最初の版 (試作) の issue の上限。0 なら max_open_issues
+	MaxMVPIssues int `json:"max_mvp_issues"`
+
 	// Site は公開した Web アプリをまとめて配る repo (Cloudflare の GitHub 連携で配信する)
 	Site Site `json:"site"`
 
@@ -89,6 +104,7 @@ func Load(dir string) (*Config, error) {
 			c.MainCheckout = Expand(c.MainCheckout)
 			c.AppsDir = Expand(c.AppsDir)
 			c.RuntimeDir = Expand(c.RuntimeDir)
+			c.StateCheckout = Expand(c.StateCheckout)
 			return &c, c.validate()
 		}
 		parent := filepath.Dir(d)

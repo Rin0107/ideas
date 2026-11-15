@@ -55,10 +55,8 @@ func (p Plan) validate(scaffold bool, maxIssues int) error {
 	if strings.TrimSpace(p.Goal) == "" {
 		errs = append(errs, "goal が空")
 	}
-	min := 3
-	if !scaffold {
-		min = 1
-	}
+	// v3: 最初の版は体験の核だけの試作なので、issue は 1 件からでよい (docs/DESIGN-v3.md §3)
+	min := 1
 	if len(p.Issues) < min || len(p.Issues) > maxIssues {
 		errs = append(errs, fmt.Sprintf("issue は %d〜%d 件 (今 %d 件)", min, maxIssues, len(p.Issues)))
 	}
@@ -214,7 +212,11 @@ func cmdScaffold(args []string) error {
 	if err := verdict.ReadJSON(*planPath, &plan); err != nil {
 		return err
 	}
-	if err := plan.validate(true, e.cfg.MaxOpenIssues); err != nil {
+	maxIssues := e.cfg.MaxOpenIssues
+	if e.cfg.MaxMVPIssues > 0 {
+		maxIssues = e.cfg.MaxMVPIssues
+	}
+	if err := plan.validate(true, maxIssues); err != nil {
 		return err
 	}
 	repo := e.cfg.Owner + "/" + plan.RepoName
@@ -608,7 +610,7 @@ var privacyScan = func(e *env, repo string) []string {
 	if err := gh.CloneMirror(repo, dir); err != nil {
 		return []string{err.Error()}
 	}
-	if _, err := gh.Run(dir, "node", filepath.Join(e.cfg.MainCheckout, "scripts", "privacy-scan.mjs"), "all"); err != nil {
+	if _, err := gh.Run(dir, "node", filepath.Join(e.factoryMain(), "scripts", "privacy-scan.mjs"), "all"); err != nil {
 		return []string{"個人情報の検査に通らない: " + err.Error()}
 	}
 	return nil

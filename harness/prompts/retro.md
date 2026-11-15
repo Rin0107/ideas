@@ -28,4 +28,4 @@
 ```bash
 CGO_ENABLED=0 GOMAXPROCS=2 sh scripts/limit.sh 2G 2 go test -p 2 ./cmd/... ./internal/... && wk check
 ```
-leader に報告する。note は「retro: 直した <n> か所」。
+TICK.md の手順 3 で記録する。note は「retro: 直した <n> か所」。

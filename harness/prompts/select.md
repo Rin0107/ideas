@@ -16,7 +16,7 @@ wk candidates > /tmp/wk-candidates.json   # 日付で決まる 15 件
 ```bash
 wk select --scores /tmp/wk-scores.json
 ```
-wk が足切りと合計点で 1 件選ぶ。全部足切りなら、ここで終えて leader に報告する (result ok、note は「候補が全部足切り」。次の tick で別の候補が出る)。
+wk が足切りと合計点で 1 件選ぶ。全部足切りなら、ここで終える (result ok、note は「候補が全部足切り」。次の実行で別の候補が出る)。
 
 ## 3. 計画を書く
 選ばれたアイディアの idea.md を読み直し、**体験の核だけ** を作る MVP を決める。計画を JSON にする:
@@ -25,15 +25,12 @@ wk が足切りと合計点で 1 件選ぶ。全部足切りなら、ここで�
  "topics": ["typescript", "cloudflare-workers", "puzzle"],
  "goal": "今日の 1 問を開いて解き、正解が分かる",
  "issues": [
-   {"title": "盤面を表示する", "body": "…", "ac": ["トップを開くと 5×5 の盤面と縦横のヒントが表示される", "…"], "role": "engineer"},
-   {"title": "デザインシステムを決める", "body": "…", "ac": ["docs/design-system.md に色・文字・余白のトークンが書かれ、画面がそれだけを使う"], "role": "designer"},
-   {"title": "失敗したときの扱い", "body": "…", "ac": ["保存できないとき、画面に理由と次にすることが表示される"], "role": "sre"}
+   {"title": "今日の 1 問を解ける", "body": "…", "ac": ["トップを開くと 5×5 の盤面と縦横のヒントが表示される", "…"]}
  ]}
 ```
-- issue は 3〜8 件。**1 件 = 1 tick で終わる大きさ**。最初の issue で「核の最小の形」が動くようにする
-- issue ごとに `role` (担当) を付ける: `engineer` (設計と実装)・`designer` (見た目・文言・使い心地)・`sre` (失敗の扱い・テスト・セキュリティ)。省けば engineer
-  - 画面や表示のあるアプリ (web、表示の凝った CLI) は、早い順番に designer の issue を 1 つ: `docs/design-system.md` を決める
-  - sre の issue を 1 つ: 失敗の形 (保存できない・壊れた入力・通信できない) の扱いと `docs/runbook.md`
+- **v3: 最初の版は体験の核だけの試作**。issue は 1〜3 件で、**全部を 1 回の実行 (1 時間ほど) で作り切れる大きさ**にする。
+  デザインシステム・運用手順・失敗の扱いの文書は、評価で伸びると分かってから (iterate・ship の前) でよい
+- 最初の issue だけで「核の最小の形」が動くようにする (評価はそれを触って、磨くか捨てるかを決める)
 - AC はテストにできる文で書く (「〜すると〜が表示される」)。1 件 1〜5 個
 - どの issue も、DATA.md の原則を守る形で書く。ブラウザに何か置くなら、その issue の AC に「DATA.md に〜が書かれている」を入れる
 - stack が web なら、静的ファイルだけで作る (サーバーの処理・API は作らない。本番は `/<名前>/` の下で動く)
@@ -47,4 +44,4 @@ wk scaffold --plan /tmp/wk-plan.json
 落ちたら、エラーを読んで直せるもの (repo_name が使われている・計画の形) は直して再実行。直せなければ `result: fix` で終える (detail にエラーの文)。
 
 ## 5. 終える
-leader に報告する。note は「選定: <idea> → <repo>」。
+note は「選定: <idea> → <repo>」。同じ実行の次の段 (wk next) で、そのまま作り始める。

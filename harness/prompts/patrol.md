@@ -40,4 +40,4 @@ wk propose --plan /tmp/wk-proposals.json    # 0 件なら {"issues": []}
 `wk fix --title ... --detail <ファイル>` で直す issue にする (次の tick で工場が直す。守りの部分は守りのレビューを通す)。人の許可 (権限・接続・鍵・お金) が要るものだけ `wk human --title ... --detail <ファイル>` (メールが届く)。
 
 ## 4. 終える
-leader に報告する (note は「<role> の見回り: 提案 <n> 件」)。
+TICK.md の手順 3 で記録する (note は「<role> の見回り: 提案 <n> 件」)。

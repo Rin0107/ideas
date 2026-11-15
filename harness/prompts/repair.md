@@ -1,6 +1,6 @@
 # repair — 工場そのものの直す issue (wk:fix) を 1 つ解く
 
-担当は issue の `role:` (なければ engineer)。あなたは今、工場 repo の作業用 worktree にいる (leader の tick の worktree)。
+issue の `role:` は、どの目で直すかの目安 (v3 では自分で直す)。あなたは今、工場 repo の作業用 worktree にいる。
 直す issue は、前の tick が `fix` で終えたときに wk が立てたもの。**人の手なしで直す**のが仕事。
 
 ## 1. 読む
@@ -23,13 +23,13 @@ gh issue view <issue> --repo <repo> --comments
 ```bash
 CGO_ENABLED=0 GOMAXPROCS=2 sh scripts/limit.sh 2G 2 go test -p 2 ./cmd/... ./internal/... && wk check
 ```
-- 変更はこの worktree に残す (コミットと `wk sync` は leader がする)
+- 変更はこの worktree でコミットし、`wk sync` で工場に入れる (TICK.md の手順 3)
 
 ## 4. 閉じる
 ```bash
 gh issue close <issue> --repo <repo> --comment "直した: <何を・どこを。1〜3 行>"
 ```
-leader に `result: ok` で報告する。
+`result: ok` で記録する (TICK.md の手順 3)。
 
 ## 5. 直せなかったとき
 - **まだ試せる** (原因の見当がついた・別の直し方がある): 申し送りを detail に書き、`result: fix` で報告する

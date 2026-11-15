@@ -12,6 +12,7 @@
     "e2e": "sh scripts/limit.sh 3G 2 playwright test",
     "guards": "node scripts/deps-guard.mjs && node scripts/data-guard.mjs && node scripts/egress-guard.mjs",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build && npm run guards",
+    "verify-ship": "WK_SHIP=1 npm run verify",
     "fuzz": "sh scripts/limit.sh 2G 2 vitest run --testNamePattern fuzz",
     "mutate": "sh scripts/limit.sh 3G 2 node scripts/mutate.mjs",
     "formal": "sh scripts/formal.sh"
