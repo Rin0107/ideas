@@ -1,5 +1,8 @@
 # 評価 1: Rin0107/yu-no-passport (MVP)
 
+
+> **この評価は誤り (2026-11-15 注記)**: 採点の JSON の書き込みが失敗し、前のアプリ (terminal-sky) の古い採点がそのまま読まれた。中身はすべて terminal-sky のもので、yu-no-passport の評価ではない。正しい評価は `Rin0107_yu-no-passport-2.md` (iterate)。原因と手順書の直しは Rin0107/ideas#10
+
 - 日付: 2026-11-15
 - 結論: **drop** — 体験の核が本番で動かない
 - 核が動く: false / わくわく 3 / 品質 3
