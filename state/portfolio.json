@@ -74,7 +74,7 @@
         "phase": 1
       },
       "url": "",
-      "preview": "https://a5719172-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/",
+      "preview": "https://0fd248fc-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/",
       "history": [
         {
           "date": "2026-11-15",
@@ -110,6 +110,11 @@
           "date": "2026-11-15",
           "event": "iterating",
           "note": "v0.2: 判子を押した瞬間に見せ場があり (制覇の演出・残りの泉質を次の行き先に変える一言)、旅券を 1 枚の絵として端末に保存して友だちに見せたくなる"
+        },
+        {
+          "date": "2026-11-15",
+          "event": "preview",
+          "note": "https://0fd248fc-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/"
         }
       ]
     }
