@@ -108,5 +108,11 @@
   "site": {
     "repo": "Rin0107/wakuwaku-site",
     "url": "https://wakuwaku-site.wakuwaku-factory.workers.dev"
+  },
+  "web_db": {
+    "subdomain": "wakuwaku-factory",
+    "d1": {
+      "Rin0107/kisekae-closet": ""
+    }
   }
 }

@@ -15,6 +15,7 @@ import (
 
 	"github.com/Rin0107/ideas/internal/gh"
 	"github.com/Rin0107/ideas/internal/state"
+	"github.com/Rin0107/ideas/internal/verdict"
 )
 
 // 配信の考え方 (docs/DESIGN.md §6・§7.4):
@@ -39,6 +40,9 @@ func cmdDeploy(args []string) error {
 	}
 	if br, _ := gh.Run(dir, "git", "branch", "--show-current"); strings.TrimSpace(br) != "main" {
 		return errors.New(dir + " が main でない (デプロイは main の最新から)")
+	}
+	if p.Stack == verdict.StackWebDB {
+		return deployWebDB(e, p, dir)
 	}
 	switch p.Stack {
 	case "web":
@@ -168,19 +172,25 @@ func unpublishWeb(e *env, p *state.Project) error {
 
 // buildApp は鍵らしい環境変数を消した環境で、install script なしで検査とビルドをし、dist のパスを返す。
 func buildApp(dir, slug string) (string, error) {
-	envv := scrubEnv(os.Environ())
-	for _, c := range [][]string{
+	err := runBuild(dir, [][]string{
 		{"npm", "ci", "--no-audit", "--no-fund", "--ignore-scripts"},
 		{"npm", "run", "verify"},
 		{"npm", "run", "build", "--", "--base=/" + slug + "/"},
-	} {
+	})
+	return filepath.Join(dir, "dist"), err
+}
+
+// runBuild は鍵らしい環境変数を消した環境で、cmds を順に動かす。
+func runBuild(dir string, cmds [][]string) error {
+	envv := scrubEnv(os.Environ())
+	for _, c := range cmds {
 		cmd := exec.Command(c[0], c[1:]...)
 		cmd.Dir, cmd.Env = dir, envv
 		if b, err := cmd.CombinedOutput(); err != nil {
-			return "", fmt.Errorf("%s が失敗:\n%s", strings.Join(c, " "), tail(string(b), 60))
+			return fmt.Errorf("%s が失敗:\n%s", strings.Join(c, " "), tail(string(b), 60))
 		}
 	}
-	return filepath.Join(dir, "dist"), nil
+	return nil
 }
 
 // 配るファイルの上限 (Workers の静的ファイルの無料枠より十分小さく)

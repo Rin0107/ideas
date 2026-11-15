@@ -52,6 +52,30 @@ func TestChooseIdeaRejectsUnknownAndBadScores(t *testing.T) {
 	}
 }
 
+// web-db は主力のアプリだけ: 点が高くても ChooseIdea は選ばない。ChooseFocus は主力の点数だけを見る
+func TestChooseFocus(t *testing.T) {
+	db := sc("a", 5, 5, 5, 5, 5)
+	db.Stack, db.NeedsServer = StackWebDB, true
+	got, log, err := ChooseIdea([]SelectScore{db, sc("b", 3, 3, 3, 3, 3)}, map[string]bool{"a": true, "b": true}, config.Select{MinFree: 3, MinLight: 3})
+	if err != nil || got.Idea != "b" || len(log) != 1 || !strings.Contains(log[0], "web-db は主力のアプリ") {
+		t.Fatal(got, log, err)
+	}
+	if got, err := ChooseFocus([]SelectScore{sc("b", 5, 5, 5, 5, 5), db}, "a"); err != nil || got.Idea != "a" {
+		t.Fatal(got, err)
+	}
+	if _, err := ChooseFocus([]SelectScore{sc("a", 5, 5, 5, 5, 5)}, "a"); err == nil || !strings.Contains(err.Error(), "web-db") {
+		t.Fatal("web でも通した", err)
+	}
+	bad := db
+	bad.Reason = ""
+	if _, err := ChooseFocus([]SelectScore{bad}, "a"); err == nil || !strings.Contains(err.Error(), "reason") {
+		t.Fatal(err)
+	}
+	if _, err := ChooseFocus([]SelectScore{db}, "z"); err == nil || !strings.Contains(err.Error(), "z の点数がない") {
+		t.Fatal(err)
+	}
+}
+
 func TestDecide(t *testing.T) {
 	c := config.Evaluate{ShipMinWakuwaku: 4, ShipMinQuality: 3}
 	e := func(core bool, w, q int) EvalScore {

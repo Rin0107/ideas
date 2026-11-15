@@ -84,6 +84,46 @@ func TestSelectSkipsWebWithoutSite(t *testing.T) {
 	}
 }
 
+// 主力 (focus) の select: 候補は主力だけ、点数も主力のものだけを使い、stack は web-db (docs/DESIGN-v3.md §10)
+func TestSelectFocus(t *testing.T) {
+	f := newFactory(t)
+	f.writeConfig(map[string]any{"focus": "00003-gamma", "site": map[string]string{"repo": "", "url": ""}})
+	f.projects(active()) // 作りかけが上限 (1) でも、主力は始める
+	out, err := capture(t, func() error { return cmdCandidates(nil) })
+	if err != nil || strings.Count(out, `"Idea"`) != 1 || !strings.Contains(out, `"00003-gamma"`) {
+		t.Fatal(out, err)
+	}
+	_, err = capture(t, func() error { return cmdSelect([]string{"--scores", selectScores(t, webAndCLI)}) })
+	errHas(t, err, "主力のアプリの stack は web-db")
+	db := `[{"idea":"00001-alpha","wakuwaku":5,"light":5,"free":5,"own":5,"findy":5,"data_plan":"なし","stack":"web","reason":"r"},
+ {"idea":"00003-gamma","wakuwaku":2,"light":2,"free":2,"own":2,"findy":2,"data_plan":"D1 に服","stack":"web-db","needs_server":true,"reason":"r"}]`
+	if _, err := capture(t, func() error { return cmdSelect([]string{"--scores", selectScores(t, db)}) }); err != nil {
+		t.Fatal(err)
+	}
+	if p := f.portfolio().ByIdea("00003-gamma"); p == nil || p.Stack != "web-db" || p.Status != state.Selected {
+		t.Fatalf("%+v", p)
+	}
+	_, err = capture(t, func() error { return cmdSelect([]string{"--scores", selectScores(t, db)}) })
+	errHas(t, err, "00003-gamma はもう作りかけ")
+}
+
+func TestFocusTemplateReady(t *testing.T) {
+	f := newFactory(t)
+	e := &env{cfg: mustCfg(t, f.root)}
+	f.write("templates/web-db/wk.json", "{}")
+	if focusTemplateReady(e) {
+		t.Fatal("focus がないのに ready")
+	}
+	e.cfg.Focus = "00003-gamma"
+	if !focusTemplateReady(e) {
+		t.Fatal("雛形があるのに ready でない")
+	}
+	must(t, os.Remove(filepath.Join(f.root, "templates/web-db/wk.json")))
+	if focusTemplateReady(e) {
+		t.Fatal("雛形がないのに ready")
+	}
+}
+
 func TestSelectErrors(t *testing.T) {
 	cases := map[string]struct {
 		args  []string
@@ -167,6 +207,25 @@ func TestScaffold(t *testing.T) {
 		"label create wk:attempt-3", "-X POST repos/Tester/alpha/milestones -f title=MVP", "issue create --repo Tester/alpha --title 星を描く"} {
 		if !f.gh.Called(want) {
 			t.Fatalf("%q が呼ばれていない:\n%s", want, strings.Join(f.gh.Calls(), "\n"))
+		}
+	}
+}
+
+// web-db は templates/web-db から作り、README の URL は Worker の URL (deploy が本番)。サブドメインが空ならまだ決まらない
+func TestScaffoldWebDB(t *testing.T) {
+	for _, c := range []struct{ sub, want string }{
+		{"tester", "# alpha\n星空 https://alpha.tester.workers.dev/\n"},
+		{"", "# alpha\n星空 (まだ公開していません)\n"},
+	} {
+		f := scaffoldFactory(t)
+		f.writeConfig(map[string]any{"web_db": map[string]any{"subdomain": c.sub}})
+		f.projects(&state.Project{Idea: "00001-alpha", Status: state.Selected, Stack: "web-db", Started: "2026-11-10", Milestone: "MVP"})
+		f.write("templates/web-db/README.md", "# {{NAME}}\n{{DESCRIPTION}} {{URL}}\n")
+		if _, err := capture(t, func() error { return cmdScaffold([]string{"--plan", planJSON(t, goodPlan())}) }); err != nil {
+			t.Fatal(err)
+		}
+		if readme, _ := os.ReadFile(filepath.Join(f.apps, "alpha", "README.md")); string(readme) != c.want {
+			t.Fatal(string(readme))
 		}
 	}
 }

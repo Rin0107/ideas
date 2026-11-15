@@ -2,6 +2,11 @@
 
 `wk next` の `reason` が「選定の途中から再開」なら、手順 4 から。
 
+**主力のアプリを始めるとき** (`reason` が「主力のアプリ (…) を始める」、docs/DESIGN-v3.md §10): 候補は主力の 1 件だけ (`wk candidates` がそれだけを出す)。
+採点はその 1 件で、`stack` は `"web-db"`、`needs_server`・`sensitive` はありのままに書いてよい (持ち主が決めた例外。wk は足切りしない)。
+計画 (手順 3) は `templates/web-db/CLAUDE.md` を読んでから書く。認証・DB・写真の受け取りなど雛形の守りの部分は作り直さず、
+その上に体験の核を作る issue にする。本番は `https://<repo_name>.<サブドメイン>.workers.dev/` の直下 (`/<名前>/` の下ではない)
+
 ## 1. 候補を出す
 ```bash
 wk candidates > /tmp/wk-candidates.json   # 日付で決まる 15 件
