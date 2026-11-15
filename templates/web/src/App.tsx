@@ -14,6 +14,7 @@ export function App() {
   return (
     <main>
       <h1>{"{{NAME}}"}</h1>
+      {/* prettier-ignore */}
       <p data-testid="goal">{"{{GOAL}}"}</p>
       <p data-testid="visits">この端末で {visits} 回目</p>
       <footer>

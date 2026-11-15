@@ -21,6 +21,7 @@ test("目標と訪問回数を出し、開くたびに数える", () => {
   expect(render().querySelector('[data-testid="visits"]')?.textContent).toContain("1 回目");
   expect(render().querySelector('[data-testid="visits"]')?.textContent).toContain("2 回目");
   expect(document.querySelector("h1")?.textContent).toBe("{{NAME}}");
+  // prettier-ignore
   expect(document.querySelector('[data-testid="goal"]')?.textContent).toBe("{{GOAL}}");
 });
 
