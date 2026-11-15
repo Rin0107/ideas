@@ -3,7 +3,7 @@
     {
       "idea": "00003-terminal-planetarium",
       "repo": "Rin0107/terminal-sky",
-      "status": "evaluating",
+      "status": "dropped",
       "stack": "go-cli",
       "started": "2026-11-10",
       "milestone": "v0.2",
@@ -13,7 +13,6 @@
         "phase": 2
       },
       "url": "https://github.com/Rin0107/terminal-sky/releases/tag/v0.4.0",
-      "verdict": "drop",
       "history": [
         {
           "date": "2026-11-10",
@@ -54,6 +53,11 @@
           "date": "2026-11-15",
           "event": "evaluated",
           "note": "drop: 体験の核が本番で動かない"
+        },
+        {
+          "date": "2026-11-15",
+          "event": "dropped",
+          "note": "星図の計算は正確 (数度以内) で通信も保存もないが、見どころが一番明るい惑星を時刻に関係なく選び、図と一言が別の空を指す。v0.2 の直し (#10〜#13) は作る前に時間切れ。見どころを「描いた時刻に高度 10 度以上の天体」から選ぶ形を最初の版に入れれば成立する"
         }
       ]
     }
