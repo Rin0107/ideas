@@ -3,7 +3,7 @@
     {
       "idea": "00003-terminal-planetarium",
       "repo": "Rin0107/terminal-sky",
-      "status": "iterating",
+      "status": "evaluating",
       "stack": "go-cli",
       "started": "2026-11-10",
       "milestone": "v0.2",
@@ -13,6 +13,7 @@
         "phase": 2
       },
       "url": "https://github.com/Rin0107/terminal-sky/releases/tag/v0.4.0",
+      "verdict": "drop",
       "history": [
         {
           "date": "2026-11-10",
@@ -48,6 +49,11 @@
           "date": "2026-11-15",
           "event": "iterating",
           "note": "v0.2: sky tonight の見どころが、描いた空にいま見えている天体を指し、図を見て読んだ一言ですぐ外へ出て探せる"
+        },
+        {
+          "date": "2026-11-15",
+          "event": "evaluated",
+          "note": "drop: 体験の核が本番で動かない"
         }
       ]
     }
