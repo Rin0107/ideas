@@ -123,11 +123,24 @@ func finishState(args []string) error {
 	if !stateMode || loaded == nil || loaded.cfg.StateCheckout == "" {
 		return nil
 	}
-	msg := "wk " + strings.Join(args, " ")
+	msg := commitMsg(args)
 	if len([]rune(msg)) > 72 {
 		msg = string([]rune(msg)[:72])
 	}
 	return settleState(loaded.cfg.StateCheckout, msg)
+}
+
+// commitMsg はコマンドを commit メッセージにする。パスは名前だけにする
+// (ホームや一時ディレクトリのパスにはユーザー名が入り、pre-push の検査で記録の push が止まる)。
+func commitMsg(args []string) string {
+	words := make([]string, len(args))
+	for i, a := range args {
+		words[i] = a
+		if strings.Contains(a, "/") && !strings.Contains(a, " ") {
+			words[i] = filepath.Base(a)
+		}
+	}
+	return "wk " + strings.Join(words, " ")
 }
 
 // refreshWorktree は tick の worktree を工場の最新に進める (同じ実行の前の段が書いた記録を、次の段が読めるように)。

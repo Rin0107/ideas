@@ -363,3 +363,10 @@ func TestV3ClaudeUsage(t *testing.T) {
 		t.Fatal(out, err)
 	}
 }
+
+func TestCommitMsg(t *testing.T) {
+	got := commitMsg([]string{"iterate", "--plan", "/tmp/claude-1000/-home-someone-x/scratchpad/plan.md", "--note", "a/b を直す"})
+	if got != "wk iterate --plan plan.md --note a/b を直す" {
+		t.Fatalf("commitMsg = %q", got)
+	}
+}
