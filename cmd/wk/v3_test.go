@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Rin0107/ideas/internal/config"
+	"github.com/Rin0107/ideas/internal/limits"
 	"github.com/Rin0107/ideas/internal/state"
 	"github.com/Rin0107/ideas/internal/usage"
 )
@@ -369,4 +371,41 @@ func TestCommitMsg(t *testing.T) {
 	if got != "wk iterate --plan plan.md --note a/b を直す" {
 		t.Fatalf("commitMsg = %q", got)
 	}
+}
+
+// 利用上限 (5 時間・週) の新しい記録があれば、1 日の予算の代わりにそれで止める (docs/DESIGN-v3.md §9)
+func TestV3RateLimits(t *testing.T) {
+	now := time.Now()
+	f := newFactory(t)
+	file := filepath.Join(f.runtime, "rate-limits.json")
+	f.writeConfig(map[string]any{"max_tokens_per_day": 100, "limits": map[string]any{"file": file, "five_hour_max_pct": 60}})
+	transcript(t, f, now, 150)
+	put := func(at time.Time, five float64) {
+		week := now.Add(-limits.Week / 2).Add(limits.Week).Unix()
+		f.write(file, fmt.Sprintf(`{"at":%d,"rate_limits":{"five_hour":{"used_percentage":%v,"resets_at":%d},"seven_day":{"used_percentage":10,"resets_at":%d}}}`,
+			at.Unix(), five, now.Add(time.Hour).Unix(), week))
+	}
+	// 記録がない: 1 日の予算で止める
+	errHas(t, cmdDue(nil), "予算に達した (150/100)")
+	out, _ := capture(t, func() error { return cmdUsage([]string{"--days", "1"}) })
+	if !strings.Contains(out, "利用上限: 新しい記録がない (1 日の予算 100 で止める)") {
+		t.Fatal(out)
+	}
+	// 新しい記録に余裕がある: 1 日の予算を超えていても動く
+	put(now, 59)
+	if _, err := capture(t, func() error { return cmdDue(nil) }); err != nil {
+		t.Fatal(err)
+	}
+	out, _ = capture(t, func() error { return cmdUsage([]string{"--days", "1"}) })
+	if !strings.Contains(out, "利用上限: 5 時間 59% (工場は 60% まで、") {
+		t.Fatal(out)
+	}
+	// 5 時間の上限 (ここでは 60%) に届いた
+	put(now, 60)
+	errHas(t, cmdDue(nil), "5 時間の利用上限を 60% 使った")
+	// 古い記録・壊れた記録は使わず、1 日の予算に戻る
+	put(now.Add(-4*time.Hour), 0)
+	errHas(t, cmdDue(nil), "予算に達した")
+	f.write(file, "{")
+	errHas(t, cmdDue(nil), "予算に達した")
 }

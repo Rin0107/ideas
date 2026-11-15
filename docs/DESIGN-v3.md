@@ -126,3 +126,15 @@ v2 との違い:
 - **続けて同じアプリ**: 実行は前の段のアプリを先に選ぶ (`Snapshot.Prefer`)。読んだものを使い回せる
 - 同時に 2 本までにしたのは機械のため。WSL は 6GB で、重いコマンド (ビルド・テスト) の枠は 4G・1 本 2G (`internal/room`)。`wk due` と `wk next` は始める前に毎回、空きを見る
 - 落ちた実行のロックは TTL (240 分) で切れ、次の `wk next` が aborted と記録して外す
+
+## 9. 利用上限で止める (v3.2、2026-11-15)
+依頼: 「今日の分も全然余ってるように見える。5h, 7d 制限を毎回確認して、常にいい感じに余るようにして」。1 日 500 万の予算で止まった 21 時、本当の利用上限にはまだ余裕があった。1 日の量は本当の制約 (Claude の 5 時間・週の利用上限) の代わりでしかなかった。
+
+- **読み方 (鍵を持たない)**: Claude Code は statusline に毎回 `rate_limits` (5 時間・週の使った割合と戻る時刻) を渡す。`scripts/claude-statusline.sh` を statusline にして、それを `limits.file` (`~/.local/state/wakuwaku/rate-limits.json`) に書き留め、Orca の statusline にそのまま渡す。tick の Claude もあなたの Claude も statusline を描くので、どれかが動いていれば記録は新しい
+- **決め方** (`internal/limits`、`wk due` と `wk next` が毎回見る):
+  - 5 時間: 使った割合が `five_hour_max_pct` (70%) 以上なら止める。あなたの分を 3 割残す
+  - 週: 週の経過に合わせた目安 = `seven_day_max_pct` (85%) × (経過の割合 + 0.15)、85% まで。目安以上なら止める。週の初めに使い切らず、週の終わりにも 15% は残す
+  - 戻る時刻を過ぎた窓は 0% とみなす
+- **記録が古い・ない・壊れている** (`max_age_minutes` 180 分より前): 前と同じ 1 日の予算 (`max_tokens_per_day`) で止める。statusline の設定を Orca が書き換えたときもここに戻る (安全側)
+- 1 日の tick の上限 (`ticks_per_day`) は 96 に上げた。量を決めるのは利用上限で、tick の数は暴走止めだけ
+- 見る: `wk usage` の 1 行目

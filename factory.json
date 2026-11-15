@@ -6,7 +6,7 @@
   "state_checkout": "~/.local/state/wakuwaku/factory",
   "ideas_dir": "ideas_wakuwaku",
 
-  "ticks_per_day": 48,
+  "ticks_per_day": 96,
   "steps_per_run": 4,
   "max_ticks_mvp": 3,
   "max_ticks_iteration": 2,
@@ -21,6 +21,12 @@
 
   "run_hours": [],
   "max_tokens_per_day": 5000000,
+  "limits": {
+    "file": "~/.local/state/wakuwaku/rate-limits.json",
+    "five_hour_max_pct": 70,
+    "seven_day_max_pct": 85,
+    "max_age_minutes": 180
+  },
   "reviewers": ["sre"],
 
   "intake_every_days": 7,
