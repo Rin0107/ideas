@@ -458,6 +458,10 @@ func cmdEvaluate(args []string) error {
 	if err != nil {
 		return err
 	}
+	// 主力のアプリは捨てず・出して終わりにせず、磨き続ける (docs/DESIGN-v3.md §10)
+	if p.Idea == e.cfg.Focus && v != "iterate" {
+		v, why = "iterate", "主力のアプリなので "+v+" にせず磨き続ける ("+why+")"
+	}
 	p.Status, p.Verdict = state.Evaluating, v
 	n := len(filterEvents(p.History, "evaluated")) + 1
 	e.event(p, "evaluated", v+": "+why)

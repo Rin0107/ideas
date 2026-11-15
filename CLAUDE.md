@@ -21,6 +21,7 @@
 - 見回り (`patrol`) と仕分け (`triage`) は止めてある (`patrol_every_days: 0`)
 - 実行は同時に `max_parallel` 本、作りかけは `max_wip` 件まで (v3.1、DESIGN-v3 §8)。`wk next` が渡したアプリだけを触る
 - どれだけ動くかは Claude の利用上限 (5 時間・週) で決める (v3.2、DESIGN-v3 §9)。記録がなければ 1 日の予算
+- `focus` があれば、そのアプリだけを磨き続ける (v3.3、DESIGN-v3 §10)。今は `00502-kisekae-closet` (持ち主の依頼。DB と認証を持つ例外)
 
 ## 変えてはいけないもの (guard が止める)
 `factory.json` の `protected_paths` にあるもの: 制御のコード (`cmd/` `internal/`)・設定・CI・設計書・採点基準・reviewer の指示・雛形の守りの部分。
