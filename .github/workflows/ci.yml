@@ -109,7 +109,7 @@ jobs:
         env: { TLA2TOOLS: /tmp/tla2tools.jar, Z3: /tmp/z3/z3-5.1.0-x64-glibc-2.39/bin/z3 }
       - name: 雛形の仕様も
         run: |
-          for t in go-cli web; do (cd templates/$t && sh ../../scripts/formal.sh); done
+          for t in go-cli web web-db; do (cd templates/$t && sh ../../scripts/formal.sh); done
         env: { TLA2TOOLS: /tmp/tla2tools.jar, Z3: /tmp/z3/z3-5.1.0-x64-glibc-2.39/bin/z3 }
 
   # 雛形そのものを検査する: 雛形からアプリを作り、アプリの CI と同じ検査を流す
@@ -172,6 +172,58 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
       - run: sh scripts/instantiate.sh templates/web /tmp/app wk-template-web
+      - run: npm ci --no-audit --no-fund
+        working-directory: /tmp/app
+      - run: npm run e2e
+        working-directory: /tmp/app
+        env: { CI: "1", WRANGLER_SEND_METRICS: "false" }
+
+  # web-db (ログインと D1 を持つ。主力のアプリ、docs/DESIGN-v3.md §10): 出す前の基準 (カバレッジ 100%) をいつもかける
+  template-web-db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 24 }
+      - run: sh scripts/instantiate.sh templates/web-db /tmp/app wk-template-web-db
+      - run: npm ci --no-audit --no-fund
+        working-directory: /tmp/app
+      - run: npm run verify-ship
+        working-directory: /tmp/app
+      - run: npm run fuzz
+        working-directory: /tmp/app
+        env: { FUZZ_MS: "20000" }
+      - name: 配る形 (dist/ と bundle/worker.js) が作れる
+        run: npm run bundle && test -s bundle/worker.js
+        working-directory: /tmp/app
+        env: { WRANGLER_SEND_METRICS: "false" }
+
+  # 守りの部分 (Worker) と、決まりの関数のミューテーション
+  template-web-db-mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 24 }
+      - run: sh scripts/instantiate.sh templates/web-db /tmp/app wk-template-web-db
+      - run: npm ci --no-audit --no-fund
+        working-directory: /tmp/app
+      - run: npm run mutate -- "" src/worker src/recommend.ts
+        working-directory: /tmp/app
+
+  # パスキーの登録とログインを、本物の暗号 (Chromium の仮想の認証器) と手元の Worker・D1 で
+  template-web-db-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    container: mcr.microsoft.com/playwright:v1.65.0-noble@sha256:6e3fb709361521eb27161606e6da6d2674e5e89fa16516cb37d6fdd91372273d
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - run: sh scripts/instantiate.sh templates/web-db /tmp/app wk-template-web-db
       - run: npm ci --no-audit --no-fund
         working-directory: /tmp/app
       - run: npm run e2e
