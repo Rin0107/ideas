@@ -537,15 +537,17 @@ func cmdStatus(args []string) error {
 		for _, p := range act {
 			parts = append(parts, fmt.Sprintf("%s を %s (%d tick)", p.Idea, p.Status, p.Ticks.Total))
 		}
-		switch {
-		case stop != "":
+		// switch の case の条件はミューテーションの道具がカバレッジの外と数えるので、if で書く
+		if stop != "" {
 			b, _ := os.ReadFile(stop)
 			fmt.Printf("wakuwaku: 停止中 — %s", b)
-		case len(act) > 0:
-			fmt.Printf("wakuwaku: %s\n", strings.Join(parts, "・"))
-		default:
-			fmt.Println("wakuwaku: 作っているものはない")
+			return nil
 		}
+		if len(act) > 0 {
+			fmt.Printf("wakuwaku: %s\n", strings.Join(parts, "・"))
+			return nil
+		}
+		fmt.Println("wakuwaku: 作っているものはない")
 		return nil
 	}
 	fmt.Printf("工場: %s\n停止: %v\n今日の tick: %d/%d (連続失敗 %d)\n", e.cfg.Root, stop != "", rt.TicksToday, e.cfg.TicksPerDay, rt.ConsecutiveFailures)
