@@ -81,7 +81,8 @@
     "scripts/",
     "spec/",
     "templates/web/playwright.config.ts",
-    "templates/web/package.json"
+    "templates/web/package.json",
+    "templates/web-db/"
   ],
 
   "reviewable_paths": [
