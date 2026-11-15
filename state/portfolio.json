@@ -74,7 +74,7 @@
         "phase": 1
       },
       "url": "",
-      "preview": "https://0fd248fc-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/",
+      "preview": "https://bf5288ba-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/",
       "history": [
         {
           "date": "2026-11-15",
@@ -125,6 +125,11 @@
           "date": "2026-11-15",
           "event": "iterating",
           "note": "v0.3: 押した瞬間と旅券の絵で、残りの泉質が「次に行く名湯」に変わり、見せたくなる旅の口実になる"
+        },
+        {
+          "date": "2026-11-15",
+          "event": "preview",
+          "note": "https://bf5288ba-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/"
         }
       ]
     }
