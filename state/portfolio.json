@@ -64,7 +64,7 @@
     {
       "idea": "00161-onsen-passport",
       "repo": "Rin0107/yu-no-passport",
-      "status": "iterating",
+      "status": "evaluating",
       "stack": "web",
       "started": "2026-11-15",
       "milestone": "v0.2",
@@ -75,6 +75,7 @@
       },
       "url": "",
       "preview": "https://0fd248fc-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/",
+      "verdict": "iterate",
       "history": [
         {
           "date": "2026-11-15",
@@ -115,6 +116,11 @@
           "date": "2026-11-15",
           "event": "preview",
           "note": "https://0fd248fc-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/"
+        },
+        {
+          "date": "2026-11-15",
+          "event": "evaluated",
+          "note": "iterate: 核は動く・わくわく 3・品質 4 (ブラッシュアップ 2/2)"
         }
       ]
     }
