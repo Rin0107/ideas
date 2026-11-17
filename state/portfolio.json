@@ -136,7 +136,7 @@
     {
       "idea": "00502-kisekae-closet",
       "repo": "Rin0107/kisekae-closet",
-      "status": "iterating",
+      "status": "evaluating",
       "stack": "web-db",
       "started": "2026-11-17",
       "milestone": "v0.4",
@@ -146,6 +146,7 @@
         "phase": 2
       },
       "url": "",
+      "verdict": "iterate",
       "history": [
         {
           "date": "2026-11-17",
@@ -186,6 +187,11 @@
           "date": "2026-11-17",
           "event": "iterating",
           "note": "v0.4: 旅行や来週の分まで、先の日のコーデが「行き先の天気」と「持ち物」まで含めて決め切れる (Cloudflare の準備が済めばすぐ触れる形で)"
+        },
+        {
+          "date": "2026-11-18",
+          "event": "evaluated",
+          "note": "iterate: 主力のアプリなので drop にせず磨き続ける (体験の核が本番で動かない)"
         }
       ]
     }
