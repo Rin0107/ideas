@@ -1,11 +1,16 @@
 # 守りの部分。工場の制御 (wk) と雛形の検査。docs/TESTING.md
 # 速さ: どのジョブも 5 分で打ち切る (超えたら失敗)。ジョブは並んで走る。
+# 時間 (GitHub Actions の分) を使いすぎない: 変わったファイルに関係するジョブだけを動かす (changes、docs/TESTING.md「CI の時間」)。
+# 動かさないジョブは skip になり、失敗には数えない。
 name: ci
 on:
   pull_request:
   push:
     branches: [main]
-  # 人が手で流すとき: base を渡すと、そこからの変更全部にミューテーションをかける
+  # 夜に 1 回: その日に Go が変わっていれば fuzz を流す (18:17 UTC = 03:17 JST)
+  schedule:
+    - cron: "17 18 * * *"
+  # 人が手で流すとき: base を渡すと、そこからの変更に関係するものだけ。空なら全部
   workflow_dispatch:
     inputs:
       base:
@@ -24,8 +29,43 @@ env:
   PKGS: ./...
 
 jobs:
+  # どのジョブを動かすかを決める (scripts/ci-changes.sh)
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+      pull-requests: read # push が PR の merge で来たかを調べる
+    outputs:
+      code: ${{ steps.c.outputs.code }}
+      mutation: ${{ steps.c.outputs.mutation }}
+      formal: ${{ steps.c.outputs.formal }}
+      fuzz: ${{ steps.c.outputs.fuzz }}
+      template_go: ${{ steps.c.outputs.template_go }}
+      template_web: ${{ steps.c.outputs.template_web }}
+      template_web_db: ${{ steps.c.outputs.template_web_db }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0, persist-credentials: false }
+      - id: c
+        env:
+          EVENT: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          BASE: "${{ inputs.base || github.event.pull_request.base.sha || github.event.before }}"
+        run: |
+          from_pr=false
+          if [ "$EVENT" = push ]; then
+            n=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/pulls" --jq '[.[] | select(.merged_at)] | length' 2>/dev/null || echo 0)
+            [ "$n" -gt 0 ] && from_pr=true
+          fi
+          # 夜の定期実行: 24 時間前の main と比べる (その間に何も変わっていなければ HEAD と同じで、何も動かない)
+          if [ "$EVENT" = schedule ]; then BASE=$(git rev-list -1 --before=24.hours HEAD); fi
+          sh scripts/ci-changes.sh "$EVENT" "$BASE" "$from_pr" | tee -a "$GITHUB_OUTPUT"
+
   # S のテスト・カバレッジ・lint・状態とアイディアの検査・依存の脆弱性
   test:
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -33,9 +73,15 @@ jobs:
         with: { persist-credentials: false }
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: { go-version-file: go.mod }
-      - run: test -z "$(gofmt -l cmd internal)"
-      - run: go vet $PKGS
+      # データだけの変更 (state・アイディア・記録) なら wk check だけ
+      - name: gofmt
+        if: needs.changes.outputs.code == 'true'
+        run: test -z "$(gofmt -l cmd internal)"
+      - name: go vet
+        if: needs.changes.outputs.code == 'true'
+        run: go vet $PKGS
       - name: テスト (S と M) とカバレッジ 100% (全部のテストを合わせて、main も含めて数える)
+        if: needs.changes.outputs.code == 'true'
         run: |
           mkdir -p .cover/s .cover/m
           go test -count=1 -cover -coverpkg=./cmd/...,./internal/... $PKGS -args -test.gocoverdir=$PWD/.cover/s
@@ -43,13 +89,23 @@ jobs:
           go tool covdata textfmt -i=.cover/s,.cover/m -o cover.out
           sh scripts/cover-check.sh cover.out
       - name: ミューテーションの関門の自己検査 (98% が落ち、100% が通る)
+        if: needs.changes.outputs.code == 'true'
         run: sh scripts/mutation-gate.test.sh
       - name: 個人情報の検査の自己検査
+        if: needs.changes.outputs.code == 'true'
         run: node --test scripts/privacy-scan.test.mjs
+      - name: CI のジョブの選び方の自己検査
+        if: needs.changes.outputs.code == 'true'
+        run: sh scripts/ci-changes.test.sh
       - run: go run ./cmd/wk check
-      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 $PKGS
+      # 依存の脆弱性は日々増えるので、夜の定期実行では毎日流す
+      - name: govulncheck
+        if: needs.changes.outputs.code == 'true' || github.event_name == 'schedule'
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 $PKGS
 
   fuzz:
+    needs: changes
+    if: needs.changes.outputs.fuzz == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -61,6 +117,8 @@ jobs:
 
   # ミューテーション: 変えたコードだけ (efficacy 95% 以上・mutant coverage 100%)。internal/ と cmd/wk を別のジョブで並べる
   mutation:
+    needs: changes
+    if: needs.changes.outputs.mutation == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
@@ -93,6 +151,8 @@ jobs:
 
   # 仕様: spec/ (工場の流れ・評価の結論) を TLA+ と Z3 で検査し、TestSpec_ とのつながりを確かめる
   formal:
+    needs: changes
+    if: needs.changes.outputs.formal == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -114,6 +174,8 @@ jobs:
 
   # 雛形そのものを検査する: 雛形からアプリを作り、アプリの CI と同じ検査を流す
   template-go:
+    needs: changes
+    if: needs.changes.outputs.template_go == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -145,6 +207,8 @@ jobs:
           grep -Eq "^ok: ミューテーション |^ミューテーションの関門: " /tmp/m.out || { echo "make mutate が関門 (mutation-gate.sh) を通していない" >&2; exit 1; }
 
   template-web:
+    needs: changes
+    if: needs.changes.outputs.template_web == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -164,6 +228,8 @@ jobs:
         working-directory: /tmp/app
 
   template-web-e2e:
+    needs: changes
+    if: needs.changes.outputs.template_web == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # ブラウザ入りの公式イメージ (版と digest を固定。入れる時間を省いて 5 分に収める)
@@ -180,6 +246,8 @@ jobs:
 
   # web-db (ログインと D1 を持つ。主力のアプリ、docs/DESIGN-v3.md §10): 出す前の基準 (カバレッジ 100%) をいつもかける
   template-web-db:
+    needs: changes
+    if: needs.changes.outputs.template_web_db == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -202,6 +270,8 @@ jobs:
 
   # 守りの部分 (Worker) と、決まりの関数のミューテーション
   template-web-db-mutation:
+    needs: changes
+    if: needs.changes.outputs.template_web_db == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -217,6 +287,8 @@ jobs:
 
   # パスキーの登録とログインを、本物の暗号 (Chromium の仮想の認証器) と手元の Worker・D1 で
   template-web-db-e2e:
+    needs: changes
+    if: needs.changes.outputs.template_web_db == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     container: mcr.microsoft.com/playwright:v1.65.0-noble@sha256:6e3fb709361521eb27161606e6da6d2674e5e89fa16516cb37d6fdd91372273d
