@@ -145,7 +145,8 @@
         "total": 14,
         "phase": 2
       },
-      "url": "",
+      "url": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
+      "preview": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
       "verdict": "iterate",
       "history": [
         {
@@ -192,6 +193,11 @@
           "date": "2026-11-18",
           "event": "evaluated",
           "note": "iterate: 主力のアプリなので drop にせず磨き続ける (体験の核が本番で動かない)"
+        },
+        {
+          "date": "2026-11-18",
+          "event": "deployed",
+          "note": "https://kisekae-closet.wakuwaku-factory.workers.dev/"
         }
       ]
     }
