@@ -135,8 +135,8 @@
     },
     {
       "idea": "00502-kisekae-closet",
-      "repo": "",
-      "status": "selected",
+      "repo": "Rin0107/kisekae-closet",
+      "status": "building",
       "stack": "web-db",
       "started": "2026-11-17",
       "milestone": "MVP",
@@ -151,6 +151,11 @@
           "date": "2026-11-17",
           "event": "selected",
           "note": "合計 18/25 (わくわく4・軽さ3・無料3・自分ごと4・Findy4) 持ち主の依頼の主力 (例外)。自分の服をアバターに着せて朝 30 秒で決める手ざわりが核。写真とアカウントをサーバーに持つので sensitive・needs_server はありのまま true。雛形の認証・D1・写真の検査の上に体験だけを作る"
+        },
+        {
+          "date": "2026-11-17",
+          "event": "scaffolded",
+          "note": "Rin0107/kisekae-closet / issue 3 件"
         }
       ]
     }
