@@ -14,7 +14,7 @@
 | 実装が仕様どおり | 仕様の不変条件ごとに、同じ性質を実装に対して確かめるテスト (`TestSpec_<名前>` / `"Spec_<名前>: …"`) を PBT か全件ループで書く | `scripts/formal.sh` が、cfg の INVARIANT ごとにテストがあるかを検査 |
 | テストが全部の道を通る | カバレッジ 100% (Go: S と M を合わせて文単位、main も含む。TS: 行・分岐・関数・文) | 1 文でも通らなければ落ちる (`scripts/cover-check.sh` は丸めずに数える) |
 | テストが本当に壊れを見つける | ミューテーション: コードを少し壊し、テストが気づくか | efficacy (score) 95% 以上・mutant coverage 100%。変えたコードだけを毎回。判定は gremlins の出力を数える `scripts/mutation-gate.sh` (gremlins の `--threshold-*` は読まれずに効かない。2026-11-11 に確かめた) |
-| 想定外の入力で落ちない | fuzzing (Go の fuzz・fast-check) | CI の fuzz が時間を区切って毎回探す。シードは毎回の S のテストでも流れる |
+| 想定外の入力で落ちない | fuzzing (Go の fuzz・fast-check) | アプリ: CI の fuzz が時間を区切って探す。工場: 夜の定期実行で探す (「CI の時間」)。シードは毎回の S のテストでも流れる |
 | 速い | どの CI ジョブも 5 分で打ち切り | `timeout-minutes: 5`。超えたら失敗 = merge できない |
 
 95% にしている理由: 中身の変わらない変異 (等価ミュータント。例: `?? "0"` と `?? ""` が同じ数になる) は、テストでは殺せない。
@@ -91,3 +91,23 @@
 - 外の道具の代わり: gh は `internal/fakegh` (決まりで答える・最初の N 回だけ・途中でシェルを動かす)、git は本物 (https://github.com/ を手元の bare repo に向ける)、
   Cloudflare は「push された中身を返す手元の TLS サーバー」、npm と claude は偽物の実行ファイル。git の失敗は「合った呼び出しだけ失敗させる」包みで起こす
 - ミューテーション: `internal/` と `cmd/wk` を別のジョブで (変えたコードだけ)
+
+## CI の時間 (工場の repo、2026-11-17)
+
+private の repo の GitHub Actions は月の無料枠 (2,000 分) がある。11 月は 17 日で約 2,080 分を使い切り、CI が起動しなくなった。
+そのうち 95% が工場の CI で、push のたびに 12 ジョブ (1 回で約 15 分) が全部動いていた。push の 7 割は状態やアイディアだけの commit だった。
+そこで、**変わったファイルに関係するジョブだけを動かす** (`changes` ジョブが `scripts/ci-changes.sh` で決める。動かないジョブは skip で、失敗には数えない)。
+
+| 変わったもの | 動くもの |
+|---|---|
+| 状態・アイディア・記録・文書だけ (`state/` `ideas*/` `reports/` `journal/` `reviewed/` `docs/` など) | `wk check` と security だけ |
+| それ以外 (ハーネス・設定・スクリプトなど) | test (テスト・カバレッジ 100%・自己検査) |
+| `cmd/` `internal/` `go.mod` | test・mutation・formal |
+| `spec/`・雛形の `spec/` | formal |
+| `templates/<雛形>/`・`scripts/instantiate.sh` | その雛形の検査 (template-*) |
+| CI 自身 (`ci.yml`・`scripts/ci-changes.sh`) | 全部 |
+
+- **重い検査は PR で 1 回だけ**: PR の merge で入った push では、mutation・formal・雛形の検査を動かさない (PR の CI が済ませている)。PR を通らない直の push では動かす
+- **fuzz は夜だけ**: 毎日 03:17 (JST) に、その 24 時間で Go が変わっていれば 120 秒流す。依存の脆弱性 (govulncheck) は夜に毎日。手で流すとき (`workflow_dispatch`) は base を渡せばそこからの差分、空なら全部
+- 選び方そのものは `scripts/ci-changes.test.sh` が毎回確かめる
+- アプリの repo の CI はこの決まりの外 (1 回で約 5 分。formal・fuzz・mutation は ship の前だけ)
