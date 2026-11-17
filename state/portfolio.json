@@ -136,17 +136,16 @@
     {
       "idea": "00502-kisekae-closet",
       "repo": "Rin0107/kisekae-closet",
-      "status": "evaluating",
+      "status": "iterating",
       "stack": "web-db",
       "started": "2026-11-17",
-      "milestone": "MVP",
-      "iteration": 0,
+      "milestone": "v0.2",
+      "iteration": 1,
       "ticks": {
         "total": 5,
-        "phase": 3
+        "phase": 0
       },
       "url": "",
-      "verdict": "iterate",
       "history": [
         {
           "date": "2026-11-17",
@@ -162,6 +161,11 @@
           "date": "2026-11-17",
           "event": "evaluated",
           "note": "iterate: 主力のアプリなので drop にせず磨き続ける (体験の核が本番で動かない)"
+        },
+        {
+          "date": "2026-11-17",
+          "event": "iterating",
+          "note": "v0.2: MVP (今日の画面・クローゼット・カレンダー) が main に入り、Cloudflare の準備が済めばすぐ本番に出せる"
         }
       ]
     }
