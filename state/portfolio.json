@@ -136,7 +136,7 @@
     {
       "idea": "00502-kisekae-closet",
       "repo": "Rin0107/kisekae-closet",
-      "status": "building",
+      "status": "evaluating",
       "stack": "web-db",
       "started": "2026-11-17",
       "milestone": "MVP",
@@ -146,6 +146,7 @@
         "phase": 3
       },
       "url": "",
+      "verdict": "iterate",
       "history": [
         {
           "date": "2026-11-17",
@@ -156,6 +157,11 @@
           "date": "2026-11-17",
           "event": "scaffolded",
           "note": "Rin0107/kisekae-closet / issue 3 件"
+        },
+        {
+          "date": "2026-11-17",
+          "event": "evaluated",
+          "note": "iterate: 主力のアプリなので drop にせず磨き続ける (体験の核が本番で動かない)"
         }
       ]
     }
