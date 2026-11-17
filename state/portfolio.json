@@ -136,17 +136,16 @@
     {
       "idea": "00502-kisekae-closet",
       "repo": "Rin0107/kisekae-closet",
-      "status": "evaluating",
+      "status": "iterating",
       "stack": "web-db",
       "started": "2026-11-17",
-      "milestone": "v0.2",
-      "iteration": 1,
+      "milestone": "v0.3",
+      "iteration": 2,
       "ticks": {
         "total": 8,
-        "phase": 1
+        "phase": 0
       },
       "url": "",
-      "verdict": "iterate",
       "history": [
         {
           "date": "2026-11-17",
@@ -172,6 +171,11 @@
           "date": "2026-11-17",
           "event": "evaluated",
           "note": "iterate: 主力のアプリなので drop にせず磨き続ける (体験の核が本番で動かない)"
+        },
+        {
+          "date": "2026-11-17",
+          "event": "iterating",
+          "note": "v0.3: Cloudflare の準備 (ideas#32) が済んだ瞬間に、触って採点できる形で出せる: 手元の wrangler dev で今日の画面・着せ替え・カレンダー・未来の日の着せ替えが通しで動き、README で 30 秒で使い方が分かる"
         }
       ]
     }
