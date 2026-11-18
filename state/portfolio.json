@@ -136,7 +136,7 @@
     {
       "idea": "00502-kisekae-closet",
       "repo": "Rin0107/kisekae-closet",
-      "status": "iterating",
+      "status": "evaluating",
       "stack": "web-db",
       "started": "2026-11-17",
       "milestone": "v0.5",
@@ -147,6 +147,7 @@
       },
       "url": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
       "preview": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
+      "verdict": "iterate",
       "history": [
         {
           "date": "2026-11-17",
@@ -202,6 +203,11 @@
           "date": "2026-11-19",
           "event": "iterating",
           "note": "v0.5: プレビューを開いて 2 秒以内に今日の天気とおすすめが出て、写真に近いリアルなアバターがそれを着ている (持ち主の #19・#20 が解ける)"
+        },
+        {
+          "date": "2026-11-19",
+          "event": "evaluated",
+          "note": "iterate: 主力のアプリなので drop にせず磨き続ける (体験の核が本番で動かない)"
         }
       ]
     }
