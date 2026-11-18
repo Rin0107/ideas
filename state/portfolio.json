@@ -136,18 +136,17 @@
     {
       "idea": "00502-kisekae-closet",
       "repo": "Rin0107/kisekae-closet",
-      "status": "evaluating",
+      "status": "iterating",
       "stack": "web-db",
       "started": "2026-11-17",
-      "milestone": "v0.7",
-      "iteration": 6,
+      "milestone": "v0.8",
+      "iteration": 7,
       "ticks": {
         "total": 25,
-        "phase": 1
+        "phase": 0
       },
       "url": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
       "preview": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
-      "verdict": "iterate",
       "history": [
         {
           "date": "2026-11-17",
@@ -228,6 +227,11 @@
           "date": "2026-11-19",
           "event": "evaluated",
           "note": "iterate: 主力のアプリなので drop にせず磨き続ける (ブラッシュアップ 6 回でも基準に届かない (わくわく 3・品質 4))"
+        },
+        {
+          "date": "2026-11-19",
+          "event": "iterating",
+          "note": "v0.8: 着せた服の袖が A の字の腕に沿い、アウターは前を開けて羽織り、くつは形の分かる大きさで履いて、紙の着せ替えから『自分が着ている』絵に近づく"
         }
       ]
     }
