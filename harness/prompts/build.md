@@ -43,6 +43,9 @@ Closes #b
 wk review <repo> <PR 番号>
 ```
 - `wk review` は sre の目 (セキュリティと壊れ方) で見る。守りの部分に触れたら guardian も加わる
+- `wk review: PR に Closes #N がない` で落ちたら (PR を作った直後は GitHub がまだ issue とつないでいない)、
+  `gh pr view <PR 番号> --repo <repo> --json closingIssuesReferences` が空でなくなるまで待つ。
+  つながらなければ本文を保存し直す (`gh pr edit <PR 番号> --repo <repo> --body "$(gh pr view … --json body --jq .body)"`) (2026-11-19、kisekae-closet PR #23・#24)
 - `request_changes` なら全部直して 1 回で push し、もう一度 `wk review`。**最大 2 回**
 - approve されたら `wk merge <repo> <PR 番号>` (CI を待ち、全部 green なら merge)
 - CI が赤なら `gh run view --repo <repo> --log-failed` を読んで直し、push → `wk review` からやり直す (この段の中で 1 回まで)
