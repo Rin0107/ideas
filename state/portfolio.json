@@ -136,7 +136,7 @@
     {
       "idea": "00502-kisekae-closet",
       "repo": "Rin0107/kisekae-closet",
-      "status": "iterating",
+      "status": "evaluating",
       "stack": "web-db",
       "started": "2026-11-17",
       "milestone": "v0.7",
@@ -147,6 +147,7 @@
       },
       "url": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
       "preview": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
+      "verdict": "iterate",
       "history": [
         {
           "date": "2026-11-17",
@@ -222,6 +223,11 @@
           "date": "2026-11-19",
           "event": "iterating",
           "note": "v0.7: 着せた絵が紙の着せ替えから一歩進み、長袖・長ズボン・くつがそれぞれの丈と足の位置に合って『自分が着ている』に近づく。天気が一度読めなくても朝のコーデを決められる"
+        },
+        {
+          "date": "2026-11-19",
+          "event": "evaluated",
+          "note": "iterate: 主力のアプリなので drop にせず磨き続ける (ブラッシュアップ 6 回でも基準に届かない (わくわく 3・品質 4))"
         }
       ]
     }
