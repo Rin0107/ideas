@@ -136,18 +136,17 @@
     {
       "idea": "00502-kisekae-closet",
       "repo": "Rin0107/kisekae-closet",
-      "status": "evaluating",
+      "status": "iterating",
       "stack": "web-db",
       "started": "2026-11-17",
-      "milestone": "v0.5",
-      "iteration": 4,
+      "milestone": "v0.6",
+      "iteration": 5,
       "ticks": {
         "total": 19,
-        "phase": 2
+        "phase": 0
       },
       "url": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
       "preview": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
-      "verdict": "iterate",
       "history": [
         {
           "date": "2026-11-17",
@@ -208,6 +207,11 @@
           "date": "2026-11-19",
           "event": "evaluated",
           "note": "iterate: 主力のアプリなので drop にせず磨き続ける (体験の核が本番で動かない)"
+        },
+        {
+          "date": "2026-11-19",
+          "event": "iterating",
+          "note": "v0.6: おすすめを着たアバターが、脇・首・腰から下着がのぞかず袖も腕に沿い、白い服も形のまま見えて「自分が着ている」絵になる。服をしまう画面でも CSP 違反が出ない"
         }
       ]
     }
