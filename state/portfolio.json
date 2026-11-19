@@ -136,18 +136,18 @@
     {
       "idea": "00502-kisekae-closet",
       "repo": "Rin0107/kisekae-closet",
-      "status": "evaluating",
+      "status": "iterating",
       "stack": "web-db",
       "started": "2026-11-17",
-      "milestone": "v0.9",
-      "iteration": 8,
+      "milestone": "v0.10",
+      "iteration": 9,
       "ticks": {
         "total": 32,
-        "phase": 1
+        "phase": 0
       },
       "url": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
       "preview": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
-      "verdict": "iterate",
+      "planned": "2026-11-19",
       "history": [
         {
           "date": "2026-11-17",
@@ -248,6 +248,11 @@
           "date": "2026-11-19",
           "event": "evaluated",
           "note": "iterate: 主力のアプリなので drop にせず磨き続ける (体験の核が本番で動かない)"
+        },
+        {
+          "date": "2026-11-19",
+          "event": "planned",
+          "note": "v0.10: iPhone で撮った服がそのまま (Exif で止まらず) しまえ、今日の画面ではアバターと服の棚が 1 画面に並び、長袖・アウターの袖が腕と同じ角度で台に収まる (task 21 件)"
         }
       ]
     }

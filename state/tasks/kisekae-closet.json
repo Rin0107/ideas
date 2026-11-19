@@ -1,0 +1,615 @@
+{
+  "tasks": {
+    "51": {
+      "issue": 51,
+      "title": "写真を送る前に Exif・XMP・IPTC を落とし、iPhone の写真でも必ずしまえるようにする",
+      "branch": "wk/t51",
+      "tests": {
+        "tests/unit/plan/v0.10-01-exif.test.ts": "10084ed618f6f5b4f98c44d1dfad1f98e511a0e162554abd59d4bbc69ac8e5fb"
+      },
+      "paths": [
+        "src/shrink.ts",
+        "tests/unit/shrink.test.ts",
+        "DATA.md",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "Exif を落とす",
+          "run": "npx vitest run tests/unit/plan/v0.10-01-exif.test.ts"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#49"
+      ],
+      "plan": "2026-11-19"
+    },
+    "52": {
+      "issue": 52,
+      "title": "袖の先が台の外に出るときは、角度を腕のまま、袖を少し小さくして収める",
+      "branch": "wk/t52",
+      "tests": {
+        "tests/unit/plan/v0.10-18-sleeve-fit.test.ts": "2c50a55c50945b09884920a46138b5f5e4a25d579e88fb2e88bf260be83e43d8"
+      },
+      "paths": [
+        "src/outfit.ts",
+        "src/Avatar.tsx",
+        "tests/unit/sleeves.test.tsx",
+        "tests/unit/avatar.test.tsx",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "袖を縮めて収める",
+          "run": "npx vitest run tests/unit/plan/v0.10-18-sleeve-fit.test.ts"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#19"
+      ],
+      "plan": "2026-11-19"
+    },
+    "53": {
+      "issue": 53,
+      "title": "写真の袖の向きを、袖の帯の画素の主軸で測る (真下に垂れた長袖を 0° と測る)",
+      "branch": "wk/t53",
+      "tests": {
+        "tests/unit/plan/v0.10-17-sleeve-axis.test.ts": "e521d0269bb37a29017de5593b8f641f61c36c596434f045201b1235dca5e443"
+      },
+      "paths": [
+        "src/outfit.ts",
+        "tests/unit/sleeves.test.tsx",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "袖の向きを主軸で",
+          "run": "npx vitest run tests/unit/plan/v0.10-17-sleeve-axis.test.ts"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        52
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#19"
+      ],
+      "plan": "2026-11-19"
+    },
+    "54": {
+      "issue": 54,
+      "title": "今日の画面: 服の棚を台のすぐ隣に置き、ラベル・ゲージ・決めるボタンはその下にする (並びだけ)",
+      "branch": "wk/t54",
+      "tests": {
+        "tests/unit/plan/v0.10-09-today-dom.test.tsx": "5e9e92a1875ad6f9d18145b07511df650975d6ea676fd06bcc57fd2f6c36adb5"
+      },
+      "paths": [
+        "src/App.tsx",
+        "tests/unit/app.test.tsx",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "台の隣に棚",
+          "run": "npx vitest run tests/unit/plan/v0.10-09-today-dom.test.tsx"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#50"
+      ],
+      "plan": "2026-11-19"
+    },
+    "55": {
+      "issue": 55,
+      "title": "今日の画面: スマホの幅でも台 (左) と棚 (右) の 2 列にし、棚は台の高さの中で縦に流す",
+      "branch": "wk/t55",
+      "tests": {
+        "tests/unit/plan/v0.10-10-today-css.test.ts": "e2ba532b97d4da5545dc0f65e26edb9d384e0283a163c7b83f2d9bcf3da17e79"
+      },
+      "paths": [
+        "src/style.css",
+        "tests/unit/sleeves.test.tsx",
+        "tests/e2e/**",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "2 列の CSS",
+          "run": "npx vitest run tests/unit/plan/v0.10-10-today-css.test.ts"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        54
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#50"
+      ],
+      "plan": "2026-11-19"
+    },
+    "56": {
+      "issue": 56,
+      "title": "服をしまう欄は、最初からトップスが選ばれていて枠と写真のボタンが出ている",
+      "branch": "wk/t56",
+      "tests": {
+        "tests/unit/plan/v0.10-03-default-kind.test.tsx": "36b8ab3d97e399349fdfb8db344dd0b83af8cbe1161ee53c78dc121bad37e09e"
+      },
+      "paths": [
+        "src/App.tsx",
+        "tests/unit/app.test.tsx",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "最初からトップス",
+          "run": "npx vitest run tests/unit/plan/v0.10-03-default-kind.test.tsx"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#49"
+      ],
+      "plan": "2026-11-19"
+    },
+    "57": {
+      "issue": 57,
+      "title": "写真は「カメラで撮る」「写真から選ぶ」の大きなボタンで選び、ブラウザのファイルの欄は隠す",
+      "branch": "wk/t57",
+      "tests": {
+        "tests/unit/plan/v0.10-04-camera.test.tsx": "20cc18223b6406c380176d104666f1e0a633aec94ea7836430a73b95c387ac94"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx",
+        "tests/unit/sleeves.test.tsx",
+        "tests/e2e/**",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "カメラのボタン",
+          "run": "npx vitest run tests/unit/plan/v0.10-04-camera.test.tsx"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#49"
+      ],
+      "plan": "2026-11-19"
+    },
+    "58": {
+      "issue": 58,
+      "title": "クローゼットの画面のテーマ・ログアウトなどは「設定」を押すと開くようにし、服を主役にする",
+      "branch": "wk/t58",
+      "tests": {
+        "tests/unit/plan/v0.10-08-settings.test.tsx": "8bb7f0d8edb0b004318d7dcc53884b1f811d77b0d06f85ccf31da481f6e2dec9"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx",
+        "tests/unit/theme.test.ts",
+        "tests/e2e/**",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "設定を開く",
+          "run": "npx vitest run tests/unit/plan/v0.10-08-settings.test.tsx"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#50"
+      ],
+      "plan": "2026-11-19"
+    },
+    "59": {
+      "issue": 59,
+      "title": "暖かさゲージに「重ねよう・減らそう」の一言を足し、帯の言葉をスマホの幅で折り返さない",
+      "branch": "wk/t59",
+      "tests": {
+        "tests/unit/plan/v0.10-11-gauge.test.tsx": "fe7b96ca5c3ac3c81589e55cfdcf5108f77cdc4d15a8122ce72994b594f25299"
+      },
+      "paths": [
+        "src/outfit.ts",
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx",
+        "tests/unit/outfit.test.ts",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "ゲージの一言",
+          "run": "npx vitest run tests/unit/plan/v0.10-11-gauge.test.tsx"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#49"
+      ],
+      "plan": "2026-11-19"
+    },
+    "60": {
+      "issue": 60,
+      "title": "服の暖かさを ●の数ではなく「とても薄い〜とても暖かい」の言葉と服の例で選ぶ",
+      "branch": "wk/t60",
+      "tests": {
+        "tests/unit/plan/v0.10-05-warmth-words.test.tsx": "fda18ac1cc94fae400ace44908f631ff55ed868abb220bcca83a0d2fedf519b6"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "暖かさの言葉",
+          "run": "npx vitest run tests/unit/plan/v0.10-05-warmth-words.test.tsx"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#49"
+      ],
+      "plan": "2026-11-19"
+    },
+    "61": {
+      "issue": 61,
+      "title": "写真を保存できなかったときは、Exif などの言葉を出さず「撮り直してください」とだけ知らせる",
+      "branch": "wk/t61",
+      "tests": {
+        "tests/unit/plan/v0.10-02-save-error.test.tsx": "38605674df627e905ea30a45318625bba54011a74b6f19f2ecb150bcdd538bd7"
+      },
+      "paths": [
+        "src/App.tsx",
+        "tests/unit/app.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "保存できないときの知らせ",
+          "run": "npx vitest run tests/unit/plan/v0.10-02-save-error.test.tsx"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#49"
+      ],
+      "plan": "2026-11-19"
+    },
+    "62": {
+      "issue": 62,
+      "title": "撮った写真の下見を細かく大きく: 切り抜きを長辺 1024px で作り、枠をスマホの幅いっぱい近くにする",
+      "branch": "wk/t62",
+      "tests": {
+        "tests/unit/plan/v0.10-13-preview-quality.test.ts": "18f6973bd1416dd505938c5a5cef9f73d87be5577150f49a1f6fa4543e2c3daf"
+      },
+      "paths": [
+        "src/cutout.ts",
+        "src/style.css",
+        "tests/unit/cutout.test.ts",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "下見の細かさ",
+          "run": "npx vitest run tests/unit/plan/v0.10-13-preview-quality.test.ts"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#49"
+      ],
+      "plan": "2026-11-19"
+    },
+    "63": {
+      "issue": 63,
+      "title": "白い壁の前の淡い色の服が、切り抜きで色抜けしないようにする (むらのない背景は狭い差で切る)",
+      "branch": "wk/t63",
+      "tests": {
+        "tests/unit/plan/v0.10-14-pale.test.ts": "6cbb2eadcf4cc9d969716922f3278bea61d9a0d849300717707358973cdeff07"
+      },
+      "paths": [
+        "src/cutout.ts",
+        "tests/unit/cutout.test.ts",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "淡い色が残る",
+          "run": "npx vitest run tests/unit/plan/v0.10-14-pale.test.ts"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#49"
+      ],
+      "plan": "2026-11-19"
+    },
+    "64": {
+      "issue": 64,
+      "title": "切り抜きから、服の上に細く突き出たハンガーのフックを外す",
+      "branch": "wk/t64",
+      "tests": {
+        "tests/unit/plan/v0.10-16-hook.test.ts": "c65c9a77806f51272123b43042e2acb71d73744a66d72f67bfb255e1924a1373"
+      },
+      "paths": [
+        "src/cutout.ts",
+        "tests/unit/cutout.test.ts",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "フックを外す",
+          "run": "npx vitest run tests/unit/plan/v0.10-16-hook.test.ts"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#19"
+      ],
+      "plan": "2026-11-19"
+    },
+    "65": {
+      "issue": 65,
+      "title": "天気が読めず前回の予報もないときは、その月のふだんの天気でおすすめを着せる",
+      "branch": "wk/t65",
+      "tests": {
+        "tests/unit/plan/v0.10-12-no-weather.test.tsx": "5cca4ff4ae825e3c1fa36026738af87cc8480f2c61d04da6a91bd8b43d081be9"
+      },
+      "paths": [
+        "src/weather.ts",
+        "src/App.tsx",
+        "tests/unit/app.test.tsx",
+        "tests/unit/weather.test.ts",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "天気なしでもおすすめ",
+          "run": "npx vitest run tests/unit/plan/v0.10-12-no-weather.test.tsx"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-19"
+    },
+    "66": {
+      "issue": 66,
+      "title": "写真を選ぶまで「しまう」を押せないようにし、しまえたら「トップスにしまいました」と知らせる",
+      "branch": "wk/t66",
+      "tests": {
+        "tests/unit/plan/v0.10-06-saved.test.tsx": "29c62c144d077e86de9d16f7d618e9e35ff874eda1637bd7e66b88ebbc8b9e19"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx",
+        "tests/e2e/**",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "しまえたと知らせる",
+          "run": "npx vitest run tests/unit/plan/v0.10-06-saved.test.tsx"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#49"
+      ],
+      "plan": "2026-11-19"
+    },
+    "67": {
+      "issue": 67,
+      "title": "e2e の最初の project を iPhone の大きさ (390px・タッチ・モバイル) にする",
+      "branch": "wk/t67",
+      "tests": {
+        "tests/unit/plan/v0.10-19-iphone-e2e.test.ts": "6d0c0b5aeb374b7091300b2cd8bd14212244cdce088d958a46ebe5a2268c20fc"
+      },
+      "paths": [
+        "playwright.config.ts",
+        "tests/e2e/**",
+        "docs/runbook.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "iPhone の project",
+          "run": "npx vitest run tests/unit/plan/v0.10-19-iphone-e2e.test.ts"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#49"
+      ],
+      "plan": "2026-11-19"
+    },
+    "68": {
+      "issue": 68,
+      "title": "切り抜きから、服から離れた小さなかけら (ごみ・影) を消し、箱を服だけに詰める",
+      "branch": "wk/t68",
+      "tests": {
+        "tests/unit/plan/v0.10-15-specks.test.ts": "641c8b3c83f709cf178f0c85d60eddc5a09c8b5e9a96d2fe1036006f194075d1"
+      },
+      "paths": [
+        "src/cutout.ts",
+        "tests/unit/cutout.test.ts",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "小さなかけらを消す",
+          "run": "npx vitest run tests/unit/plan/v0.10-15-specks.test.ts"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#49"
+      ],
+      "plan": "2026-11-19"
+    },
+    "69": {
+      "issue": 69,
+      "title": "しまう服の種類のボタンに種類の形の絵を付け、1 列で横に流れるチップにする",
+      "branch": "wk/t69",
+      "tests": {
+        "tests/unit/plan/v0.10-20-kind-icons.test.tsx": "bd9d5d9f974486bc8a6a72f070ba0b867ccb0309e85dcea9b84c0140e8ff2b95"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "種類のチップ",
+          "run": "npx vitest run tests/unit/plan/v0.10-20-kind-icons.test.tsx"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#49"
+      ],
+      "plan": "2026-11-19"
+    },
+    "70": {
+      "issue": 70,
+      "title": "からっぽの棚に「○○を撮る」ボタンを出し、押すとその種類で撮る欄へ動く",
+      "branch": "wk/t70",
+      "tests": {
+        "tests/unit/plan/v0.10-21-empty-shelf.test.tsx": "dfe7d73086f3e31ee4faae7f162fe9285f02f6f002541ea4908b849d4745ecce"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "からっぽの棚から撮る",
+          "run": "npx vitest run tests/unit/plan/v0.10-21-empty-shelf.test.tsx"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        56
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#49"
+      ],
+      "plan": "2026-11-19"
+    },
+    "71": {
+      "issue": 71,
+      "title": "クローゼットの服を消す前に、服の名前を書いて確かめる",
+      "branch": "wk/t71",
+      "tests": {
+        "tests/unit/plan/v0.10-07-delete-confirm.test.tsx": "de233207b4e24ff1d6f164862b2fc10eac2554e5547e3d6d0cdf47ec15694080"
+      },
+      "paths": [
+        "src/App.tsx",
+        "tests/unit/app.test.tsx",
+        "tests/e2e/**"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "消す前に確かめる",
+          "run": "npx vitest run tests/unit/plan/v0.10-07-delete-confirm.test.tsx"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-19"
+    }
+  }
+}
