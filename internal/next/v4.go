@@ -3,7 +3,6 @@ package next
 import (
 	"fmt"
 	"slices"
-	"time"
 
 	"github.com/Rin0107/ideas/internal/role"
 	"github.com/Rin0107/ideas/internal/state"
@@ -48,8 +47,8 @@ func decidePlan(s Snapshot, ap App, a Action) Action {
 		a.Phase, a.Reason = state.PhasePlan, "評価が iterate"
 		return a
 	}
-	if p.Planned == s.Now.Format(time.DateOnly) {
-		a.Phase, a.Reason = state.PhaseIdle, "今日の計画は作った"
+	if p.Planned == state.PlanNight(s.Now) {
+		a.Phase, a.Reason = state.PhaseIdle, "今夜の計画は作った"
 		return a
 	}
 	if p.Status == state.Building && p.Iteration == 0 && p.Planned == "" {

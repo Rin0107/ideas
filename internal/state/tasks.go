@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // v4 (docs/DESIGN-v4.md): 計画が作った task の完了条件。wk だけが書く (state/tasks/<repo の名前>.json)。
@@ -73,3 +74,6 @@ func (t *Task) Allowed(file string) bool {
 	}
 	return false
 }
+
+// PlanNight は t が属する夜の日付 (正午から次の正午まで)。23:10 に始めた計画が 0 時を過ぎて終わっても、同じ夜に数える
+func PlanNight(t time.Time) string { return t.Add(-12 * time.Hour).Format(time.DateOnly) }

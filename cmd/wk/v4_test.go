@@ -121,7 +121,7 @@ func TestV4Plan(t *testing.T) {
 		t.Fatalf("%+v", t12)
 	}
 	p := v.portfolio().ByRepo("Tester/alpha")
-	if p.Milestone != "v0.3" || p.Iteration != 2 || p.Verdict != "" || p.Status != state.Iterating || p.Planned != time.Now().Format(time.DateOnly) {
+	if p.Milestone != "v0.3" || p.Iteration != 2 || p.Verdict != "" || p.Status != state.Iterating || p.Planned != state.PlanNight(time.Now()) {
 		t.Fatalf("%+v", p)
 	}
 	if !strings.Contains(v.read("ideas_wakuwaku/00001-alpha/idea.md"), "計画 v0.3: 速く着替えられる (task 2 件)") {

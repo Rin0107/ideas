@@ -70,7 +70,7 @@ func TestDecideTask(t *testing.T) {
 }
 
 func TestDecidePlanner(t *testing.T) {
-	today := now.Format("2006-01-02")
+	today := state.PlanNight(now)
 	cases := []struct {
 		name  string
 		mut   func(*state.Project)
@@ -82,7 +82,7 @@ func TestDecidePlanner(t *testing.T) {
 		{"iterate なら計画", func(p *state.Project) { p.Verdict = "iterate"; p.Planned = today }, state.PhasePlan},
 		{"今日はもう計画した", func(p *state.Project) { p.Status = state.Iterating; p.Planned = today }, state.PhaseIdle},
 		{"最初の版は評価せずに計画", func(p *state.Project) {}, state.PhasePlan},
-		{"最初の版でも計画したあとは評価", func(p *state.Project) { p.Planned = "2026-11-09" }, state.PhaseEvaluate},
+		{"最初の版でも計画したあとは評価", func(p *state.Project) { p.Planned = "2026-11-08" }, state.PhaseEvaluate},
 		{"磨いている途中は評価から", func(p *state.Project) { p.Status = state.Iterating; p.Iteration = 1 }, state.PhaseEvaluate},
 		{"building でも 2 回目以降は評価から", func(p *state.Project) { p.Iteration = 1 }, state.PhaseEvaluate},
 		{"評価の途中", func(p *state.Project) { p.Status = state.Evaluating; p.Iteration = 1 }, state.PhaseEvaluate},

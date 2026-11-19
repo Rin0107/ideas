@@ -70,7 +70,7 @@ type Project struct {
 	URL       string `json:"url"`
 	Preview   string `json:"preview,omitempty"` // Web: いま評価に使っているプレビューの URL (wk deploy が書く)
 	Verdict   string `json:"verdict,omitempty"` // 直近の evaluate の結果 (ship / iterate / drop)。次の段階を決める
-	// Planned は最後に計画 (wk plan) を作った日 (v4)。同じ日には計画し直さない
+	// Planned は最後に計画 (wk plan) を作った夜 (v4、PlanNight)。同じ夜には計画し直さない
 	Planned string  `json:"planned,omitempty"`
 	History []Event `json:"history"`
 }

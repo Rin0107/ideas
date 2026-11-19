@@ -431,7 +431,7 @@ func cmdPlan(args []string) error {
 		}
 	}
 	p.Iteration++
-	p.Milestone, p.Status, p.Verdict, p.Ticks.Phase, p.Planned = ms, state.Iterating, "", 0, e.today()
+	p.Milestone, p.Status, p.Verdict, p.Ticks.Phase, p.Planned = ms, state.Iterating, "", 0, state.PlanNight(e.now)
 	e.event(p, "planned", fmt.Sprintf("%s: %s (task %d 件)", ms, pl.Goal, len(pl.Tasks)))
 	if err := e.appendIdeaHistory(p.Idea, fmt.Sprintf("計画 %s: %s (task %d 件)", ms, pl.Goal, len(pl.Tasks))); err != nil {
 		return err

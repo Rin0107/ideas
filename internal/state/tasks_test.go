@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestTasksRoundTrip(t *testing.T) {
@@ -39,6 +40,21 @@ func TestTaskAllowed(t *testing.T) {
 	} {
 		if got := tk.Allowed(f); got != want {
 			t.Errorf("%s: %v", f, got)
+		}
+	}
+}
+
+func TestPlanNight(t *testing.T) {
+	for at, want := range map[string]string{
+		"2026-11-19T23:10:00+09:00": "2026-11-19", "2026-11-20T00:40:00+09:00": "2026-11-19",
+		"2026-11-20T11:59:00+09:00": "2026-11-19", "2026-11-20T12:00:00+09:00": "2026-11-20",
+	} {
+		tm, err := time.Parse(time.RFC3339, at)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := PlanNight(tm); got != want {
+			t.Errorf("%s: %s", at, got)
 		}
 	}
 }
