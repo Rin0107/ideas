@@ -165,6 +165,18 @@ func TestProjectChoice(t *testing.T) {
 	if p, err := e.project(); err != nil || p.Repo != "Tester/beta" {
 		t.Fatal(p, err)
 	}
+	// task の worktree (AppsDir/.wt/<名前>-t<N>) は元の repo のアプリ
+	repo := filepath.Join(f.apps, "beta")
+	for _, args := range [][]string{{"init", "-q"}, {"-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "x"},
+		{"worktree", "add", "-q", filepath.Join(f.apps, ".wt", "beta-t5"), "-b", "wk/t5"}} {
+		if _, err := runGit(repo, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Chdir(filepath.Join(f.apps, ".wt", "beta-t5"))
+	if p, err := e.project(); err != nil || p.Repo != "Tester/beta" {
+		t.Fatal(p, err)
+	}
 	other := filepath.Join(f.apps, "zeta")
 	must(t, os.MkdirAll(other, 0o755))
 	t.Chdir(other)

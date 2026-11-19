@@ -114,9 +114,7 @@ func (e *env) project() (*state.Project, error) {
 		}
 	}
 	act := e.pf.Actives()
-	wd, _ := os.Getwd()
-	if rel, err := filepath.Rel(e.cfg.AppsDir, wd); err == nil && rel != "." && !strings.HasPrefix(rel, "..") {
-		name := strings.Split(rel, string(filepath.Separator))[0]
+	if name := appName(e.cfg.AppsDir); name != "" {
 		for _, p := range act {
 			if p.Repo != "" && filepath.Base(p.Repo) == name {
 				return p, nil
@@ -733,4 +731,18 @@ func cmdDrop(args []string) error {
 		return err
 	}
 	return e.save()
+}
+
+// appName は今いるアプリの repo の名前 (AppsDir の下でなければ "")。
+// task の worktree (AppsDir/.wt/<名前>-t<N>) は元の repo の名前にする (git の common dir から。2026-11-20 に #52 の verify が止まった)
+func appName(apps string) string {
+	wd, _ := os.Getwd()
+	if out, err := git(wd, "rev-parse", "--path-format=absolute", "--git-common-dir"); err == nil {
+		wd = filepath.Dir(strings.TrimSpace(out))
+	}
+	rel, err := filepath.Rel(apps, wd)
+	if err != nil || rel == "." || strings.HasPrefix(rel, "..") {
+		return ""
+	}
+	return strings.Split(rel, string(filepath.Separator))[0]
 }
