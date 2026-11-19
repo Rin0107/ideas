@@ -152,27 +152,100 @@ func fastMerge(t *testing.T) {
 	t.Cleanup(func() { mergePoll, mergeWait, mergeNoCI = p, w, n })
 }
 
-func mergeFactory(t *testing.T, extra ...fakegh.Rule) *factory {
+// mergeRepo はアプリの repo の元を作る: main (base) と、PR #5 の先頭 (feature、base の上に 1 つ)。先頭の SHA を返す
+func mergeRepo(t *testing.T) (string, string) {
+	t.Helper()
+	src := t.TempDir()
+	g := func(args ...string) string {
+		t.Helper()
+		out, err := runGit(src, append([]string{"-c", "user.name=t", "-c", "user.email=t@example.com"}, args...)...)
+		if err != nil {
+			t.Fatal(out, err)
+		}
+		return strings.TrimSpace(out)
+	}
+	g("init", "-q", "-b", "main")
+	must(t, os.WriteFile(filepath.Join(src, "a.txt"), []byte("a\n"), 0o644))
+	g("add", "-A")
+	g("commit", "-q", "-m", "base")
+	g("checkout", "-q", "-b", "feature")
+	must(t, os.WriteFile(filepath.Join(src, "b.txt"), []byte("b\n"), 0o644))
+	g("add", "-A")
+	g("commit", "-q", "-m", "feature")
+	head := g("rev-parse", "HEAD")
+	g("checkout", "-q", "main") // bare の HEAD は main (GitHub と同じ)
+	return src, head
+}
+
+// mergeFactory は PR #5 を merge できる工場。戻り値の文字列は PR の先頭の SHA
+func mergeFactory(t *testing.T, extra ...fakegh.Rule) (*factory, string) {
 	fastMerge(t)
+	src, head := mergeRepo(t)
 	f := newFactory(t, append(extra,
 		fakegh.Rule{Match: `^pr view 5 --repo Tester/alpha --json labels`, Out: `["wk:reviewed"]`},
-		fakegh.Rule{Match: `^pr view 5 --repo Tester/alpha --json headRefOid`, Out: sha},
+		fakegh.Rule{Match: `^pr view 5 --repo Tester/alpha --json headRefOid`, Out: head},
 		fakegh.Rule{Match: `^pr view 5 --repo Tester/alpha --json files`, Out: "src/a.ts\ntests/a.test.ts\n"},
+		fakegh.Rule{Match: `^pr view 5 --repo Tester/alpha --json headRefName,body`, Out: `{"headRefName":"feature","body":"Closes #3\nfixes #4"}`},
 		fakegh.Rule{Match: `^pr checks 5`, Out: `[{"name":"verify","bucket":"pass"}]`},
 	)...)
+	must(t, os.MkdirAll(filepath.Join(f.remote, "Tester"), 0o755))
+	bare := filepath.Join(f.remote, "Tester", "alpha.git")
+	for _, c := range [][]string{{"", "clone", "-q", "--bare", src, bare}, {bare, "update-ref", "refs/pull/5/head", head},
+		{"", "clone", "-q", "https://github.com/Tester/alpha.git", filepath.Join(f.apps, "alpha")}} {
+		if out, err := runGit(c[0], c[1:]...); err != nil {
+			t.Fatal(out, err)
+		}
+	}
 	f.projects(active())
 	e, _ := load()
 	must(t, os.MkdirAll(f.runtime, 0o755))
-	must(t, recordApproval(e, "Tester/alpha", 5, sha))
-	return f
+	must(t, recordApproval(e, "Tester/alpha", 5, head))
+	return f, head
 }
 
 func TestMergeWaitsForPendingThenMerges(t *testing.T) {
-	f := mergeFactory(t, fakegh.Rule{Match: `^pr checks 5`, Out: `[{"name":"verify","bucket":"pending"}]`, Code: 8, Times: 2})
+	f, head := mergeFactory(t, fakegh.Rule{Match: `^pr checks 5`, Out: `[{"name":"verify","bucket":"pending"}]`, Code: 8, Times: 2})
 	out, err := capture(t, func() error { return cmdMerge([]string{"Tester/alpha", "5"}) })
-	if err != nil || !strings.Contains(out, "merge した") || !f.gh.Called("pr merge 5 --repo Tester/alpha --squash --delete-branch") {
+	if err != nil || !strings.Contains(out, "merge した") {
 		t.Fatal(out, err, f.gh.Calls())
 	}
+	// GitHub の squash でなく、PR の先頭をそのまま main に (作者は手元のコミットのまま)
+	bare := filepath.Join(f.remote, "Tester", "alpha.git")
+	if got, _ := runGit(bare, "rev-parse", "main"); strings.TrimSpace(got) != head || f.gh.Called("pr merge") {
+		t.Fatal(got, f.gh.Calls())
+	}
+	if author, _ := runGit(bare, "log", "-1", "--format=%an <%ae>", "main"); strings.TrimSpace(author) != "t <t@example.com>" {
+		t.Fatal(author)
+	}
+	if _, err := runGit(bare, "rev-parse", "--verify", "-q", "refs/heads/feature"); err == nil {
+		t.Fatal("ブランチが残っている")
+	}
+	for _, n := range []string{"3", "4"} {
+		if !f.gh.Called("issue close " + n + " --repo Tester/alpha --comment wakuwaku factory: #5 で merge した") {
+			t.Fatal(n, f.gh.Calls())
+		}
+	}
+}
+
+func TestMergeFFCleanupFailuresDoNotFail(t *testing.T) {
+	f, _ := mergeFactory(t, fakegh.Rule{Match: `^issue close`, Code: 1})
+	failV4Git(t, "--delete")
+	out, err := capture(t, func() error { return cmdMerge([]string{"Tester/alpha", "5"}) })
+	if err != nil || !strings.Contains(out, "merge した") {
+		t.Fatal(out, err, f.gh.Calls())
+	}
+}
+
+func TestMergeFFNotOnMain(t *testing.T) {
+	f, _ := mergeFactory(t)
+	// main がほかの merge で進んだ: 早送りできない
+	bare := filepath.Join(f.remote, "Tester", "alpha.git")
+	tree, _ := runGit(bare, "rev-parse", "main^{tree}")
+	c, err := runGit(bare, "commit-tree", "-p", "main", "-m", "other", strings.TrimSpace(tree))
+	must(t, err)
+	_, err = runGit(bare, "update-ref", "refs/heads/main", strings.TrimSpace(c))
+	must(t, err)
+	errHas(t, cmdMerge([]string{"Tester/alpha", "5"}), "main の最新の上にない")
 }
 
 func TestMergeErrors(t *testing.T) {
@@ -182,24 +255,27 @@ func TestMergeErrors(t *testing.T) {
 		setup func(f *factory)
 		want  string
 	}{
-		"引数が違う":          {args: []string{"x"}, want: "使い方"},
-		"portfolio にない":  {args: []string{"Other/x", "5"}, want: "portfolio にない"},
-		"ラベルが読めない":       {rules: []fakegh.Rule{{Match: `--json labels`, Code: 1}}, want: "labels"},
-		"ラベルがない":         {rules: []fakegh.Rule{{Match: `--json labels`, Out: `[]`}}, want: "wk:reviewed がない"},
-		"先頭が読めない":        {rules: []fakegh.Rule{{Match: `headRefOid`, Code: 1}}, want: "headRefOid"},
-		"approve されていない": {rules: []fakegh.Rule{{Match: `headRefOid`, Out: strings.Repeat("f", 40)}}, want: "approve されていない"},
-		"変更が読めない":        {rules: []fakegh.Rule{{Match: `--json files`, Code: 1}}, want: "files"},
-		"工場が変えられない守りの部分": {rules: []fakegh.Rule{{Match: `--json files`, Out: ".github/workflows/ci.yml\n.claude/settings.json\nwk.json\n"}}, want: "(人だけ): .claude/settings.json, wk.json"},
-		"CI が読めない":       {rules: []fakegh.Rule{{Match: `^pr checks`, Code: 1}}, want: "pr checks"},
-		"CI が赤":          {rules: []fakegh.Rule{{Match: `^pr checks`, Out: `[{"name":"mutation","bucket":"fail"},{"name":"e2e","bucket":"cancel"}]`}}, want: "mutation, e2e"},
-		"CI が動いていない":     {rules: []fakegh.Rule{{Match: `^pr checks`, Out: `[]`}}, setup: func(*factory) { mergeNoCI = 0 }, want: "1 つも動いていない"},
-		"CI が終わらない":      {rules: []fakegh.Rule{{Match: `^pr checks`, Out: `[{"name":"v","bucket":"pending"}]`}}, setup: func(*factory) { mergeWait = 0 }, want: "終わらない"},
-		"merge できない":     {rules: []fakegh.Rule{{Match: `^pr merge`, Code: 1}}, want: "pr merge"},
-		"設定が壊れている":       {setup: func(f *factory) { f.write("factory.json", "{") }, want: "factory.json"},
+		"引数が違う":             {args: []string{"x"}, want: "使い方"},
+		"portfolio にない":     {args: []string{"Other/x", "5"}, want: "portfolio にない"},
+		"ラベルが読めない":          {rules: []fakegh.Rule{{Match: `--json labels`, Code: 1}}, want: "labels"},
+		"ラベルがない":            {rules: []fakegh.Rule{{Match: `--json labels`, Out: `[]`}}, want: "wk:reviewed がない"},
+		"先頭が読めない":           {rules: []fakegh.Rule{{Match: `headRefOid`, Code: 1}}, want: "headRefOid"},
+		"approve されていない":    {rules: []fakegh.Rule{{Match: `headRefOid`, Out: strings.Repeat("f", 40)}}, want: "approve されていない"},
+		"変更が読めない":           {rules: []fakegh.Rule{{Match: `--json files`, Code: 1}}, want: "files"},
+		"工場が変えられない守りの部分":    {rules: []fakegh.Rule{{Match: `--json files`, Out: ".github/workflows/ci.yml\n.claude/settings.json\nwk.json\n"}}, want: "(人だけ): .claude/settings.json, wk.json"},
+		"CI が読めない":          {rules: []fakegh.Rule{{Match: `^pr checks`, Code: 1}}, want: "pr checks"},
+		"CI が赤":             {rules: []fakegh.Rule{{Match: `^pr checks`, Out: `[{"name":"mutation","bucket":"fail"},{"name":"e2e","bucket":"cancel"}]`}}, want: "mutation, e2e"},
+		"CI が動いていない":        {rules: []fakegh.Rule{{Match: `^pr checks`, Out: `[]`}}, setup: func(*factory) { mergeNoCI = 0 }, want: "1 つも動いていない"},
+		"CI が終わらない":         {rules: []fakegh.Rule{{Match: `^pr checks`, Out: `[{"name":"v","bucket":"pending"}]`}}, setup: func(*factory) { mergeWait = 0 }, want: "終わらない"},
+		"PR が読めない":          {rules: []fakegh.Rule{{Match: `headRefName,body`, Code: 1}}, want: "headRefName,body"},
+		"PR が壊れている":         {rules: []fakegh.Rule{{Match: `headRefName,body`, Out: "{"}}, want: "PR を読めない"},
+		"アプリの checkout がない": {setup: func(f *factory) { must(t, os.RemoveAll(filepath.Join(f.apps, "alpha"))) }, want: "fetch"},
+		"push できない":         {setup: func(f *factory) { failV4Git(t, "refs/heads/main") }, want: "git が落ちた"},
+		"設定が壊れている":          {setup: func(f *factory) { f.write("factory.json", "{") }, want: "factory.json"},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			f := mergeFactory(t, c.rules...)
+			f, _ := mergeFactory(t, c.rules...)
 			if c.setup != nil {
 				c.setup(f)
 			}

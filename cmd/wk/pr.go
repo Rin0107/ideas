@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -191,7 +192,8 @@ func cmdMerge(args []string) error {
 		return errors.New("wk:reviewed がない (先に wk review で approve をもらう)")
 	}
 	// ラベルは誰でも付けられるので、wk review が記録した「approve した時点のコミット」と今の先頭を比べる
-	if head, err := prHead(repo, pr); err != nil {
+	head, err := prHead(repo, pr)
+	if err != nil {
 		return err
 	} else if approved(e, repo, pr) != head {
 		return errors.New("今のコミットは reviewer に approve されていない (push したあとは wk review をやり直す)")
@@ -228,7 +230,7 @@ func cmdMerge(args []string) error {
 			return errors.New("CI が 1 つも動いていない (雛形の workflow を確認)")
 		}
 		if len(cs) > 0 && pending == 0 {
-			if _, err := gh.GH("pr", "merge", fmt.Sprint(pr), "--repo", repo, "--squash", "--delete-branch"); err != nil {
+			if err := mergeFF(e, repo, pr, head); err != nil {
 				return err
 			}
 			fmt.Printf("merge した: %s#%d (チェック %d 件 green)\n", repo, pr, len(cs))
@@ -389,4 +391,44 @@ func recordApproval(e *env, repo string, pr int, sha string) error {
 
 func approved(e *env, repo string, pr int) string {
 	return loadApprovals(e)[fmt.Sprintf("%s#%d", repo, pr)]
+}
+
+var closesRe = regexp.MustCompile(`(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)`)
+
+// mergeFF は PR の先頭のコミットを、そのまま main に早送りで push する。
+// GitHub の squash merge は作者欄を持ち主のプロフィールの名前と主のメールにし、公開の repo に個人情報が残る
+// (ideas#35、2026-11-19。メールの非公開は仕事でも使うアカウントなので設定できない)。手元のコミットの作者 (noreply) のまま入れる。
+// GitHub は main に入った PR を merge 済みにする。PR が閉じる issue は wk が閉じる
+func mergeFF(e *env, repo string, pr int, head string) error {
+	dir := filepath.Join(e.cfg.AppsDir, filepath.Base(repo))
+	if _, err := git(dir, "fetch", "-q", "origin", "main", fmt.Sprintf("pull/%d/head", pr)); err != nil {
+		return err
+	}
+	if _, err := git(dir, "merge-base", "--is-ancestor", "origin/main", head); err != nil {
+		return errors.New("PR が main の最新の上にない (git rebase origin/main → push → wk verify・wk review からやり直す)")
+	}
+	out, err := gh.GH("pr", "view", fmt.Sprint(pr), "--repo", repo, "--json", "headRefName,body")
+	if err != nil {
+		return err
+	}
+	var v struct {
+		HeadRefName string `json:"headRefName"`
+		Body        string `json:"body"`
+	}
+	if err := json.Unmarshal([]byte(out), &v); err != nil {
+		return fmt.Errorf("PR を読めない: %w", err)
+	}
+	if _, err := git(dir, "push", "-q", "origin", head+":refs/heads/main"); err != nil {
+		return err
+	}
+	// ここから先は merge のあとの片付け。落ちても merge は済んでいる (知らせるだけ)
+	for _, m := range closesRe.FindAllStringSubmatch(v.Body, -1) {
+		if _, err := gh.GH("issue", "close", m[1], "--repo", repo, "--comment", fmt.Sprintf("wakuwaku factory: #%d で merge した", pr)); err != nil {
+			fmt.Fprintln(os.Stderr, "issue を閉じられない:", m[1], err)
+		}
+	}
+	if _, err := git(dir, "push", "-q", "origin", "--delete", v.HeadRefName); err != nil {
+		fmt.Fprintln(os.Stderr, "ブランチを消せない:", v.HeadRefName, err)
+	}
+	return nil
 }
