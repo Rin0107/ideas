@@ -136,7 +136,7 @@
     {
       "idea": "00502-kisekae-closet",
       "repo": "Rin0107/kisekae-closet",
-      "status": "iterating",
+      "status": "evaluating",
       "stack": "web-db",
       "started": "2026-11-17",
       "milestone": "v0.9",
@@ -147,6 +147,7 @@
       },
       "url": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
       "preview": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
+      "verdict": "iterate",
       "history": [
         {
           "date": "2026-11-17",
@@ -242,6 +243,11 @@
           "date": "2026-11-19",
           "event": "iterating",
           "note": "v0.9: 着せた服の袖が腕と同じ角度で腕に沿い、着ている服はもう一度押すと脱げ、天気が読めなくても決められて、『自分が着ている』絵と着せ替えの手ざわりがそろう"
+        },
+        {
+          "date": "2026-11-19",
+          "event": "evaluated",
+          "note": "iterate: 主力のアプリなので drop にせず磨き続ける (体験の核が本番で動かない)"
         }
       ]
     }
