@@ -17,6 +17,7 @@
   "max_parallel": 2,
   "max_wip": 3,
   "focus": "00502-kisekae-closet",
+  "v4": {"enabled": true, "min_tasks": 20, "task_attempts": 2, "check_timeout_seconds": 600},
   "lock_ttl_minutes": 240,
   "max_consecutive_failures": 3,
 
@@ -58,10 +59,12 @@
     "internal/",
     "go.mod",
     "harness/TICK.md",
+    "harness/PLAN.md",
     "harness/rubric.md",
     ".github/workflows/",
     "docs/DESIGN.md",
     "docs/DESIGN-v3.md",
+    "docs/DESIGN-v4.md",
     "harness/reviewers/",
     "docs/ROLES.md",
     "templates/web/.github/",
@@ -87,6 +90,8 @@
 
   "reviewable_paths": [
     "harness/TICK.md",
+    "harness/PLAN.md",
+    "docs/DESIGN-v4.md",
     "harness/rubric.md",
     "docs/DESIGN.md",
     "docs/DESIGN-v3.md",

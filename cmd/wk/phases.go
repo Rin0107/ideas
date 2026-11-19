@@ -450,16 +450,20 @@ func cmdAttempt(args []string) error {
 	if is == nil {
 		return fmt.Errorf("#%d は %s の open な issue にない", num, p.Milestone)
 	}
-	n := is.Attempts() + 1
+	n, limit := is.Attempts()+1, e.cfg.MaxAttemptsPerIssue
+	// v4: 計画の task は試行を少なく (詰まったら次の計画が分け直す。docs/DESIGN-v4.md)
+	if t, err := state.LoadTasks(e.cfg.Root, p.Repo); err == nil && e.cfg.V4.Enabled && t.Get(num) != nil {
+		limit = e.cfg.V4.Attempts()
+	}
 	add := fmt.Sprintf("wk:attempt-%d", n)
-	if n >= e.cfg.MaxAttemptsPerIssue {
+	if n >= limit {
 		add += "," + next.LabelBlocked
 	}
 	if _, err := gh.GH("issue", "edit", fmt.Sprint(num), "--repo", p.Repo, "--add-label", add); err != nil {
 		return err
 	}
 	_, err = gh.GH("issue", "comment", fmt.Sprint(num), "--repo", p.Repo, "--body",
-		fmt.Sprintf("wakuwaku factory: 試行 %d/%d が失敗。\n\n%s", n, e.cfg.MaxAttemptsPerIssue, *note))
+		fmt.Sprintf("wakuwaku factory: 試行 %d/%d が失敗。\n\n%s", n, limit, *note))
 	fmt.Println("記録:", add)
 	return err
 }

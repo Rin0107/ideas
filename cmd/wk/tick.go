@@ -117,6 +117,11 @@ func (e *env) snapshot() (next.Snapshot, error) {
 				return next.Snapshot{}, err
 			}
 			ap.Proposals = len(proposals)
+			if e.cfg.V4.Enabled {
+				if ap.Tasks, err = state.LoadTasks(e.cfg.Root, p.Repo); err != nil {
+					return next.Snapshot{}, err
+				}
+			}
 		}
 		s.Apps = append(s.Apps, ap)
 	}
@@ -225,6 +230,11 @@ func cmdDue(args []string) error {
 }
 
 func cmdNext(args []string) error {
+	fs := flag.NewFlagSet("next", flag.ContinueOnError)
+	planner := fs.Bool("planner", false, "計画の実行 (v4): 評価・計画・修理をやる。なければ tick の実行 (task だけ)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
 	e, err := load()
 	if err != nil {
 		return err
@@ -249,6 +259,7 @@ func cmdNext(args []string) error {
 	if err != nil {
 		return err
 	}
+	s.Planner = *planner
 	if run := rt.Current(wd, e.now, e.ttl()); run != nil {
 		s.Prefer = run.Repo
 	}

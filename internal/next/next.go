@@ -60,6 +60,8 @@ type Snapshot struct {
 	Prefer string
 	// FocusReady は主力のアプリの雛形 (templates/web-db) があるか。なければ主力を始めずに待つ (docs/DESIGN-v3.md §10)
 	FocusReady bool
+	// Planner は計画の実行 (v4、wk next --planner)。偽なら tick の実行 (task だけをやる)
+	Planner bool
 }
 
 // App は作りかけのアプリ 1 つと、その今の issue・提案。
@@ -67,6 +69,8 @@ type App struct {
 	Project   *state.Project
 	Issues    []Issue
 	Proposals int
+	// Tasks は計画が作った task (v4)。nil なら空
+	Tasks *state.Tasks
 }
 
 // Global は全体で 1 つずつしか動かさない段 (2 つの実行が同時にやると、同じものを 2 回作る)。
@@ -76,7 +80,7 @@ var Global = map[string]bool{state.PhaseRepair: true, state.PhaseRetro: true, st
 func (s Snapshot) apps() []App {
 	out := slices.Clone(s.Apps)
 	if len(out) == 0 && s.Active != nil {
-		out = []App{{s.Active, s.Issues, s.Proposals}}
+		out = []App{{Project: s.Active, Issues: s.Issues, Proposals: s.Proposals}}
 	}
 	slices.SortStableFunc(out, func(a, b App) int {
 		if a.Project.Repo == s.Prefer && b.Project.Repo != s.Prefer {
@@ -118,6 +122,10 @@ func Decide(s Snapshot) Action {
 
 func decide(s Snapshot) Action {
 	c := s.Cfg
+	// v4: tick の実行は計画の task だけをやる (考えない)。計画の実行は v3 と同じ流れで、build の代わりに plan (docs/DESIGN-v4.md)
+	if c.V4.Enabled && !s.Planner {
+		return decideTask(s)
+	}
 	// 工場そのものが壊れていたら、何より先に直す (直さないと、ほかの段も同じところで詰まる)
 	for _, is := range sorted(s.FactoryFixes) {
 		if !is.Blocked() && !s.Claimed[state.PhaseRepair] {
@@ -166,6 +174,9 @@ func decide(s Snapshot) Action {
 func decideApp(s Snapshot, ap App) Action {
 	c, p := s.Cfg, ap.Project
 	a := Action{Repo: p.Repo, Idea: p.Idea}
+	if c.V4.Enabled {
+		return decidePlan(s, ap, a)
+	}
 	// switch の case の条件はミューテーションの道具がカバレッジの外と数えるので、if で書く
 	if p.Status == state.Selected {
 		a.Phase, a.Reason = state.PhaseSelect, "選定の途中 (repo・issue の作成) から再開"

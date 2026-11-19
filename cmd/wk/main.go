@@ -19,7 +19,7 @@ type command struct {
 var commands = map[string]command{
 	// tick の枠
 	"due":   {"tick を始めてよいか (precheck)。止める理由があれば終了コード 1", cmdDue},
-	"next":  {"ロックを取り、次の段階を JSON で出す", cmdNext},
+	"next":  {"[--planner]: ロックを取り、次の段階を JSON で出す (v4 は --planner が計画の実行、なしが tick の実行)", cmdNext},
 	"done":  {"--result ok|retry|fix|human [--note ...] [--detail file] [--in factory]: tick を終える (記録・直す issue・人への依頼・ロック解除)", cmdDone},
 	"fix":   {"--title ... [--detail file]: 工場の直す issue (wk:fix) を立てる。次の tick が最優先で直す", cmdFix},
 	"human": {"--title ... [--detail file]: 人に頼む (工場 repo に wk:human の issue。持ち主にメールが届く)", cmdHuman},
@@ -44,6 +44,10 @@ var commands = map[string]command{
 
 	"review": {"<repo> <pr>: ロールごとに別の Claude が PR を見る (SRE・engineer・UI なら designer)。全員 approve なら wk:reviewed", cmdReview},
 	"merge":  {"<repo> <pr>: CI 全部 green かつ wk:reviewed のときだけ squash merge", cmdMerge},
+	// v4 (docs/DESIGN-v4.md)
+	"inbox":  {"持ち主が工場に頼んだ issue (wk:・role: のラベルなし) を JSON で出す。計画が task にして閉じる", cmdInbox},
+	"plan":   {"--plan <json> [--dir <worktree>]: 計画を task の issue と受け入れテストのブランチにする (v4、計画の実行だけ)", cmdPlan},
+	"verify": {"[<issue>]: task の完了条件を wk が実行して判定する。通れば今のコミットを merge してよい (v4)", cmdVerify},
 	"deploy": {"作っているアプリを出す: Web はプレビュー (配信用 repo の preview)、CLI はタグとリリース", cmdDeploy},
 	"site":   {"init: 配信用の repo を作る (人が 1 回だけ。docs/SETUP.md)", cmdSite},
 	// フック

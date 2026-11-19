@@ -40,6 +40,9 @@ const (
 	PhasePatrol   = "patrol" // ロールが自分の持ち場を見回り、仕事の提案を出す
 	PhaseTriage   = "triage" // leader が提案を仕分ける (今やる・あとで・やらない)
 	PhaseRepair   = "repair" // 工場そのものの直す issue (wk:fix) を解く
+	// v4 (docs/DESIGN-v4.md)
+	PhasePlan = "plan" // 計画: 評価のあと、次の task の issue と完了条件のテストを作る (Opus、1 日 1 回)
+	PhaseTask = "task" // task 1 件を、wk verify が通るまでやる (tick の Sonnet)
 )
 
 var validStatus = map[string]bool{Selected: true, Building: true, Evaluating: true, Iterating: true, Shipped: true, Dropped: true}
@@ -56,18 +59,20 @@ type Ticks struct {
 }
 
 type Project struct {
-	Idea      string  `json:"idea"`
-	Repo      string  `json:"repo"`
-	Status    string  `json:"status"`
-	Stack     string  `json:"stack"`
-	Started   string  `json:"started"`
-	Milestone string  `json:"milestone"`
-	Iteration int     `json:"iteration"`
-	Ticks     Ticks   `json:"ticks"`
-	URL       string  `json:"url"`
-	Preview   string  `json:"preview,omitempty"` // Web: いま評価に使っているプレビューの URL (wk deploy が書く)
-	Verdict   string  `json:"verdict,omitempty"` // 直近の evaluate の結果 (ship / iterate / drop)。次の段階を決める
-	History   []Event `json:"history"`
+	Idea      string `json:"idea"`
+	Repo      string `json:"repo"`
+	Status    string `json:"status"`
+	Stack     string `json:"stack"`
+	Started   string `json:"started"`
+	Milestone string `json:"milestone"`
+	Iteration int    `json:"iteration"`
+	Ticks     Ticks  `json:"ticks"`
+	URL       string `json:"url"`
+	Preview   string `json:"preview,omitempty"` // Web: いま評価に使っているプレビューの URL (wk deploy が書く)
+	Verdict   string `json:"verdict,omitempty"` // 直近の evaluate の結果 (ship / iterate / drop)。次の段階を決める
+	// Planned は最後に計画 (wk plan) を作った日 (v4)。同じ日には計画し直さない
+	Planned string  `json:"planned,omitempty"`
+	History []Event `json:"history"`
 }
 
 // Active は終わっていない (shipped / dropped でない) ものか。

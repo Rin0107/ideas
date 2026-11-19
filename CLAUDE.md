@@ -14,6 +14,10 @@
 - merge・公開・デプロイ・repo の作成と archive は wk のコマンドだけで行う (`wk merge` `wk ship` `wk deploy` `wk scaffold` `wk drop`)
 - 状態 (`state/`) は wk だけが書く。手で編集しない
 
+## 進め方 (v4、docs/DESIGN-v4.md)
+- 考えるのは毎日 23 時の計画 (`harness/PLAN.md`、Opus) だけ。評価して、次の task を 20 件以上 (`wk plan`)。持ち主の issue (`wk inbox`) も task にする
+- tick (`harness/TICK.md`、Sonnet) は task を 1 件ずつ、`wk verify` が通るまでやる。完了かどうかは wk が決める
+
 ## 進め方 (v3、docs/DESIGN-v3.md)
 - 定期実行の本体 (`harness/TICK.md`) は 1 つの Claude が段を自分でやる。1 回の実行で 1 つの版を作り切る (select → build → evaluate → …)
 - 状態と記録は wk が自分の clone (`~/.local/state/wakuwaku/factory`) に書いて push する。worktree でも手元の main でも state をコミットしない

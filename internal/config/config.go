@@ -137,6 +137,9 @@ type Config struct {
 	// WebDB は web-db のアプリ (Worker + D1) の配信
 	WebDB WebDB `json:"web_db"`
 
+	// V4 は計画 (Opus) と実行 (Sonnet) を分ける形 (docs/DESIGN-v4.md)
+	V4 V4 `json:"v4"`
+
 	// Root は factory.json があるディレクトリ (今の worktree)。読み込み時に入る
 	Root string `json:"-"`
 }
@@ -216,3 +219,28 @@ func (c *Config) Parallel() int { return max(c.MaxParallel, 1) }
 
 // WIP は同時に持ってよい作りかけのアプリの数 (1 以上)。
 func (c *Config) WIP() int { return max(c.MaxWIP, 1) }
+
+// V4 は計画と実行を分ける形 (docs/DESIGN-v4.md)。毎日 1 回 Opus が計画 (task の issue と完了条件のテスト) を作り、
+// tick の Sonnet は task を 1 件ずつ、wk verify が通るまでやる。Enabled でなければ v3 のまま
+type V4 struct {
+	Enabled bool `json:"enabled"`
+	// MinTasks は 1 回の計画で作る task の下限 (1 晩の tick が空回りしないように)。0 は既定 (20)
+	MinTasks int `json:"min_tasks"`
+	// TaskAttempts は task 1 件の試行の上限。届いたら wk:blocked (次の計画が分け直す)。0 は既定 (2)
+	TaskAttempts int `json:"task_attempts"`
+	// CheckTimeoutSeconds は完了条件のコマンド 1 つの時間切れ。0 は既定 (600)
+	CheckTimeoutSeconds int `json:"check_timeout_seconds"`
+}
+
+func (v V4) Min() int      { return defaulted(v.MinTasks, 20) }
+func (v V4) Attempts() int { return defaulted(v.TaskAttempts, 2) }
+func (v V4) CheckTimeout() time.Duration {
+	return time.Duration(defaulted(v.CheckTimeoutSeconds, 600)) * time.Second
+}
+
+func defaulted(v, def int) int {
+	if v > 0 {
+		return v
+	}
+	return def
+}

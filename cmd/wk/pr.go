@@ -195,6 +195,10 @@ func cmdMerge(args []string) error {
 		return err
 	} else if approved(e, repo, pr) != head {
 		return errors.New("今のコミットは reviewer に approve されていない (push したあとは wk review をやり直す)")
+	} else if why, err := taskMergeProblem(e, repo, pr, head); err != nil {
+		return err
+	} else if why != "" {
+		return errors.New(why)
 	}
 	if files, err := prFiles(repo, pr); err != nil {
 		return err

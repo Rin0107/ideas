@@ -14,7 +14,8 @@ import (
 )
 
 var phases = []string{state.PhaseIdle, state.PhaseRetro, state.PhaseBuild, state.PhaseEvaluate, state.PhaseIterate,
-	state.PhaseShip, state.PhaseDrop, state.PhaseIntake, state.PhaseSelect, state.PhasePatrol, state.PhaseTriage, state.PhaseRepair}
+	state.PhaseShip, state.PhaseDrop, state.PhaseIntake, state.PhaseSelect, state.PhasePatrol, state.PhaseTriage, state.PhaseRepair,
+	state.PhasePlan, state.PhaseTask}
 
 var roles = []string{role.Leader, role.SRE, role.Designer, role.Engineer}
 
