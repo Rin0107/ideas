@@ -69,7 +69,7 @@ func (s *site) commitPush(branch, msg string, force bool) (string, error) {
 	if err := s.git("add", "-A", "public"); err != nil {
 		return "", err
 	}
-	if err := s.git("-c", "user.name=wakuwaku factory", "-c", "user.email="+s.owner+"@users.noreply.github.com",
+	if err := s.git("-c", "user.name="+s.owner, "-c", "user.email="+s.owner+"@users.noreply.github.com",
 		"commit", "-q", "--allow-empty", "-m", msg); err != nil {
 		return "", err
 	}

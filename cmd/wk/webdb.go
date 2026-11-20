@@ -149,7 +149,7 @@ func pushDeploy(dir, stage, owner string) (string, error) {
 	for _, c := range [][]string{
 		{"init", "-q", "-b", "deploy"},
 		{"add", "-A"},
-		{"-c", "user.name=wakuwaku factory", "-c", "user.email=" + owner + "@users.noreply.github.com", "commit", "-q", "-m", "deploy (wk deploy が作る)"},
+		{"-c", "user.name=" + owner, "-c", "user.email=" + owner + "@users.noreply.github.com", "commit", "-q", "-m", "deploy (wk deploy が作る)"},
 		{"push", "-q", "--force", strings.TrimSpace(remote), "HEAD:refs/heads/deploy"},
 	} {
 		if _, err := gh.Run(stage, "git", c...); err != nil {

@@ -175,6 +175,11 @@ func TestDeployShipDropWeb(t *testing.T) {
 	if got := d.siteFile("preview", "public/alpha/index.html"); got != "<p>alpha v1</p>" {
 		t.Fatal(got)
 	}
+	// 配信のコミットの名前とメールは owner の GitHub のユーザー名と noreply
+	if who, _ := runGit(d.siteGit, "log", "-1", "--format=%an <%ae> %cn <%ce>", "preview"); strings.TrimSpace(who) !=
+		"Tester <Tester@users.noreply.github.com> Tester <Tester@users.noreply.github.com>" {
+		t.Fatal("配信のコミットの名前:", who)
+	}
 	// もう一度出しても (同じ URL)、記録は増えない
 	n := len(p.History)
 	_, err = capture(t, func() error { return cmdDeploy(nil) })

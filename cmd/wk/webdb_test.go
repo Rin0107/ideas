@@ -73,6 +73,11 @@ func TestDeployWebDB(t *testing.T) {
 	if c, _ := runGit(filepath.Join(filepath.Dir(d.siteGit), "alpha.git"), "rev-list", "--count", "deploy"); strings.TrimSpace(c) != "1" {
 		t.Fatal("deploy ブランチのコミット:", c)
 	}
+	// コミットの名前とメールは owner の GitHub のユーザー名と noreply (本名やほかの名前を載せない)
+	if who, _ := runGit(filepath.Join(filepath.Dir(d.siteGit), "alpha.git"), "log", "-1", "--format=%an <%ae> %cn <%ce>", "deploy"); strings.TrimSpace(who) !=
+		"Tester <Tester@users.noreply.github.com> Tester <Tester@users.noreply.github.com>" {
+		t.Fatal("deploy のコミットの名前:", who)
+	}
 	// URL だけ違う記録 (preview は同じ) も直す
 	d.projects(active(func(q *state.Project) { q.Stack, q.Preview = "web-db", "https://alpha.tester.workers.dev/" }))
 	_, err = capture(t, func() error { return cmdDeploy(nil) })
