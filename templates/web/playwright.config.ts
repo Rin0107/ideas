@@ -1,4 +1,23 @@
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
+
+/**
+ * 手元 (NixOS) では、npm の Playwright が求めるブラウザの版が PLAYWRIGHT_BROWSERS_PATH に無いことがある。
+ * CI でないときは、そこにある一番新しい chromium を使う (無ければ Playwright の決まりのまま)。
+ */
+function localChromium(): string | undefined {
+  const dir = process.env.PLAYWRIGHT_BROWSERS_PATH;
+  if (process.env.CI || dir === undefined || !existsSync(dir)) return undefined;
+  const found = readdirSync(dir)
+    .filter((n) => /^chromium-\d+$/.test(n))
+    .sort((a, b) => Number(a.slice(9)) - Number(b.slice(9)))
+    .pop();
+  const exe = found === undefined ? "" : join(dir, found, "chrome-linux64", "chrome");
+  return existsSync(exe) ? exe : undefined;
+}
+const executablePath = localChromium();
+const launch = executablePath === undefined ? {} : { launchOptions: { executablePath } };
 
 const base = process.env.BASE_URL;
 
@@ -9,7 +28,11 @@ export default defineConfig({
   workers: 2,
   reporter: process.env.CI ? "github" : "list",
   use: { baseURL: base ?? "http://127.0.0.1:8787", trace: "retain-on-failure" },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  // スマホが最優先 (持ち主 2026-11-21)。まず iPhone の大きさ・タッチで、次に広い画面で
+  projects: [
+    { name: "iphone", use: { ...devices["iPhone 13"], browserName: "chromium", ...launch } },
+    { name: "chromium", use: { ...devices["Desktop Chrome"], ...launch } },
+  ],
   webServer: base
     ? undefined
     : {
