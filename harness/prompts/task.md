@@ -39,6 +39,7 @@ wk merge <repo> <PR 番号>
 - `wk merge` は、`wk verify` が通ったコミットだけを merge する。push したあとに変えたら `wk verify` からやり直す
 - `request_changes` なら直して (変えてよいファイルの中で)、コミット → `wk verify` → push → `wk review`。**最大 2 回**
 - CI が赤なら `gh run view --repo <repo> --log-failed` を読んで直す。原因が工場・雛形の側なら `result: fix`
+- CI のジョブが 20 分以上 `in_progress`・`queued` のまま進まないときは、1 回だけ `gh run rerun <run の ID> --repo <repo>` してから `wk merge` を待つ (11-21 の #29 は ac-coverage が止まったままで 2 回 fix になり、再実行で通った)。それでも進まなければ `result: fix`
 
 ## 5. 出して片付ける
 ```bash
