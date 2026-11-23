@@ -57,6 +57,174 @@
       ],
       "plan": "2026-11-19"
     },
+    "104": {
+      "issue": 104,
+      "title": "雨の日のおすすめもゲージと同じ目標で選ぶ",
+      "branch": "wk/t104",
+      "tests": {
+        "tests/unit/plan/v0.12-01-rain-recommend.test.ts": "93c198812625663ab7b77a0eabeb4b1d58cbcaa97740eed4ffddb0f8ec0b11f6"
+      },
+      "paths": [
+        "src/recommend.ts",
+        "src/outfit.ts",
+        "tests/unit/recommend.test.ts",
+        "tests/unit/outfit.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-01-rain-recommend.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-24"
+    },
+    "105": {
+      "issue": 105,
+      "title": "服が増えても、その日に出したおすすめを組み直さない",
+      "branch": "wk/t105",
+      "tests": {
+        "tests/unit/plan/v0.12-02-keep-pick.test.ts": "b9b96cd5a6da329053f5ccec6f7af16515346ad12dacd25bb5c9422da670c354"
+      },
+      "paths": [
+        "src/outfit.ts",
+        "src/App.tsx",
+        "tests/unit/app.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-02-keep-pick.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-24"
+    },
+    "106": {
+      "issue": 106,
+      "title": "アウターの前を切り開かない (中の服の縦の帯を消す)",
+      "branch": "wk/t106",
+      "tests": {
+        "tests/unit/plan/v0.12-03-outer-closed.test.ts": "177bee56ae72a5b0d5ab7e81f0056c01ae8266e8b1d5be6149770dd11f07f467"
+      },
+      "paths": [
+        "src/fit.ts",
+        "src/Avatar.tsx",
+        "tests/unit/fit.test.ts",
+        "tests/unit/avatar.test.tsx",
+        "tests/e2e/**"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-03-outer-closed.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-24"
+    },
+    "107": {
+      "issue": 107,
+      "title": "襟があごを覆わない (トップス・ワンピース・アウターはあご + 1cm より上を隠す)",
+      "branch": "wk/t107",
+      "tests": {
+        "tests/unit/plan/v0.12-04-collar.test.tsx": "1183132eda8ab0a766fba943045a55df6ef2a63812b3c7ddc2dcb784a9b480bd"
+      },
+      "paths": [
+        "src/fit.ts",
+        "src/Avatar.tsx",
+        "tests/unit/fit.test.ts",
+        "tests/unit/avatar.test.tsx",
+        "tests/e2e/**"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-04-collar.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        106
+      ],
+      "plan": "2026-11-24"
+    },
+    "108": {
+      "issue": 108,
+      "title": "くつを履いていれば、裾をくつの中で止める",
+      "branch": "wk/t108",
+      "tests": {
+        "tests/unit/plan/v0.12-05-hem-in-shoes.test.ts": "18fd125679722ee13412f67f7215fd100f4cb53e42397388cc44ba1b1eda37a3"
+      },
+      "paths": [
+        "src/fit.ts",
+        "tests/unit/fit.test.ts",
+        "tests/unit/avatar.test.tsx",
+        "tests/e2e/**"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-05-hem-in-shoes.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        107
+      ],
+      "plan": "2026-11-24"
+    },
+    "109": {
+      "issue": 109,
+      "title": "くつを服より上に重ねる (長いコート・ワンピースに隠れない)",
+      "branch": "wk/t109",
+      "tests": {
+        "tests/unit/plan/v0.12-06-shoes-on-top.test.ts": "6391e6294689af29748cedb3bc1db4f0043c42f2f7be7b83c0a89c1d832fba81"
+      },
+      "paths": [
+        "src/fit.ts",
+        "tests/unit/fit.test.ts",
+        "tests/unit/avatar.test.tsx",
+        "tests/unit/app.test.tsx",
+        "tests/unit/outfit.test.ts",
+        "tests/e2e/**"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-06-shoes-on-top.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        108
+      ],
+      "plan": "2026-11-24"
+    },
     "11": {
       "issue": 11,
       "title": "撮った写真の下見を細かく大きく: 切り抜きを長辺 1024px で作り、枠をスマホの幅いっぱい近くにする",
@@ -86,6 +254,278 @@
       ],
       "plan": "2026-11-19"
     },
+    "110": {
+      "issue": 110,
+      "title": "袖を広げた横長の写真でも、型紙の印 4 つが重ならない",
+      "branch": "wk/t110",
+      "tests": {
+        "tests/unit/plan/v0.12-07-wide-marks.test.ts": "428459c0467e7430d3e59d9dbf17c5192fc38a6d81bd8bb22a183f85f5d63ea9"
+      },
+      "paths": [
+        "src/fit.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-07-wide-marks.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        109
+      ],
+      "plan": "2026-11-24"
+    },
+    "111": {
+      "issue": 111,
+      "title": "「決めた!」のスタンプを台の中に置く",
+      "branch": "wk/t111",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "d382771c729fe8c0147af87b98ec3e8e26aea5a4a8a60d7dad1dda5b21086249",
+        "tests/unit/plan/v0.12-08-stamp.test.tsx": "b7480b596d14925d08eafb6e6dfca3195b268d191982539e1619fab02d2584f0"
+      },
+      "paths": [
+        "src/Avatar.tsx",
+        "src/App.tsx",
+        "src/style.css",
+        "tests/e2e/**"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-08-stamp.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#100"
+      ],
+      "plan": "2026-11-24"
+    },
+    "112": {
+      "issue": 112,
+      "title": "市の選択欄をどの画面でも同じ丸い欄にし、カレンダーでは凡例と同じ行に",
+      "branch": "wk/t112",
+      "tests": {
+        "tests/unit/plan/v0.12-09-calendar-city.test.ts": "ec46b93b6a496e90f6c6dabc9ac5cb529f12290890b2e061ae479d638db67f0d"
+      },
+      "paths": [
+        "src/style.css",
+        "src/App.tsx",
+        "tests/unit/app.test.tsx",
+        "tests/e2e/**"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-09-calendar-city.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#101"
+      ],
+      "plan": "2026-11-24"
+    },
+    "113": {
+      "issue": 113,
+      "title": "色の付いたマスがある月だけ、カレンダーの凡例を出す",
+      "branch": "wk/t113",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "d382771c729fe8c0147af87b98ec3e8e26aea5a4a8a60d7dad1dda5b21086249",
+        "tests/unit/plan/v0.12-10-legend.test.tsx": "0b504939e57c75d85a1f6984daa663ec9dedb5d419c2827ea009d6e99d371e6a"
+      },
+      "paths": [
+        "src/App.tsx",
+        "tests/unit/app.test.tsx",
+        "tests/e2e/**"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-10-legend.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        112
+      ],
+      "plan": "2026-11-24"
+    },
+    "114": {
+      "issue": 114,
+      "title": "雨の日は今日の画面に「傘を持って」と出す",
+      "branch": "wk/t114",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "d382771c729fe8c0147af87b98ec3e8e26aea5a4a8a60d7dad1dda5b21086249",
+        "tests/unit/plan/v0.12-11-umbrella.test.tsx": "3abf96ffae20702f976f05b4381ebcfc1dc868b8700d4e7af7e3b2ad07dfac01"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/style.css"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-11-umbrella.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-24"
+    },
+    "115": {
+      "issue": 115,
+      "title": "今日の画面の気温を整数にする",
+      "branch": "wk/t115",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "d382771c729fe8c0147af87b98ec3e8e26aea5a4a8a60d7dad1dda5b21086249",
+        "tests/unit/plan/v0.12-12-round-temp.test.tsx": "d834b99ca0a21ea56b52d30a54301ee0ae7b4ebc522279059cc2369bd4159cdd"
+      },
+      "paths": [
+        "src/App.tsx",
+        "tests/unit/app.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-12-round-temp.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-24"
+    },
+    "116": {
+      "issue": 116,
+      "title": "棚の最後に「+ しまう」のカードを置く",
+      "branch": "wk/t116",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "d382771c729fe8c0147af87b98ec3e8e26aea5a4a8a60d7dad1dda5b21086249",
+        "tests/unit/plan/v0.12-13-rack-add.test.tsx": "43608a8328da3e44e79d61a1df2d6d58c84758ccf1986fa4308151cdd7d316c0"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-13-rack-add.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-24"
+    },
+    "117": {
+      "issue": 117,
+      "title": "寒いとき、足すとちょうどよくなるアウターを名前で出す",
+      "branch": "wk/t117",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "d382771c729fe8c0147af87b98ec3e8e26aea5a4a8a60d7dad1dda5b21086249",
+        "tests/unit/plan/v0.12-14-suggest-add.test.tsx": "92c50ace58643fc3f4af0df7b85f7d2acbba7cc204d4d4b93cfa47a6de74b4be"
+      },
+      "paths": [
+        "src/outfit.ts",
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/outfit.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-14-suggest-add.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-24"
+    },
+    "118": {
+      "issue": 118,
+      "title": "暑いとき、着ているアウターを脱ごうと名前で出す",
+      "branch": "wk/t118",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "d382771c729fe8c0147af87b98ec3e8e26aea5a4a8a60d7dad1dda5b21086249",
+        "tests/unit/plan/v0.12-15-suggest-remove.test.tsx": "6581175b76e6e26c6f0cbdb698be33bdc6fffb86e3b3b6c37f410a2667c2426a"
+      },
+      "paths": [
+        "src/outfit.ts",
+        "src/App.tsx",
+        "tests/unit/outfit.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-15-suggest-remove.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        117
+      ],
+      "plan": "2026-11-24"
+    },
+    "119": {
+      "issue": 119,
+      "title": "台の下の服の名前のチップを押すと、その服を脱ぐ",
+      "branch": "wk/t119",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "d382771c729fe8c0147af87b98ec3e8e26aea5a4a8a60d7dad1dda5b21086249",
+        "tests/unit/plan/v0.12-16-chip-off.test.tsx": "c1ca7670202361038a8e74edc234ab06df27bec6b09bcb9af93adbe25cd7704a"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-16-chip-off.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-24"
+    },
     "12": {
       "issue": 12,
       "title": "白い壁の前の淡い色の服が、切り抜きで色抜けしないようにする (むらのない背景は狭い差で切る)",
@@ -113,6 +553,111 @@
         "Rin0107/kisekae-closet-archive#49"
       ],
       "plan": "2026-11-19"
+    },
+    "120": {
+      "issue": 120,
+      "title": "棚の服のカードに暖かさを点で出す",
+      "branch": "wk/t120",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "d382771c729fe8c0147af87b98ec3e8e26aea5a4a8a60d7dad1dda5b21086249",
+        "tests/unit/plan/v0.12-17-warmth-dots.test.tsx": "5a0bd090e98747d1af364e59c878ca21f4686a148a51535409831e684f043cb1"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/style.css"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-17-warmth-dots.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-24"
+    },
+    "121": {
+      "issue": 121,
+      "title": "カレンダーで今月でないときだけ「今月」ボタンを出す",
+      "branch": "wk/t121",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "d382771c729fe8c0147af87b98ec3e8e26aea5a4a8a60d7dad1dda5b21086249",
+        "tests/unit/plan/v0.12-18-this-month.test.tsx": "5888aa0331030b0d3a7502529a9818b7ae06003014b12eca6550033e5be0e7b6"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-18-this-month.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-24"
+    },
+    "122": {
+      "issue": 122,
+      "title": "着せ替えたら「おすすめに戻す」を出す",
+      "branch": "wk/t122",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "d382771c729fe8c0147af87b98ec3e8e26aea5a4a8a60d7dad1dda5b21086249",
+        "tests/unit/plan/v0.12-19-back-to-pick.test.tsx": "6a3e5279030ce5982a94240493666d1f779bbcb03add7fd01789e756a4e3896f"
+      },
+      "paths": [
+        "src/App.tsx",
+        "tests/unit/app.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-19-back-to-pick.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        119
+      ],
+      "plan": "2026-11-24"
+    },
+    "123": {
+      "issue": 123,
+      "title": "今日の画面に、似た天気の日のコーデを出し、押すと着せる",
+      "branch": "wk/t123",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "d382771c729fe8c0147af87b98ec3e8e26aea5a4a8a60d7dad1dda5b21086249",
+        "tests/unit/plan/v0.12-20-similar-days.test.tsx": "34b00dad6fbf34e9b0112232c6d134ca952197d58ee2dc820b949295e016bead"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "受け入れテスト",
+          "run": "npx vitest run tests/unit/plan/v0.12-20-similar-days.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-24"
     },
     "13": {
       "issue": 13,

@@ -136,19 +136,18 @@
     {
       "idea": "00502-kisekae-closet",
       "repo": "Rin0107/kisekae-closet",
-      "status": "evaluating",
+      "status": "iterating",
       "stack": "web-db",
       "started": "2026-11-17",
-      "milestone": "v0.11",
-      "iteration": 10,
+      "milestone": "v0.12",
+      "iteration": 11,
       "ticks": {
         "total": 59,
         "phase": 0
       },
       "url": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
       "preview": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
-      "verdict": "iterate",
-      "planned": "2026-11-20",
+      "planned": "2026-11-23",
       "history": [
         {
           "date": "2026-11-17",
@@ -269,6 +268,11 @@
           "date": "2026-11-24",
           "event": "evaluated",
           "note": "iterate: 主力のアプリなので drop にせず磨き続ける (体験の核が本番で動かない)"
+        },
+        {
+          "date": "2026-11-24",
+          "event": "planned",
+          "note": "v0.12: 開いて最初に出るおすすめが雨の日もちょうどよく、ジャケットに縦の帯が出ず、襟はあごの下・裾はくつの中で止まる。似た天気の日のコーデと『何を足すか』が画面に出て、着せ替えが速い (task 20 件)"
         }
       ]
     }
