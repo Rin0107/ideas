@@ -136,7 +136,7 @@
     {
       "idea": "00502-kisekae-closet",
       "repo": "Rin0107/kisekae-closet",
-      "status": "iterating",
+      "status": "evaluating",
       "stack": "web-db",
       "started": "2026-11-17",
       "milestone": "v0.11",
@@ -147,6 +147,7 @@
       },
       "url": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
       "preview": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
+      "verdict": "iterate",
       "planned": "2026-11-20",
       "history": [
         {
@@ -263,6 +264,11 @@
           "date": "2026-11-20",
           "event": "planned",
           "note": "v0.11: おすすめで最初に出るコートや長袖の袖が腕の角度のまま台に収まり、襟はあごの下・裾はくつの中で止まって、冬のコーデが『自分が着ている』絵になる。スマホでも台と棚が 1 画面に並び、iPhone で撮った服がそのまましまえる (task 22 件)"
+        },
+        {
+          "date": "2026-11-24",
+          "event": "evaluated",
+          "note": "iterate: 主力のアプリなので drop にせず磨き続ける (体験の核が本番で動かない)"
         }
       ]
     }
