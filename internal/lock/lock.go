@@ -1,6 +1,7 @@
 // Package lock は tick の実行どうしがぶつからないようにする。
 // 実行 (run) ごとにロックを持ち (key は tick の worktree の名前)、何を進めているか (claim) を書く。
 // ほかの実行は、そこに書かれたアプリ・段を選ばない (docs/DESIGN-v3.md §8)。落ちた実行のロックは TTL で切れる。
+// 持ち主のプロセス (tick の claude) が分かれば、それが終わったロックも古いとみなす (2026-11-24、03:00 の tick が落ち 4 時間止まった)。
 // Hold は状態の clone に同時に 1 つのコマンドしか書かないようにする排他ロック (flock)。
 package lock
 
@@ -11,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -23,6 +25,9 @@ type Info struct {
 	// Repo と Idea は、この実行が進めているアプリ (ほかの実行は選ばない)
 	Repo string `json:"repo,omitempty"`
 	Idea string `json:"idea,omitempty"`
+	// Pid と Started は持ち主のプロセスと、その開始時刻 (/proc の starttime。番号の使い回しと見分ける)。0 なら TTL だけで判断する
+	Pid     int    `json:"pid,omitempty"`
+	Started string `json:"started,omitempty"`
 }
 
 const prefix, suffix = "tick-", ".lock"
@@ -62,9 +67,50 @@ func List(dir string) (map[string]*Info, error) {
 	return out, nil
 }
 
-// Stale はロックが TTL を過ぎているか。
+// Stale はロックが TTL を過ぎているか、持ち主のプロセスがもういないか。
 func (i *Info) Stale(now time.Time, ttl time.Duration) bool {
-	return i.Since.IsZero() || now.Sub(i.Since) > ttl
+	return i.Since.IsZero() || now.Sub(i.Since) > ttl || (i.Pid > 0 && !Alive(i.Pid, i.Started))
+}
+
+// ProcRoot は /proc の場所 (テストで差し替える)。
+var ProcRoot = "/proc"
+
+// stat は pid の名前・親・開始時刻 (/proc/<pid>/stat)。読めなければ ok=false
+func stat(pid int) (name string, ppid int, started string, ok bool) {
+	b, err := os.ReadFile(filepath.Join(ProcRoot, strconv.Itoa(pid), "stat"))
+	s := string(b)
+	l, r := strings.IndexByte(s, '('), strings.LastIndexByte(s, ')')
+	if err != nil || l < 0 || r < l {
+		return "", 0, "", false
+	}
+	// ) のあとは 3 番目 (state) から。ppid は 4 番目、starttime は 22 番目
+	f := strings.Fields(s[r+1:])
+	if len(f) < 20 {
+		return "", 0, "", false
+	}
+	ppid, _ = strconv.Atoi(f[1])
+	return s[l+1 : r], ppid, f[19], true
+}
+
+// Alive は pid のプロセスが、started に始めたまま生きているか。
+func Alive(pid int, started string) bool {
+	_, _, s, ok := stat(pid)
+	return ok && (started == "" || s == started)
+}
+
+// Owner は from から親をたどり、名前が name の最初のプロセス (番号と開始時刻)。なければ 0
+func Owner(from int, name string) (int, string) {
+	for pid, n := from, 0; pid > 1 && n < 64; n++ {
+		comm, ppid, started, ok := stat(pid)
+		if !ok {
+			return 0, ""
+		}
+		if comm == name {
+			return pid, started
+		}
+		pid = ppid
+	}
+	return 0, ""
 }
 
 // Acquire は key のロックを取る。生きているロックがあれば失敗する。

@@ -47,6 +47,7 @@ var commands = map[string]command{
 	// v4 (docs/DESIGN-v4.md)
 	"inbox":  {"持ち主が工場に頼んだ issue (wk:・role: のラベルなし) を JSON で出す。計画が task にして閉じる", cmdInbox},
 	"plan":   {"--plan <json> [--dir <worktree>]: 計画を task の issue と受け入れテストのブランチにする (v4、計画の実行だけ)", cmdPlan},
+	"retest": {"<issue> --reason <text> [--dir <worktree>]: 計画が固定した受け入れテストを直す (計画の実行だけ。tick の中では使えない)", cmdRetest},
 	"verify": {"[<issue>]: task の完了条件を wk が実行して判定する。通れば今のコミットを merge してよい (v4)", cmdVerify},
 	"deploy": {"作っているアプリを出す: Web はプレビュー (配信用 repo の preview)、CLI はタグとリリース", cmdDeploy},
 	"site":   {"init: 配信用の repo を作る (人が 1 回だけ。docs/SETUP.md)", cmdSite},

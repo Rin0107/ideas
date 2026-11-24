@@ -132,6 +132,29 @@ func TestParallelReapsStaleRuns(t *testing.T) {
 	}
 }
 
+// 持ち主のプロセス (claude) が終わったロックは、TTL を待たずに外す (2026-11-24、03:00 の tick が落ちて 4 時間止まった)
+func TestParallelReapsDeadOwner(t *testing.T) {
+	f := parallelFactory(t)
+	old := tickOwner
+	t.Cleanup(func() { tickOwner = old })
+	tickOwner = func() (int, string) { return os.Getpid(), "" }
+	// 30 分前に取った、もういないプロセスのロック (pid は最大値の近く: 使われていない)
+	_, err := lock.Acquire(f.runtime, "run-8", lock.Info{Since: time.Now().Add(-30 * time.Minute), Phase: "task", Repo: "Tester/alpha",
+		Worktree: "/srv/ws/run-8", Pid: 1<<22 - 7}, 4*time.Hour)
+	must(t, err)
+	if a := nextOf(t); a.Repo != "Tester/alpha" {
+		t.Fatalf("落ちた実行のアプリは取れる: %+v", a)
+	}
+	if ts, _ := state.ReadTicks(f.root); len(ts) != 1 || ts[0].Result != "aborted" {
+		t.Fatalf("%+v", ts)
+	}
+	// 自分のロックには持ち主が書かれ、生きている間は古くない
+	l, _ := lock.Read(f.runtime, "factory")
+	if l == nil || l.Pid != os.Getpid() || l.Stale(time.Now(), 4*time.Hour) {
+		t.Fatalf("%+v", l)
+	}
+}
+
 // どのアプリのコマンドか: tick の中なら wk next が渡したもの、アプリの repo の中ならその repo
 func TestProjectChoice(t *testing.T) {
 	f := parallelFactory(t)

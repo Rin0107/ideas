@@ -83,6 +83,10 @@ func (e *env) factoryRepo() string { return e.cfg.Owner + "/" + filepath.Base(e.
 func (e *env) today() string       { return e.now.Format(time.DateOnly) }
 func (e *env) ttl() time.Duration  { return time.Duration(e.cfg.LockTTLMinutes) * time.Minute }
 
+// tickOwner は tick の持ち主のプロセス (wk を呼んだ claude) と開始時刻。それが終わればロックは古い (lock.Info.Stale)。
+// 2026-11-24 に 03:00 の tick が wk done なしで落ち、TTL (4 時間) まで次の tick がそのアプリを選べなかった。テストで差し替える
+var tickOwner = func() (int, string) { return lock.Owner(os.Getppid(), "claude") }
+
 func (e *env) stopFile() string {
 	for _, p := range []string{filepath.Join(e.cfg.RuntimeDir, "STOP"), filepath.Join(e.cfg.MainCheckout, "STOP")} {
 		if _, err := os.Stat(p); err == nil {
@@ -265,7 +269,9 @@ func cmdNext(args []string) error {
 	}
 	a := next.Decide(s)
 	key := e.runKey()
-	stale, err := lock.Acquire(e.cfg.RuntimeDir, key, lock.Info{Since: e.now, Phase: a.Phase, Worktree: wd, Repo: a.Repo, Idea: a.Idea}, e.ttl())
+	pid, started := tickOwner()
+	stale, err := lock.Acquire(e.cfg.RuntimeDir, key, lock.Info{Since: e.now, Phase: a.Phase, Worktree: wd, Repo: a.Repo, Idea: a.Idea,
+		Pid: pid, Started: started}, e.ttl())
 	if err != nil {
 		return err
 	}

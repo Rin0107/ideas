@@ -12,6 +12,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/Rin0107/ideas/internal/gh"
 	"github.com/Rin0107/ideas/internal/guard"
+	"github.com/Rin0107/ideas/internal/next"
 	"github.com/Rin0107/ideas/internal/role"
 	"github.com/Rin0107/ideas/internal/state"
 	"github.com/Rin0107/ideas/internal/verdict"
@@ -621,4 +623,132 @@ func taskMergeProblem(e *env, repo string, pr int, head string) (string, error) 
 		return fmt.Sprintf("今のコミットで wk verify が通っていない (task #%d。push する前に wk verify)", num), nil
 	}
 	return "", nil
+}
+
+// ---- retest: 計画が固定した受け入れテストを直す ----
+
+// cmdRetest は task の受け入れテストを、計画の実行が直したものに替える (2026-11-24、#107 の AC-3 が CI の速さで落ちた)。
+// 直したテストも今の main では落ちることを確かめ、テストのブランチに足して sha を書き直し、blocked と試行の数を外す。
+// tick (task の段) の中では使えない: 作る側がテストをゆるめないように
+func cmdRetest(args []string) error {
+	num := 0
+	if len(args) > 0 {
+		num, _ = strconv.Atoi(args[0])
+	}
+	if num <= 0 {
+		return errors.New("使い方: wk retest <issue> --reason <なぜ直すか> [--dir <worktree>]")
+	}
+	fs := flag.NewFlagSet("retest", flag.ContinueOnError)
+	dirFlag := fs.String("dir", ".", "直したテストを置いたアプリの worktree")
+	reason := fs.String("reason", "", "なぜ直すか (issue に書く)")
+	if err := fs.Parse(args[1:]); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*reason) == "" {
+		return errors.New("--reason (なぜ直すか) が要る")
+	}
+	e, err := load()
+	if err != nil {
+		return err
+	}
+	if !e.cfg.V4.Enabled {
+		return errors.New("v4 が有効でない (factory.json の v4.enabled)")
+	}
+	if a, _, err := readCurrent(e); err == nil && a.Phase == state.PhaseTask {
+		return errors.New("task の tick の中では受け入れテストを直せない (直すのは計画。通らないなら wk attempt)")
+	}
+	p, err := e.project()
+	if err != nil {
+		return err
+	}
+	tasks, err := state.LoadTasks(e.cfg.Root, p.Repo)
+	if err != nil {
+		return err
+	}
+	t := tasks.Get(num)
+	if t == nil {
+		return fmt.Errorf("#%d は %s の計画の task でない", num, p.Repo)
+	}
+	dir, _ := filepath.Abs(*dirFlag)
+	files := slices.Sorted(maps.Keys(t.Tests))
+	body, sums, changed := map[string][]byte{}, map[string]string{}, false
+	for _, f := range files {
+		b, err := os.ReadFile(filepath.Join(dir, f))
+		if err != nil {
+			return fmt.Errorf("テスト %s: %w", f, err)
+		}
+		s := sha256.Sum256(b)
+		body[f], sums[f] = b, hex.EncodeToString(s[:])
+		changed = changed || sums[f] != t.Tests[f]
+	}
+	if !changed {
+		return errors.New("受け入れテストが計画のときと同じ (直したファイルを --dir に置く)")
+	}
+	app := filepath.Join(e.cfg.AppsDir, filepath.Base(p.Repo))
+	wt := filepath.Join(e.cfg.RuntimeDir, "plan", filepath.Base(p.Repo)+"-retest")
+	if _, err := git(app, "fetch", "-q", "origin"); err != nil {
+		return err
+	}
+	_, _ = git(app, "worktree", "remove", "--force", wt)
+	_ = os.RemoveAll(wt)
+	if _, err := git(app, "worktree", "add", "-q", "--detach", wt, "origin/main"); err != nil {
+		return err
+	}
+	defer func() { _, _ = git(app, "worktree", "remove", "--force", wt) }()
+	// 1. 直したテストも、今の main では落ちる (通るなら task の意味がない)
+	for _, f := range files {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(wt, f)), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(wt, f), body[f], 0o644); err != nil {
+			return err
+		}
+	}
+	if t.Setup != "" {
+		if ok, out := runShell(wt, t.Setup, e.cfg.V4.CheckTimeout()); !ok {
+			return fmt.Errorf("setup (%s) が落ちる:\n%s", t.Setup, out)
+		}
+	}
+	failing := 0
+	for _, c := range t.Checks {
+		if ok, _ := runShell(wt, c.Run, e.cfg.V4.CheckTimeout()); !ok {
+			failing++
+		}
+	}
+	if failing == 0 {
+		return errors.New("直したテストでは、今の main で完了条件が全部通る (まだ通らないテストにする)")
+	}
+	// 2. テストのブランチに足す (作りかけのコミットは残す。force しない)。直したテストは main の上で 1 度コミットしてから持っていく
+	steps := [][]string{
+		append([]string{"add", "--"}, files...),
+		{"commit", "-q", "--allow-empty", "-m", "retest"},
+		{"checkout", "-q", "-B", "wk/retest"},
+		{"checkout", "-q", "--detach", "origin/" + t.Branch},
+		append([]string{"checkout", "wk/retest", "--"}, files...),
+		append([]string{"add", "--"}, files...),
+		{"commit", "-q", "--allow-empty", "-m", fmt.Sprintf("task: 受け入れテストを直す (#%d)", num)},
+		{"push", "-q", "origin", "HEAD:refs/heads/" + t.Branch},
+	}
+	for _, st := range steps {
+		if _, err := git(wt, st...); err != nil {
+			return err
+		}
+	}
+	t.Tests = sums
+	if err := state.SaveTasks(e.cfg.Root, p.Repo, tasks); err != nil {
+		return err
+	}
+	// 3. もう一度 tick が取れるように (試行の数は直す前のテストのもの)
+	rm := []string{next.LabelBlocked}
+	for i := 1; i <= max(e.cfg.V4.Attempts(), e.cfg.MaxAttemptsPerIssue); i++ {
+		rm = append(rm, fmt.Sprintf("wk:attempt-%d", i))
+	}
+	if _, err := gh.GH("issue", "edit", fmt.Sprint(num), "--repo", p.Repo, "--remove-label", strings.Join(rm, ",")); err != nil {
+		return err
+	}
+	if _, err := gh.GH("issue", "comment", fmt.Sprint(num), "--repo", p.Repo, "--body",
+		"wakuwaku factory: 計画が受け入れテストを直した ("+strings.Join(files, ", ")+")。\n\n"+strings.TrimSpace(*reason)); err != nil {
+		return err
+	}
+	return printJSON(map[string]any{"issue": num, "branch": t.Branch, "tests": sums})
 }
