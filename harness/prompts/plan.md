@@ -8,6 +8,9 @@
 - idea.md の全文と `## 履歴`
 - 昨夜の task の結果: `gh issue list --repo <repo> --milestone <今のマイルストーン> --state all --json number,title,state,labels`。
   `wk:blocked` のものはコメント (`試行 … が失敗`) を読み、**なぜ Sonnet が詰まったか** を知る (大きすぎた・やることが曖昧・テストが厳しすぎた)
+  - 原因が **受け入れテストの側** (待ちが足りない・環境で揺れる・前のテストと矛盾) で、作りは issue どおりなら、作り直さずにテストだけ直す:
+    テストのブランチ (`origin/wk/t<N>`) の worktree でテストを直し、`wk retest <N> --dir <worktree> --reason "<なぜ>"`。
+    wk が「直したテストも今の main では落ちる」を確かめ、ブランチに足して sha を書き直し、blocked と試行の数を外す。tick の中では使えない (11-24 の #107 は AC-3 が setTimeout(0) 1 回の待ちで、CI だけ落ちた)
 - **人の issue**: `wk inbox`。持ち主が朝に書いた「思ったこと・やってほしいこと」。**全部** を task にするか、しない理由を書く (wk plan が漏れを止める)
   - task にしたものは `from` に `owner/repo#n` を書く。wk plan がその issue に task の番号を書いて閉じる
   - しないもの (安全・お金の決まりに反する・意味が取れない) は `declined` に理由を書く。wk plan が理由を書いて閉じる
