@@ -136,19 +136,18 @@
     {
       "idea": "00502-kisekae-closet",
       "repo": "Rin0107/kisekae-closet",
-      "status": "evaluating",
+      "status": "iterating",
       "stack": "web-db",
       "started": "2026-11-17",
-      "milestone": "v0.12",
-      "iteration": 11,
+      "milestone": "v0.13",
+      "iteration": 12,
       "ticks": {
         "total": 68,
         "phase": 0
       },
       "url": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
       "preview": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
-      "verdict": "iterate",
-      "planned": "2026-11-23",
+      "planned": "2026-11-24",
       "history": [
         {
           "date": "2026-11-17",
@@ -279,6 +278,11 @@
           "date": "2026-11-24",
           "event": "evaluated",
           "note": "iterate: 主力のアプリなので drop にせず磨き続ける (ブラッシュアップ 11 回でも基準に届かない (わくわく 3・品質 4))"
+        },
+        {
+          "date": "2026-11-24",
+          "event": "planned",
+          "note": "v0.13: 開いて最初に出るおすすめが、くつの下の足・ジャケットの下のニットの裾・あごまでの襟なしに『着ている』絵になり、似た天気の日のコーデと『何を足すか』が今日の画面に出る。カレンダーは決めていない日も天気で色が付き、デスクトップでも決めるボタンが最初の画面にある (task 22 件)"
         }
       ]
     }
