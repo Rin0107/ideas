@@ -140,7 +140,7 @@
       "title": "襟があごを覆わない (トップス・ワンピース・アウターはあご + 1cm より上を隠す)",
       "branch": "wk/t107",
       "tests": {
-        "tests/unit/plan/v0.12-04-collar.test.tsx": "1183132eda8ab0a766fba943045a55df6ef2a63812b3c7ddc2dcb784a9b480bd"
+        "tests/unit/plan/v0.12-04-collar.test.tsx": "3b97d5877ab695c26d8e984911f4395a9ac51c2cce8b4c7e3cc089cb2c0d3855"
       },
       "paths": [
         "src/fit.ts",
