@@ -599,6 +599,11 @@ func cmdStatus(args []string) error {
 		n[q.Status]++
 	}
 	fmt.Printf("これまで: shipped %d / dropped %d\n", n[state.Shipped], n[state.Dropped])
+	for _, q := range e.pf.Projects {
+		if q.Status == state.Paused {
+			fmt.Printf("休んでいる: %s (%s。wk resume --repo %s で戻る)\n", q.Idea, q.Repo, q.Repo)
+		}
+	}
 	if s, err := e.snapshot(); err == nil {
 		a := next.Decide(s)
 		fmt.Printf("次の段階: %s (%s) %s #%d — %s\n", a.Phase, a.Role, a.Repo, a.Issue, a.Reason)

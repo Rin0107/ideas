@@ -603,14 +603,15 @@ func TestStatus(t *testing.T) {
 		t.Fatal(out, err)
 	}
 	f.projects(active(func(p *state.Project) { p.Preview = "https://p/alpha/"; p.URL = "https://u" }),
-		&state.Project{Idea: "00002-beta", Repo: "Tester/beta", Status: state.Shipped, Stack: "web", Started: "2026-11-01", URL: "https://b"})
+		&state.Project{Idea: "00002-beta", Repo: "Tester/beta", Status: state.Shipped, Stack: "web", Started: "2026-11-01", URL: "https://b"},
+		&state.Project{Idea: "00003-gamma", Repo: "Tester/gamma", Status: state.Paused, PausedFrom: state.Iterating, Stack: "web", Started: "2026-11-02"})
 	out, _ = capture(t, func() error { return cmdStatus([]string{"--short"}) })
 	if !strings.Contains(out, "00001-alpha を building") {
 		t.Fatal(out)
 	}
 	out, _ = capture(t, func() error { return cmdStatus(nil) })
 	for _, want := range []string{"プレビューの URL: https://p/alpha/", "URL: https://u", "公開時の URL: https://wakuwaku-site.tester.workers.dev/alpha/",
-		"shipped 1 / dropped 0", "次の段階: evaluate (leader) Tester/alpha"} {
+		"shipped 1 / dropped 0", "休んでいる: 00003-gamma (Tester/gamma。wk resume --repo Tester/gamma で戻る)", "次の段階: evaluate (leader) Tester/alpha"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("%q がない:\n%s", want, out)
 		}

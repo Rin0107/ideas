@@ -24,6 +24,8 @@ const (
 	Iterating  = "iterating"
 	Shipped    = "shipped"
 	Dropped    = "dropped"
+	// Paused は持ち主が休ませたアプリ (wk pause)。本番も repo もそのままで、tick・計画・作りかけの数に入らない。wk resume で戻る
+	Paused = "paused"
 )
 
 // 段階 (wk next が返す)
@@ -45,7 +47,7 @@ const (
 	PhaseTask = "task" // task 1 件を、wk verify が通るまでやる (tick の Sonnet)
 )
 
-var validStatus = map[string]bool{Selected: true, Building: true, Evaluating: true, Iterating: true, Shipped: true, Dropped: true}
+var validStatus = map[string]bool{Selected: true, Building: true, Evaluating: true, Iterating: true, Shipped: true, Dropped: true, Paused: true}
 
 type Event struct {
 	Date  string `json:"date"`
@@ -71,12 +73,16 @@ type Project struct {
 	Preview   string `json:"preview,omitempty"` // Web: いま評価に使っているプレビューの URL (wk deploy が書く)
 	Verdict   string `json:"verdict,omitempty"` // 直近の evaluate の結果 (ship / iterate / drop)。次の段階を決める
 	// Planned は最後に計画 (wk plan) を作った夜 (v4、PlanNight)。同じ夜には計画し直さない
-	Planned string  `json:"planned,omitempty"`
-	History []Event `json:"history"`
+	Planned string `json:"planned,omitempty"`
+	// PausedFrom は wk pause の前の状態 (wk resume がここに戻す)
+	PausedFrom string  `json:"paused_from,omitempty"`
+	History    []Event `json:"history"`
 }
 
-// Active は終わっていない (shipped / dropped でない) ものか。
-func (p *Project) Active() bool { return p.Status != Shipped && p.Status != Dropped }
+// Active は終わっていない (shipped / dropped でない) し、休んでもいない (paused でない) ものか。
+func (p *Project) Active() bool {
+	return p.Status != Shipped && p.Status != Dropped && p.Status != Paused
+}
 
 type Portfolio struct {
 	Projects []*Project `json:"projects"`

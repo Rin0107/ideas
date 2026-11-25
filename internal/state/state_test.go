@@ -28,7 +28,7 @@ func TestValidate(t *testing.T) {
 
 func TestActiveAndTried(t *testing.T) {
 	pf := &Portfolio{Projects: []*Project{
-		{Idea: "a", Status: Dropped}, {Idea: "b", Status: Evaluating, Repo: "o/b"},
+		{Idea: "a", Status: Dropped}, {Idea: "p", Status: Paused}, {Idea: "b", Status: Evaluating, Repo: "o/b"},
 	}}
 	if pf.Active() == nil || pf.Active().Idea != "b" {
 		t.Fatal("active")

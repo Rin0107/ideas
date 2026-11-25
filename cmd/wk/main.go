@@ -37,6 +37,8 @@ var commands = map[string]command{
 	"iterate":  {"--plan <json>: 次のマイルストーンと磨く issue を登録 (status=iterating)", cmdIterate},
 	"ship":     {"[--url <url>]: 公開の点検をして本番に出し public にする (Web は URL を wk が決める。CLI は release の URL)", cmdShip},
 	"drop":     {"--reason ... [--never]: 本番から消し、archive して捨てる (status=dropped)", cmdDrop},
+	"pause":    {"--repo <owner/name> --reason ...: アプリを休ませる (本番も repo もそのまま。tick・計画・max_wip から外す。focus なら focus も外す)", cmdPause},
+	"resume":   {"--repo <owner/name>: 休ませたアプリを前の状態に戻す", cmdResume},
 	// PR
 	"propose": {"--plan <json>: 見回り (patrol) の中で、ロールの提案を issue にする (wk:proposal)", cmdPropose},
 	"triage":  {"--decisions <json>: leader が提案を仕分ける (now / later / reject)", cmdTriage},
