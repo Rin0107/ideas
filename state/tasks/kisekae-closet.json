@@ -1393,6 +1393,195 @@
       ],
       "plan": "2026-11-19"
     },
+    "173": {
+      "issue": 173,
+      "title": "「決めた!」のスタンプを台の中に置く",
+      "branch": "wk/t173",
+      "tests": {
+        "tests/unit/plan/v0.14-01-stamp.test.tsx": "493e83f683580befd9feb2286fe7001e5ac3c0f8a72901030c03feacbba70696"
+      },
+      "paths": [
+        "src/Avatar.tsx",
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx",
+        "tests/unit/avatar.test.tsx",
+        "tests/e2e/**"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "スタンプが台の中",
+          "run": "npx vitest run tests/unit/plan/v0.14-01-stamp.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-25"
+    },
+    "174": {
+      "issue": 174,
+      "title": "くつを履いているときは、マネキンの足を描かない",
+      "branch": "wk/t174",
+      "tests": {
+        "tests/unit/plan/v0.14-02-feet-under-shoes.test.tsx": "f51a61bdf52180c911dfab6d2181854113279e1d557fe914695523368d30ecf1"
+      },
+      "paths": [
+        "src/Avatar.tsx",
+        "tests/unit/avatar.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "くつの下の足を描かない",
+          "run": "npx vitest run tests/unit/plan/v0.14-02-feet-under-shoes.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-25"
+    },
+    "175": {
+      "issue": 175,
+      "title": "アウターを着ているときは、トップスをアウターの裾より下で隠す",
+      "branch": "wk/t175",
+      "tests": {
+        "tests/unit/plan/v0.14-03-top-under-outer.test.ts": "372cee17e71925775591c5888975280dab9b01cb0c110b827073374b95030c9b"
+      },
+      "paths": [
+        "src/fit.ts",
+        "tests/unit/fit.test.ts",
+        "tests/unit/avatar.test.tsx",
+        "tests/unit/app.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "トップスをアウターの裾で隠す",
+          "run": "npx vitest run tests/unit/plan/v0.14-03-top-under-outer.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-25"
+    },
+    "176": {
+      "issue": 176,
+      "title": "先の日を決めている間は、タブの文字をその日にする",
+      "branch": "wk/t176",
+      "tests": {
+        "tests/unit/plan/v0.14-04-plan-tab.test.tsx": "d6034816b39bedcb730017c304d18f111af8af337d8992cf86ecef2f2489fd82"
+      },
+      "paths": [
+        "src/App.tsx",
+        "tests/unit/app.test.tsx",
+        "tests/e2e/**"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "タブの文字がその日",
+          "run": "npx vitest run tests/unit/plan/v0.14-04-plan-tab.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-25"
+    },
+    "177": {
+      "issue": 177,
+      "title": "消しゴムのボタンを「いらないところを消す」「消しすぎを戻す」にする",
+      "branch": "wk/t177",
+      "tests": {
+        "tests/unit/plan/v0.14-05-erase-names.test.tsx": "3dae49c8794a26a670f4762e7acccc5096dfba66d48c7ca83ec913580bf12569"
+      },
+      "paths": [
+        "src/FitEditor.tsx",
+        "tests/unit/app.test.tsx",
+        "tests/unit/fitEditor.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "ボタンの名前",
+          "run": "npx vitest run tests/unit/plan/v0.14-05-erase-names.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#172"
+      ],
+      "plan": "2026-11-25"
+    },
+    "178": {
+      "issue": 178,
+      "title": "「合わせる」でなぞって消したときは、写真ごと結果に入れる",
+      "branch": "wk/t178",
+      "tests": {
+        "tests/unit/plan/v0.14-06-refit-photo.test.ts": "59f2b5747403cd36e60b5d07677ff7fa81e0b0155d36ad428b23b3d41a95b9ed"
+      },
+      "paths": [
+        "src/FitEditor.tsx",
+        "src/fitEditor.ts",
+        "tests/unit/fitEditor.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "なぞったときは写真を作る",
+          "run": "npx vitest run tests/unit/plan/v0.14-06-refit-photo.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        177
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#172"
+      ],
+      "plan": "2026-11-25"
+    },
+    "179": {
+      "issue": 179,
+      "title": "服の写真を差し替える呼び出し api.replacePhoto を足す",
+      "branch": "wk/t179",
+      "tests": {
+        "tests/unit/plan/v0.14-07-replace-photo-client.test.ts": "eebb11ed6e65b4b6f8555854d136b0aaa37c071edfd6a042794da93edca615a1"
+      },
+      "paths": [
+        "src/client.ts",
+        "tests/unit/client.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "写真の差し替えの呼び出し",
+          "run": "npx vitest run tests/unit/plan/v0.14-07-replace-photo-client.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "from": [
+        "Rin0107/kisekae-closet#172"
+      ],
+      "plan": "2026-11-25"
+    },
     "18": {
       "issue": 18,
       "title": "しまう服の種類のボタンに種類の形の絵を付け、1 列で横に流れるチップにする",
@@ -1421,6 +1610,274 @@
         "Rin0107/kisekae-closet-archive#49"
       ],
       "plan": "2026-11-19"
+    },
+    "180": {
+      "issue": 180,
+      "title": "dress の答えに「その腕が長袖に覆われているか」(sleeved) を足す",
+      "branch": "wk/t180",
+      "tests": {
+        "tests/unit/plan/v0.14-08-long-sleeve.test.ts": "906fe995917fc56bb35ca774b26637d8f4944c3d85cbdddb87fff4cec70dd893"
+      },
+      "paths": [
+        "src/fit.ts",
+        "tests/unit/fit.test.ts",
+        "tests/unit/avatar.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "長袖の腕が分かる",
+          "run": "npx vitest run tests/unit/plan/v0.14-08-long-sleeve.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        175
+      ],
+      "plan": "2026-11-25"
+    },
+    "181": {
+      "issue": 181,
+      "title": "長袖に覆われた腕は、棒を描かず手だけ描く",
+      "branch": "wk/t181",
+      "tests": {
+        "tests/unit/plan/v0.14-09-forearm.test.tsx": "6f5ea2acc5fd5953b26fac12b4df47a8fb5994c5ab095bd6f9f0643abb3b86db"
+      },
+      "paths": [
+        "src/Avatar.tsx",
+        "tests/unit/avatar.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "袖の中の腕を描かない",
+          "run": "npx vitest run tests/unit/plan/v0.14-09-forearm.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        174,
+        180
+      ],
+      "plan": "2026-11-25"
+    },
+    "182": {
+      "issue": 182,
+      "title": "アウターを着ているときは、トップスを胸の幅の中だけに見せる (clipX)",
+      "branch": "wk/t182",
+      "tests": {
+        "tests/unit/plan/v0.14-10-top-inside-outer.test.ts": "b32924a2ceb808a55cc36d6e87551cb24c2b341e35dc73ec71dda87d5ddc0b43"
+      },
+      "paths": [
+        "src/fit.ts",
+        "tests/unit/fit.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "トップスの横の範囲",
+          "run": "npx vitest run tests/unit/plan/v0.14-10-top-inside-outer.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        175,
+        180
+      ],
+      "plan": "2026-11-25"
+    },
+    "183": {
+      "issue": 183,
+      "title": "Garment が clipX の外を隠す",
+      "branch": "wk/t183",
+      "tests": {
+        "tests/unit/plan/v0.14-11-garment-clipx.test.tsx": "f7092d46612d68e603a7590c318938c4e35f54a9d0a6cedbcad4d636b5ba4126"
+      },
+      "paths": [
+        "src/Avatar.tsx",
+        "tests/unit/avatar.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "clipX の外を隠す",
+          "run": "npx vitest run tests/unit/plan/v0.14-11-garment-clipx.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        182,
+        181
+      ],
+      "plan": "2026-11-25"
+    },
+    "184": {
+      "issue": 184,
+      "title": "雨量を小数 1 桁に丸めて出す",
+      "branch": "wk/t184",
+      "tests": {
+        "tests/unit/plan/v0.14-12-precip-mm.test.tsx": "fa9681d7329acf9930f1695da1338a24060993ca8a4211fd502d1ae92615eb82"
+      },
+      "paths": [
+        "src/weather.ts",
+        "src/App.tsx",
+        "tests/unit/weather.test.ts",
+        "tests/unit/app.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "雨量を丸める",
+          "run": "npx vitest run tests/unit/plan/v0.14-12-precip-mm.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-25"
+    },
+    "185": {
+      "issue": 185,
+      "title": "今日の天気の行を、区切りの点から始まらないようにする",
+      "branch": "wk/t185",
+      "tests": {
+        "tests/unit/plan/v0.14-13-weather-dots.test.tsx": "1620653606fdaf73fdb163f95ebfc0df3b4a6775a982cb0f322235332175d4a9"
+      },
+      "paths": [
+        "src/App.tsx",
+        "tests/unit/app.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "天気の行の区切り",
+          "run": "npx vitest run tests/unit/plan/v0.14-13-weather-dots.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        184
+      ],
+      "plan": "2026-11-25"
+    },
+    "186": {
+      "issue": 186,
+      "title": "カレンダーで選んだ日の天気も、区切りの点から始まらないようにする",
+      "branch": "wk/t186",
+      "tests": {
+        "tests/unit/plan/v0.14-14-picked-dots.test.tsx": "86cbac9848b7d7dea97c332f5eddebfea9763c9b3930ed9bb0757e3ba669cc2c"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx",
+        "tests/e2e/**"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "選んだ日の天気の区切り",
+          "run": "npx vitest run tests/unit/plan/v0.14-14-picked-dots.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        184
+      ],
+      "plan": "2026-11-25"
+    },
+    "187": {
+      "issue": 187,
+      "title": "雨の日 (25℃ より涼しい日) は、アウターを 1 枚羽織らせる",
+      "branch": "wk/t187",
+      "tests": {
+        "tests/unit/plan/v0.14-15-rain-outer.test.ts": "8e5515fc39bd47b305eb21c1c90b645dd48e9cdfa0d919f430524876dcb7beef"
+      },
+      "paths": [
+        "src/recommend.ts",
+        "tests/unit/recommend.test.ts",
+        "tests/unit/app.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "雨の日はアウター",
+          "run": "npx vitest run tests/unit/plan/v0.14-15-rain-outer.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-25"
+    },
+    "188": {
+      "issue": 188,
+      "title": "棚の「+ しまう」を 1 行にする",
+      "branch": "wk/t188",
+      "tests": {
+        "tests/unit/plan/v0.14-16-rack-add-nowrap.test.ts": "9ffdd27039e4eb868e92ef653c47c31e2704e4376998cff83addcd1dc050375e"
+      },
+      "paths": [
+        "src/style.css"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "+ しまうが折れない",
+          "run": "npx vitest run tests/unit/plan/v0.14-16-rack-add-nowrap.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-25"
+    },
+    "189": {
+      "issue": 189,
+      "title": "着ている服のラベルの行で、左端のチップが切れないようにする",
+      "branch": "wk/t189",
+      "tests": {
+        "tests/unit/plan/v0.14-17-chips-left.test.ts": "40cdc4b5a08ad7dfd7e4aceec79ffa8f02ed8a402b4035a77b4f1258be842543"
+      },
+      "paths": [
+        "src/style.css"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "チップの行は左から",
+          "run": "npx vitest run tests/unit/plan/v0.14-17-chips-left.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        188
+      ],
+      "plan": "2026-11-25"
     },
     "19": {
       "issue": 19,
@@ -1453,6 +1910,80 @@
         "Rin0107/kisekae-closet-archive#49"
       ],
       "plan": "2026-11-19"
+    },
+    "190": {
+      "issue": 190,
+      "title": "「はじめる」「パスキーでログイン」を押した時点で天気を読み始める",
+      "branch": "wk/t190",
+      "tests": {
+        "tests/unit/plan/v0.14-18-start-weather.test.tsx": "fa8016ff484af99370cc6e306d3ac39019fdf7b7cb19d1ee02fbb0bcb0ba1cce"
+      },
+      "paths": [
+        "src/App.tsx",
+        "tests/unit/app.test.tsx",
+        "tests/unit/main.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "押した時点で天気を読む",
+          "run": "npx vitest run tests/unit/plan/v0.14-18-start-weather.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-25"
+    },
+    "191": {
+      "issue": 191,
+      "title": "くつを登録するときだけ、左右を並べてつま先を正面に向けて撮る案内を出す",
+      "branch": "wk/t191",
+      "tests": {
+        "tests/unit/plan/v0.14-19-shoes-guide.test.tsx": "d37631cd403a54ecfc09477fd8c24bffab5ad8ce25f4ff25106b588d2dbb3aaf"
+      },
+      "paths": [
+        "src/App.tsx",
+        "tests/unit/app.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "くつの撮り方の案内",
+          "run": "npx vitest run tests/unit/plan/v0.14-19-shoes-guide.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-25"
+    },
+    "192": {
+      "issue": 192,
+      "title": "似た天気の日がまだないときは、今日の画面に一言の案内を出す",
+      "branch": "wk/t192",
+      "tests": {
+        "tests/unit/plan/v0.14-20-similar-empty.test.tsx": "bb731c1b3a08d485b2eb6e8739f61164bc3f5d4273f773e4c2be7548efae8280"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "似た天気の日の案内",
+          "run": "npx vitest run tests/unit/plan/v0.14-20-similar-empty.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-25"
     },
     "2": {
       "issue": 2,
