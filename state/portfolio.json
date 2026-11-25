@@ -136,7 +136,7 @@
     {
       "idea": "00502-kisekae-closet",
       "repo": "Rin0107/kisekae-closet",
-      "status": "iterating",
+      "status": "paused",
       "stack": "web-db",
       "started": "2026-11-17",
       "milestone": "v0.14",
@@ -148,6 +148,7 @@
       "url": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
       "preview": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
       "planned": "2026-11-25",
+      "paused_from": "iterating",
       "history": [
         {
           "date": "2026-11-17",
@@ -293,6 +294,11 @@
           "date": "2026-11-25",
           "event": "planned",
           "note": "v0.14: 開いて最初に出るおすすめの絵で、くつの下の足・ジャケットの下のニットの裾・肩の外にのぞくトップス・袖の外の前腕が消えて『着ている』絵に近づき、雨の日は羽織るものが出る。持ち主の #172 の『合わせる』で消すボタンが分かる名前になり、写真ごと送る準備ができる (task 20 件)"
+        },
+        {
+          "date": "2026-11-26",
+          "event": "paused",
+          "note": "持ち主の判断 (2026-11-25): 11-26 の夜の tick までで kisekae-closet をいったん終え、ほかのアイディアを作る"
         }
       ]
     }
