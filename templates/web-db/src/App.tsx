@@ -39,7 +39,6 @@ export function App() {
 }
 
 function Welcome({ onIn }: { onIn: () => void }) {
-  const [name, setName] = useState("");
   const [error, setError] = useState("");
   const run = (f: () => Promise<void>) => () => {
     setError("");
@@ -51,11 +50,8 @@ function Welcome({ onIn }: { onIn: () => void }) {
       {/* prettier-ignore */}
       <p data-testid="goal">{"{{GOAL}}"}</p>
       <p>ログインはパスキーだけ。パスワードもメールアドレスも要りません。</p>
-      <label>
-        パスキーの名前 (端末の一覧に出るだけ。保存しません)
-        <input value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
-      </label>
-      <button type="button" onClick={run(() => register(name.trim() || "{{NAME}}"))}>
+      {/* パスキーに名前を付けさせない (持ち主の指定、2026-11-26)。端末の一覧にはアプリの名前で出る */}
+      <button type="button" onClick={run(() => register("{{NAME}}"))}>
         はじめる
       </button>
       <button type="button" onClick={run(login)}>

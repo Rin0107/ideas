@@ -113,19 +113,14 @@ describe("ログインの前", () => {
     expect(button(el, "パスキーでログイン")).toBeDefined();
   });
 
-  test("はじめる: 入れた名前 (なければアプリの名前) でパスキーを作り、入る", async () => {
+  test("はじめる: 名前を聞かず、アプリの名前でパスキーを作り、入る", async () => {
     pk.register.mockResolvedValue(undefined);
-    let el = await render();
-    await change(el.querySelector("input"), " わたし ");
+    const el = await render();
+    expect(el.querySelector("main input")).toBeNull();
     routes.me = () => [200, { signedIn: true }];
     await click(button(el, "はじめる"));
-    expect(pk.register).toHaveBeenCalledWith("わたし");
+    expect(pk.register).toHaveBeenCalledWith("{{NAME}}");
     expect(el.querySelector('section[aria-label="クローゼット"]')).not.toBeNull();
-    document.body.replaceChildren();
-    routes.me = () => [401, { error: "x" }];
-    el = await render();
-    await click(button(el, "はじめる"));
-    expect(pk.register).toHaveBeenLastCalledWith("{{NAME}}");
   });
 
   test("ログインに失敗すれば理由を出す", async () => {
