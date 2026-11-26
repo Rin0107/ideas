@@ -1,0 +1,748 @@
+<title>夢日記SNS 画面の案</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Maru+Gothic:wght@400;500;700&family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho+B1:wght@600;700&display=swap">
+<style>
+/* Layout: 左に目次、右に案ごとの章。各章はねらいの文と、スマホの枠 3 つ (書く・日記・新着) を横に並べる */
+:root{
+  --bg:#F3F4F8; --surface:#FFFFFF; --ink:#1D2230; --muted:#5F667A; --line:#DCDFE8; --accent:#4B4FA8; --accent-soft:#E6E7F6;
+  --good:#2E7D5B; --warn:#A8642B;
+  --f-display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --rail:240px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#10131C; --surface:#181C28; --ink:#E8EAF2; --muted:#A0A6B8; --line:#2A3042; --accent:#A9ACF0; --accent-soft:#22264A; --good:#7FD1A8; --warn:#E5A66E; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10131C; --surface:#181C28; --ink:#E8EAF2; --muted:#A0A6B8; --line:#2A3042; --accent:#A9ACF0; --accent-soft:#22264A; --good:#7FD1A8; --warn:#E5A66E; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{scroll-padding-top:20px}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.8}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+/* ===== BEGIN artifact-toc（ここから END までは触らない） ===== */
+.shell{display:grid;grid-template-columns:var(--rail) minmax(0,1fr)}
+.toc{position:sticky;top:env(safe-area-inset-top,0px);height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--surface);
+  padding-block:28px;padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:18px}
+.toc-brand{font-family:var(--f-display);font-weight:700;font-size:18px;line-height:1.35;color:var(--ink)}
+.toc-brand small{display:block;font-family:var(--f-body);font-weight:400;font-size:11px;letter-spacing:.12em;color:var(--muted);margin-top:4px}
+.toc ol{list-style:none;margin:20px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.toc a{display:flex;gap:10px;align-items:baseline;padding:7px 10px;border-radius:8px;text-decoration:none;color:var(--muted);font-size:13.5px;line-height:1.45}
+.toc a .n{min-width:1.4em;font-variant-numeric:tabular-nums;color:var(--muted)}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--ink);color:var(--bg)}
+.toc a.active .n{color:var(--bg)}
+main{min-width:0}
+@media (max-width:820px){
+  .shell{grid-template-columns:1fr}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+  .toc{z-index:9;height:auto;border-right:0;border-bottom:1px solid var(--line);padding-block:8px;
+    padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
+  .toc-brand,.toc-extra{display:none}
+  .toc ol{flex-direction:row;overflow-x:auto;margin:0;gap:4px;scrollbar-width:none}
+  .toc a{white-space:nowrap;padding:6px 10px}
+}
+/* ===== END artifact-toc ===== */
+
+/* ---- 本文 ---- */
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(28px,env(safe-area-inset-left,0px));padding-right:max(28px,env(safe-area-inset-right,0px))}
+section.s{padding-block:52px;border-bottom:1px solid var(--line)}
+h1{font-family:var(--f-display);font-size:clamp(28px,4vw,40px);line-height:1.3;margin:0 0 8px;text-wrap:balance}
+h2{font-family:var(--f-display);font-size:clamp(22px,3vw,30px);line-height:1.35;margin:0 0 4px;text-wrap:balance}
+.eyebrow{font-size:12px;letter-spacing:.14em;color:var(--muted)}
+p{max-width:68ch;margin:0}
+.lead{display:flex;flex-direction:column;gap:12px}
+.notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:20px 0 28px}
+.note{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
+.note h3{margin:0 0 6px;font-size:13px;letter-spacing:.08em}
+.note.aim h3{color:var(--accent)} .note.pro h3{color:var(--good)} .note.con h3{color:var(--warn)}
+.note ul{margin:0;padding-left:1.1em;font-size:14px;line-height:1.7}
+.phones{display:flex;gap:22px;overflow-x:auto;padding:6px 2px 14px}
+.phone-cap{font-size:12.5px;color:var(--muted);margin-top:8px;text-align:center}
+.req{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px;margin-top:16px}
+.req div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px}
+.req b{display:block;font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.06em}
+@media (max-width:820px){.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .notes,.req{grid-template-columns:1fr}}
+
+/* ---- スマホの枠 (案ごとの見た目は .pa .pb .pc が決める。テーマに関係なく固定の世界) ---- */
+.ph{flex:0 0 auto}
+.dev{width:270px;height:560px;border-radius:38px;padding:10px;background:#15161A;box-shadow:0 12px 32px rgba(10,12,30,.18)}
+.scr{position:relative;width:100%;height:100%;border-radius:29px;overflow:hidden;display:flex;flex-direction:column}
+.sb{display:flex;justify-content:space-between;padding:10px 22px 4px;font-size:11px;font-weight:700;font-family:var(--f-body)}
+.tab{margin-top:auto;display:flex;justify-content:space-around;padding:8px 6px 14px;font-size:10.5px}
+.tab span{display:flex;flex-direction:column;align-items:center;gap:2px}
+.tab i{display:block;width:18px;height:18px;border-radius:6px}
+.stamps{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.stamps span{font-size:10.5px;padding:2px 8px;border-radius:99px}
+.meta{display:flex;justify-content:space-between;font-size:10.5px}
+
+/* 案 A 枕元のノート */
+.pa .scr{background:#E9EDF3;color:#22305E;font-family:var(--f-body)}
+.pa .pg{flex:1;margin:4px 12px 0;background:#F8F9FC;border-radius:6px 6px 0 0;padding:14px 16px;
+  background-image:repeating-linear-gradient(transparent 0 25px,#D5DCEA 25px 26px);background-position:0 44px;overflow:hidden;display:flex;flex-direction:column;gap:10px}
+.pa .date{font-family:"Klee One",serif;font-weight:600;font-size:15px}
+.pa .ink{font-family:"Klee One",serif;font-size:14.5px;line-height:26px}
+.pa .ph-hint{color:#8C96B4}
+.pa .toggle{display:flex;border:1.5px solid #22305E;border-radius:99px;font-size:11px;overflow:hidden;align-self:flex-start}
+.pa .toggle span{padding:3px 10px} .pa .toggle .on{background:#22305E;color:#F8F9FC}
+.pa .btn{align-self:flex-end;background:#22305E;color:#F8F9FC;border-radius:99px;padding:6px 18px;font-size:12.5px;font-weight:700}
+.pa .day{border-bottom:1px dashed #B9C3DA;padding-bottom:6px}
+.pa .day small{font-size:10.5px;color:#6A7597}
+.pa .slip{background:#FFFFFF;border-radius:4px;padding:10px 12px;box-shadow:0 1px 0 #CBD3E4,0 6px 12px rgba(34,48,94,.08);position:relative}
+.pa .slip::before{content:"";position:absolute;top:-6px;left:50%;width:46px;height:12px;margin-left:-23px;background:rgba(160,176,214,.55);transform:rotate(-3deg)}
+.pa .stamps span{border:1px solid #9FAAC8;color:#22305E}
+.pa .stamps .hit{background:#22305E;color:#fff;border-color:#22305E}
+.pa .tab{background:#E9EDF3;color:#6A7597} .pa .tab i{background:#C3CBDD} .pa .tab .cur{color:#22305E;font-weight:700} .pa .tab .cur i{background:#22305E}
+
+/* 案 B 夜の水面 */
+.pb .scr{background:radial-gradient(120% 70% at 50% 0%,#17343A 0%,#0B181C 60%,#081114 100%);color:#D9E7E4;font-family:"Zen Maru Gothic",sans-serif}
+.pb .pg{flex:1;padding:10px 16px;display:flex;flex-direction:column;gap:12px;overflow:hidden;position:relative}
+.pb .date{font-size:12px;letter-spacing:.2em;color:#8FB2AC}
+.pb .big{font-size:19px;font-weight:500;line-height:1.6}
+.pb .well{flex:1;border-radius:22px;background:rgba(217,231,228,.06);border:1px solid rgba(217,231,228,.14);padding:14px;font-size:14px;line-height:1.8}
+.pb .ph-hint{color:#6F8F8A}
+.pb .toggle{display:flex;gap:6px;font-size:11px}
+.pb .toggle span{padding:4px 11px;border-radius:99px;border:1px solid rgba(217,231,228,.25)}
+.pb .toggle .on{background:#F1E2A2;color:#0B181C;border-color:#F1E2A2}
+.pb .btn{text-align:center;background:#F1E2A2;color:#0B181C;border-radius:16px;padding:10px;font-size:13px;font-weight:700}
+.pb .orb{border-radius:20px;padding:11px 13px;background:rgba(217,231,228,.07);border:1px solid rgba(217,231,228,.12);backdrop-filter:blur(2px)}
+.pb .orb.glow{box-shadow:0 0 24px rgba(241,226,162,.12)}
+.pb .meta{color:#7FA19B}
+.pb .stamps span{background:rgba(217,231,228,.08);color:#C7DAD6}
+.pb .stamps .hit{background:rgba(241,226,162,.2);color:#F1E2A2}
+.pb .moon{position:absolute;right:18px;top:14px;width:26px;height:26px;border-radius:50%;box-shadow:-7px 3px 0 0 #F1E2A2;opacity:.9}
+.pb .tab{color:#6F8F8A} .pb .tab i{background:rgba(217,231,228,.15)} .pb .tab .cur{color:#F1E2A2} .pb .tab .cur i{background:#F1E2A2}
+@media (prefers-reduced-motion:no-preference){.pb .drift{animation:drift 7s ease-in-out infinite alternate}.pb .drift:nth-child(2n){animation-duration:9s}}
+@keyframes drift{from{transform:translateY(0)}to{transform:translateY(-4px)}}
+
+/* 案 C 夢の切れ端 */
+.pc .scr{background:#F7F7FB;color:#22213A;font-family:"Zen Maru Gothic",sans-serif}
+.pc .pg{flex:1;padding:10px 14px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.pc .logo{font-family:"Dela Gothic One",sans-serif;font-size:20px;line-height:1.2}
+.pc .card{border-radius:18px;padding:12px 14px;border:2px solid #22213A}
+.pc .lilac{background:#DCCFFF} .pc .mint{background:#C3EEDA} .pc .peach{background:#FFD6C6} .pc .sky{background:#CFE2FF} .pc .lemon{background:#FFF1A8}
+.pc .ph-hint{color:#6D6A8E}
+.pc .toggle{display:flex;gap:6px;font-size:11px;font-weight:700}
+.pc .toggle span{padding:4px 10px;border-radius:99px;border:2px solid #22213A;background:#fff}
+.pc .toggle .on{background:#22213A;color:#fff}
+.pc .btn{text-align:center;background:#22213A;color:#fff;border-radius:14px;padding:9px;font-weight:700;font-size:13px;box-shadow:0 4px 0 #6A5CE0}
+.pc .board{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pc .board .card{padding:9px 10px;font-size:12px;line-height:1.55;border-radius:14px}
+.pc .board .card:nth-child(1){transform:rotate(-2deg)} .pc .board .card:nth-child(2){transform:rotate(1.5deg)}
+.pc .board .card:nth-child(3){transform:rotate(1deg)} .pc .board .card:nth-child(4){transform:rotate(-1.5deg)}
+.pc .stamps span{background:#fff;border:1.5px solid #22213A;font-weight:700}
+.pc .stamps .hit{background:#22213A;color:#fff}
+.pc .tab{background:#fff;border-top:2px solid #22213A;color:#6D6A8E;font-weight:700} .pc .tab i{background:#E3E1F0;border-radius:50%} .pc .tab .cur{color:#22213A} .pc .tab .cur i{background:#6A5CE0}
+
+/* 案 D 夜と夜明け (持ち主のコメントから: ダークが基本、日の出以降は少し明るい日の出の色) */
+.pd .scr{font-family:"Zen Maru Gothic",sans-serif}
+.pd.night .scr{background:#11131F;color:#E3E5F1;--card:rgba(227,229,241,.06);--cardline:rgba(227,229,241,.11);--sub:#8D92AC;--acc:#F0B48A;--accink:#11131F;--chip:rgba(227,229,241,.08)}
+.pd.dawn .scr{background:linear-gradient(180deg,#262946 0%,#4A3F63 38%,#9A6577 72%,#D9906F 100%);color:#FFF4EC;--card:rgba(255,244,236,.13);--cardline:rgba(255,244,236,.2);--sub:#F1D3C6;--acc:#FFDDB8;--accink:#3A2A3F;--chip:rgba(255,244,236,.16)}
+.pd .pg{flex:1;padding:10px 16px;display:flex;flex-direction:column;gap:11px;overflow:hidden}
+.pd .sky{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--sub);letter-spacing:.06em}
+.pd .sun{display:inline-flex;align-items:center;gap:5px}
+.pd .sun i{width:9px;height:9px;border-radius:50%;background:var(--acc);display:inline-block}
+.pd.night .sun i{background:transparent;box-shadow:inset -3px 0 0 0 var(--acc)}
+.pd .big{font-size:18px;font-weight:500;line-height:1.6}
+.pd .well{flex:1;border-radius:20px;background:var(--card);border:1px solid var(--cardline);padding:14px;font-size:14px;line-height:1.8}
+.pd .ph-hint{color:var(--sub)}
+.pd .toggle{display:flex;gap:6px;font-size:11px}
+.pd .toggle span{padding:4px 11px;border-radius:99px;border:1px solid var(--cardline)}
+.pd .toggle .on{background:var(--acc);color:var(--accink);border-color:var(--acc)}
+.pd .btn{text-align:center;background:var(--acc);color:var(--accink);border-radius:16px;padding:10px;font-size:13px;font-weight:700}
+.pd .item{border-radius:18px;padding:11px 13px;background:var(--card);border:1px solid var(--cardline);font-size:13px;line-height:1.65}
+.pd .meta{color:var(--sub)}
+.pd .stamps span{background:var(--chip)}
+.pd .stamps .hit{background:var(--acc);color:var(--accink)}
+.pd .tab{color:var(--sub)} .pd .tab i{background:var(--chip)} .pd .tab .cur{color:var(--acc)} .pd .tab .cur i{background:var(--acc)}
+.pd .meta{display:flex;justify-content:space-between;align-items:center}
+.pd .vis{font-size:10px;padding:1px 8px;border-radius:99px;border:1px solid var(--cardline);color:var(--sub)}
+.pd .vis.pub{background:var(--chip);color:var(--acc);border-color:var(--acc)}
+.pd .row-acts{display:flex;justify-content:flex-end;font-size:10.5px;color:var(--acc);margin-top:2px}
+.pd .editing{display:flex;flex-direction:column;gap:8px;border-color:var(--acc)}
+.pd .edit{border-radius:12px;background:var(--chip);padding:8px 10px;font-size:13px}
+.pd .caret{display:inline-block;width:1.5px;height:14px;background:var(--acc);vertical-align:-2px;margin-left:1px}
+.pd .acts{display:flex;justify-content:flex-end;gap:12px;font-size:11.5px;color:var(--sub)}
+.pd .acts .save{background:var(--acc);color:var(--accink);padding:3px 12px;border-radius:99px;font-weight:700}
+/* 書く画面の公開範囲とボタン (押せる) */
+.pd .toggle button{font:inherit;padding:4px 11px;border-radius:99px;border:1px solid var(--cardline);background:transparent;color:inherit;cursor:pointer}
+.pd .toggle button.on{background:var(--acc);color:var(--accink);border-color:var(--acc)}
+.pd button.btn{font:inherit;font-size:13px;font-weight:700;border:0;cursor:pointer;width:100%}
+/* 日記: 夢をタップすると下から編集のシート */
+.pd [data-diary]{display:flex;flex-direction:column;gap:11px}
+.pd .tap{cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%}
+.pd .tap:active{transform:scale(.99)}
+.pd .day{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--sub);margin-bottom:2px}
+.pd .badge{font-size:9.5px;padding:1px 7px;border-radius:99px;border:1px solid var(--acc);color:var(--acc)}
+.pd .veil{position:absolute;inset:0;background:rgba(6,7,14,.55);display:flex;align-items:flex-end;z-index:2}
+.pd .sheet{width:100%;padding:8px 16px 18px;border-radius:22px 22px 0 0;display:flex;flex-direction:column;gap:10px}
+.pd.night .sheet{background:#1C1F31} .pd.dawn .sheet{background:#4A3B57}
+.pd .grab{width:36px;height:4px;border-radius:99px;background:var(--cardline);align-self:center}
+.pd .sheet .day{font-size:11px}
+.pd .sheet textarea{font:inherit;font-size:13.5px;line-height:1.7;color:inherit;background:var(--chip);border:1px solid var(--cardline);border-radius:12px;padding:9px 11px;min-height:96px;resize:none}
+.pd .sheet .acts{display:flex;gap:8px}
+.pd .sheet .acts button{flex:1;font:inherit;font-size:13px;padding:9px;border-radius:14px;cursor:pointer;border:1px solid var(--cardline);background:transparent;color:inherit}
+.pd .sheet .acts .save{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:700}
+.pd .del{font:inherit;font-size:11px;background:none;border:0;color:var(--sub);align-self:center;cursor:pointer;text-decoration:underline}
+/* アカウント: 右上のユーザー名の丸をタップすると設定のシート */
+.pd .me{font:inherit;font-size:12px;font-weight:700;width:28px;height:28px;border-radius:50%;border:1px solid var(--acc);background:var(--chip);color:var(--acc);cursor:pointer}
+.pd .who{display:flex;align-items:center;gap:10px}
+.pd .who .me{width:40px;height:40px;font-size:16px;cursor:default}
+.pd .who b{font-size:15px}
+.pd .who small{display:block;font-size:10.5px;color:var(--sub)}
+.pd .rows{display:flex;flex-direction:column;border-radius:14px;overflow:hidden;border:1px solid var(--cardline)}
+.pd .rows button{font:inherit;font-size:12.5px;text-align:left;padding:10px 12px;background:var(--chip);color:inherit;border:0;border-bottom:1px solid var(--cardline);cursor:pointer;display:flex;justify-content:space-between}
+.pd .rows button:last-child{border-bottom:0}
+.pd .rows button span{color:var(--sub)}
+.pd .rows .danger{color:#F29B8F}
+.pd .sheet input{font:inherit;font-size:14px;color:inherit;background:var(--chip);border:1px solid var(--acc);border-radius:10px;padding:6px 9px;width:100%}
+/* スタンプを押す (押して試せる) */
+.pd .stamps{align-items:center}
+.pd .stamps button{font:inherit;font-size:10.5px;padding:2px 8px;border-radius:99px;border:0;background:var(--chip);color:inherit;cursor:pointer}
+.pd .stamps button.hit{background:var(--acc);color:var(--accink)}
+.pd .stamps button b{font-weight:700;margin-left:3px;font-variant-numeric:tabular-nums}
+.pd .stamps .plus{width:22px;height:22px;padding:0;border:1px dashed var(--cardline);background:transparent;color:var(--acc);font-size:14px;line-height:1}
+.pd .stamps .plus[aria-expanded="true"]{background:var(--acc);color:var(--accink);border-style:solid}
+.pd .shelf{display:flex;gap:4px;margin-top:8px;padding:5px;border-radius:99px;background:var(--chip);border:1px solid var(--cardline);width:max-content}
+.pd .shelf button{font-size:19px;line-height:1;width:36px;height:36px;padding:0;border-radius:50%;border:1px solid transparent;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.pd .shelf button:hover{transform:scale(1.15)}
+.pd .stamps button{display:inline-flex;align-items:center;gap:2px}
+.pd .stamps .emo{font-size:13px;line-height:1;padding:0;background:none;border-radius:0}
+.pd .stamps span:has(.emo){display:inline-flex;align-items:center;gap:2px}
+.pd .stamps b{font-weight:700;margin-left:3px;font-variant-numeric:tabular-nums}
+.pd .shelf button i{width:8px;height:8px;border-radius:50%;background:var(--sub);display:inline-block}
+.pd .shelf button[aria-pressed="true"]{background:var(--acc);color:var(--accink);border-color:var(--acc)}
+.pd .shelf button[aria-pressed="true"] i{background:var(--accink)}
+.pd .shelf-note{grid-column:1/-1;font-size:10px;color:var(--sub);text-align:center}
+/* 持ち主:「絵文字がもっと目立たないのがいい。あくまで日記の投稿がメイン」→ スタンプは地の色に沈め、夢の文を主役に */
+.pd .item{font-size:14px;line-height:1.75}
+.pd .stamps{gap:1px;margin-top:5px;opacity:.7}
+.pd .stamps span,.pd .stamps button{background:transparent;padding:1px 4px;color:var(--sub);font-size:10px}
+.pd .stamps span.hit,.pd .stamps button.hit{background:transparent;color:var(--acc)}
+.pd .stamps .emo{font-size:11px;filter:grayscale(.6);padding:0}
+.pd .stamps .hit .emo{filter:none}
+.pd .stamps b{font-weight:400;margin-left:2px}
+.pd .stamps button.plus{width:18px;height:18px;padding:0;border:0;background:transparent;color:var(--sub);font-size:12px}
+.pd .stamps button.plus[aria-expanded="true"]{background:transparent;color:var(--acc)}
+.pd .shelf{padding:3px;gap:2px;margin-top:6px}
+.pd .shelf button{width:30px;height:30px;font-size:16px}
+@media (prefers-reduced-motion:no-preference){.pd .pop{animation:pop .35s ease-out}}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
+/* ホーム画面 */
+.hs{background:linear-gradient(160deg,#2B3350,#5C4C6E 55%,#B98377);color:#fff;font-family:var(--f-body)}
+.hs .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px 8px;padding:22px 16px}
+.hs .app{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:9.5px}
+.hs .app i{display:block;width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,.22)}
+.hs .app .ico{background:radial-gradient(circle at 50% 118%,#F6B98C 0 26%,transparent 27%),linear-gradient(180deg,#1A1D30 0%,#3A3352 55%,#9B6676 100%);position:relative;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.hs .app .ico::after{content:"";position:absolute;top:10px;right:11px;width:11px;height:11px;border-radius:50%;box-shadow:-3px 2px 0 0 #F3E6C4}
+.hs .dock{margin:auto 10px 14px;padding:10px 14px;border-radius:24px;background:rgba(255,255,255,.18);display:flex;justify-content:space-between}
+.hs .dock i{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.25)}
+.homebar{position:absolute;left:50%;bottom:7px;width:96px;height:4px;margin-left:-48px;border-radius:99px;background:rgba(255,255,255,.75)}
+.rowlabel{font-size:13px;font-weight:700;margin:18px 0 6px;color:var(--muted)}
+</style>
+
+<div class="shell">
+<nav class="toc" aria-label="目次">
+  <div class="toc-brand">夢日記SNS<small>画面の案 (2026-11-26)</small></div>
+  <ol id="toc"></ol>
+</nav>
+
+<main>
+<div class="wrap">
+
+<section class="s" id="intro" data-toc="はじめに">
+  <div class="lead">
+    <span class="eyebrow">YUME-NIKKI · UI MOCK</span>
+    <h1>夢日記SNS の画面の案</h1>
+    <p>夢の話をしたいけれど、人に話しても聞いてもらいにくい。そこで、起き抜けに断片だけでも残せて、見せたい夢だけをみんなに流せる場所を作ります。3 つの案を、同じ 3 画面 (書く・日記・新着の流れ) で並べました。</p>
+    <p>気に入った案、混ぜたいところ (「A の書く画面 + B の色」など)、気になるところを、このページにコメントしてください。夢の文とユーザー名はすべて見本です。</p>
+  </div>
+  <div class="req">
+    <div><b>公開</b>投稿ごとに選ぶ。既定は自分だけ</div>
+    <div><b>見方</b>公開された夢の新着の流れ</div>
+    <div><b>反応</b>スタンプだけ (見たことある・こわい・ふしぎ・いいな)</div>
+    <div><b>使う人</b>誰でも。ユーザー名は自動で付く (あとで変えられる)</div>
+  </div>
+</section>
+
+<section class="s" id="plan-a" data-toc="案 A 枕元のノート">
+  <span class="eyebrow">案 A</span>
+  <h2>枕元のノート</h2>
+  <div class="notes">
+    <div class="note aim"><h3>ねらい</h3><ul><li>枕元に置いた罫線のノートに、ペンで書きつける感じ</li><li>夢の文だけ手書き風の字にして、自分の日記らしさを出す</li></ul></div>
+    <div class="note pro"><h3>良い点</h3><ul><li>日記として毎日開くのに飽きにくい、落ち着いた見た目</li><li>ほかの人の夢がテープで貼った紙片に見え、他人のノートをのぞく感じが出る</li></ul></div>
+    <div class="note con"><h3>気になる点</h3><ul><li>朝の暗い部屋では明るすぎる (夜用の色を別に要る)</li><li>おとなしく、SNS らしいにぎやかさは弱い</li></ul></div>
+  </div>
+  <div class="phones">
+    <div class="ph pa"><div class="dev"><div class="scr">
+      <div class="sb"><span>6:42</span><span>●●● 82%</span></div>
+      <div class="pg">
+        <div class="date">11月26日 (水) の夢</div>
+        <div class="ink">海の上の学校。先生が猫だった<br><span class="ph-hint">… 覚えていることを、一言だけでも</span></div>
+        <div style="flex:1"></div>
+        <div class="toggle"><span class="on">自分だけ</span><span>みんなに公開</span></div>
+        <div class="btn">ノートに残す</div>
+      </div>
+      <div class="tab"><span class="cur"><i></i>書く</span><span><i></i>日記</span><span><i></i>みんなの夢</span></div>
+    </div></div><div class="phone-cap">書く (開いてすぐ入力欄)</div></div>
+
+    <div class="ph pa"><div class="dev"><div class="scr">
+      <div class="sb"><span>12:10</span><span>●●● 64%</span></div>
+      <div class="pg">
+        <div class="date">わたしの夢日記</div>
+        <div class="day"><small>11月26日 · 自分だけ</small><div class="ink">海の上の学校。先生が猫だった</div></div>
+        <div class="day"><small>11月25日 · みんなに公開</small><div class="ink">エレベーターが横に動いて、知らない駅に着いた</div></div>
+        <div class="day"><small>11月23日 · 自分だけ</small><div class="ink">歯が全部抜ける夢。また</div></div>
+        <div class="day"><small>11月22日 · 自分だけ</small><div class="ink">祖母の家の廊下が、どこまでも続いていた</div></div>
+      </div>
+      <div class="tab"><span><i></i>書く</span><span class="cur"><i></i>日記</span><span><i></i>みんなの夢</span></div>
+    </div></div><div class="phone-cap">日記 (日付ごと)</div></div>
+
+    <div class="ph pa"><div class="dev"><div class="scr">
+      <div class="sb"><span>23:48</span><span>●●● 31%</span></div>
+      <div class="pg" style="background-image:none;gap:16px;padding-top:18px">
+        <div class="slip"><div class="meta"><span>ねむいアザラシ</span><span>3分前</span></div>
+          <div class="ink">空を泳いでいたら、雲がわたあめの味だった</div>
+          <div class="stamps"><span>見たことある 4</span><span class="hit">いいな 12</span><span>ふしぎ 3</span></div></div>
+        <div class="slip"><div class="meta"><span>3時のクジラ</span><span>18分前</span></div>
+          <div class="ink">エレベーターが横に動いて、知らない駅に着いた</div>
+          <div class="stamps"><span class="hit">見たことある 21</span><span>ふしぎ 8</span></div></div>
+      </div>
+      <div class="tab"><span><i></i>書く</span><span><i></i>日記</span><span class="cur"><i></i>みんなの夢</span></div>
+    </div></div><div class="phone-cap">新着の流れ (貼られた紙片)</div></div>
+  </div>
+</section>
+
+<section class="s" id="plan-b" data-toc="案 B 夜の水面">
+  <span class="eyebrow">案 B</span>
+  <h2>夜の水面</h2>
+  <div class="notes">
+    <div class="note aim"><h3>ねらい</h3><ul><li>夜明け前の暗い水の中に、夢の断片が浮かんでいる世界</li><li>起き抜けの目にまぶしくない、暗い画面が基本</li></ul></div>
+    <div class="note pro"><h3>良い点</h3><ul><li>朝の布団の中でも、夜ふかしの時間でもまぶしくない</li><li>他人の夢がゆっくり漂って見え、眺めているだけで落ち着く</li></ul></div>
+    <div class="note con"><h3>気になる点</h3><ul><li>暗い画面は昼に見ると沈んで見える</li><li>ぼかしや光の表現は、古いスマホで重くなりやすい</li></ul></div>
+  </div>
+  <div class="phones">
+    <div class="ph pb"><div class="dev"><div class="scr">
+      <div class="sb"><span>6:42</span><span>●●● 82%</span></div>
+      <div class="pg">
+        <div class="moon" aria-hidden="true"></div>
+        <div class="date">11.26 WED · 6:42</div>
+        <div class="big">どんな夢を<br>見ていましたか</div>
+        <div class="well">海の上の学校。先生が猫だった<br><span class="ph-hint">覚えているところだけで大丈夫</span></div>
+        <div class="toggle"><span class="on">自分だけ</span><span>みんなに流す</span></div>
+        <div class="btn">しずめておく</div>
+      </div>
+      <div class="tab"><span class="cur"><i></i>書く</span><span><i></i>日記</span><span><i></i>みんなの夢</span></div>
+    </div></div><div class="phone-cap">書く (起き抜けの暗い画面)</div></div>
+
+    <div class="ph pb"><div class="dev"><div class="scr">
+      <div class="sb"><span>12:10</span><span>●●● 64%</span></div>
+      <div class="pg">
+        <div class="date">わたしの夢 · 11月</div>
+        <div class="orb drift"><div class="meta"><span>26日</span><span>自分だけ</span></div>海の上の学校。先生が猫だった</div>
+        <div class="orb drift glow"><div class="meta"><span>25日</span><span>流した</span></div>エレベーターが横に動いて、知らない駅に着いた</div>
+        <div class="orb drift"><div class="meta"><span>23日</span><span>自分だけ</span></div>歯が全部抜ける夢。また</div>
+      </div>
+      <div class="tab"><span><i></i>書く</span><span class="cur"><i></i>日記</span><span><i></i>みんなの夢</span></div>
+    </div></div><div class="phone-cap">日記 (流した夢はほのかに光る)</div></div>
+
+    <div class="ph pb"><div class="dev"><div class="scr">
+      <div class="sb"><span>23:48</span><span>●●● 31%</span></div>
+      <div class="pg">
+        <div class="date">いま流れている夢</div>
+        <div class="orb drift glow"><div class="meta"><span>ねむいアザラシ</span><span>3分前</span></div>空を泳いでいたら、雲がわたあめの味だった
+          <div class="stamps"><span>見たことある 4</span><span class="hit">いいな 12</span></div></div>
+        <div class="orb drift"><div class="meta"><span>3時のクジラ</span><span>18分前</span></div>エレベーターが横に動いて、知らない駅に着いた
+          <div class="stamps"><span class="hit">見たことある 21</span><span>ふしぎ 8</span></div></div>
+        <div class="orb drift"><div class="meta"><span>青いまくら</span><span>40分前</span></div>試験の日なのに教室が見つからない
+          <div class="stamps"><span>こわい 6</span><span>見たことある 30</span></div></div>
+      </div>
+      <div class="tab"><span><i></i>書く</span><span><i></i>日記</span><span class="cur"><i></i>みんなの夢</span></div>
+    </div></div><div class="phone-cap">新着の流れ (ゆっくり漂う)</div></div>
+  </div>
+</section>
+
+<section class="s" id="plan-c" data-toc="案 C 夢の切れ端">
+  <span class="eyebrow">案 C</span>
+  <h2>夢の切れ端</h2>
+  <div class="notes">
+    <div class="note aim"><h3>ねらい</h3><ul><li>夢の一つひとつが色紙の切れ端。ボードにぺたぺた貼っていく</li><li>太い線と明るい色で、気軽に投げられる SNS らしさを出す</li></ul></div>
+    <div class="note pro"><h3>良い点</h3><ul><li>一画面に多くの夢が並び、眺めるのが楽しい</li><li>夢の気分 (こわい・ふしぎ) を紙の色に結びつけられる</li></ul></div>
+    <div class="note con"><h3>気になる点</h3><ul><li>にぎやかで、長い夢や静かな夢には合いにくい</li><li>日記として見返すと、落ち着かない</li></ul></div>
+  </div>
+  <div class="phones">
+    <div class="ph pc"><div class="dev"><div class="scr">
+      <div class="sb"><span>6:42</span><span>●●● 82%</span></div>
+      <div class="pg">
+        <div class="logo">ゆめのきれはし</div>
+        <div class="card lilac" style="flex:1">海の上の学校。先生が猫だった<br><span class="ph-hint">一言でも OK</span></div>
+        <div class="toggle"><span class="on">自分だけ</span><span>みんなに貼る</span></div>
+        <div class="btn">切れ端にする</div>
+      </div>
+      <div class="tab"><span class="cur"><i></i>書く</span><span><i></i>日記</span><span><i></i>ボード</span></div>
+    </div></div><div class="phone-cap">書く (色紙に書く)</div></div>
+
+    <div class="ph pc"><div class="dev"><div class="scr">
+      <div class="sb"><span>12:10</span><span>●●● 64%</span></div>
+      <div class="pg">
+        <div class="logo">11月の切れ端</div>
+        <div class="card lilac"><div class="meta"><span>26日</span><span>自分だけ</span></div>海の上の学校。先生が猫だった</div>
+        <div class="card mint"><div class="meta"><span>25日</span><span>貼った</span></div>エレベーターが横に動いて、知らない駅に着いた</div>
+        <div class="card peach"><div class="meta"><span>23日</span><span>自分だけ</span></div>歯が全部抜ける夢。また</div>
+      </div>
+      <div class="tab"><span><i></i>書く</span><span class="cur"><i></i>日記</span><span><i></i>ボード</span></div>
+    </div></div><div class="phone-cap">日記 (切れ端の束)</div></div>
+
+    <div class="ph pc"><div class="dev"><div class="scr">
+      <div class="sb"><span>23:48</span><span>●●● 31%</span></div>
+      <div class="pg">
+        <div class="logo">みんなのボード</div>
+        <div class="board">
+          <div class="card sky">雲がわたあめの味だった<div class="stamps"><span class="hit">いいな 12</span></div></div>
+          <div class="card lemon">エレベーターが横に動いた<div class="stamps"><span class="hit">見たこと 21</span></div></div>
+          <div class="card peach">教室が見つからない試験の日<div class="stamps"><span>こわい 6</span></div></div>
+          <div class="card mint">犬と将棋をさした<div class="stamps"><span>ふしぎ 9</span></div></div>
+        </div>
+      </div>
+      <div class="tab"><span><i></i>書く</span><span><i></i>日記</span><span class="cur"><i></i>ボード</span></div>
+    </div></div><div class="phone-cap">新着の流れ (ボードに貼る)</div></div>
+  </div>
+</section>
+
+<section class="s" id="plan-d" data-toc="案 D 夜と夜明け">
+  <span class="eyebrow">案 D · コメントから</span>
+  <h2>夜と夜明け</h2>
+  <div class="notes">
+    <div class="note aim"><h3>ねらい</h3><ul><li>基本は暗い画面。モチーフは置かず、静かな夜の色だけ</li><li>日の出を過ぎると、夜明けの色 (藍から桃・橙) に少しだけ明るくなる</li></ul></div>
+    <div class="note pro"><h3>良い点</h3><ul><li>起き抜けの暗い部屋でもまぶしくない</li><li>朝に開くと空の色が変わっていて、「夢から覚めた」感じが出る</li></ul></div>
+    <div class="note con"><h3>気になる点</h3><ul><li>日の出の時刻は地域で変わる。位置はサーバーに送らず、端末の中で計算する (地域は自分で選ぶか、端末の時間帯から)</li><li>夕方以降は夜の色に戻すので、昼の明るさは控えめ</li></ul></div>
+  </div>
+
+  <div class="rowlabel">夜 (日の出の前)</div>
+  <div class="phones">
+    <div class="ph pd night"><div class="dev"><div class="scr">
+      <div class="sb"><span>4:58</span><span>●●● 82%</span></div>
+      <div class="pg">
+        <div class="sky"><span>11.26 WED</span><span class="sun"><i></i>日の出 6:31</span></div>
+        <div class="big">どんな夢を<br>見ていましたか</div>
+        <div class="well">海の上の学校。先生が猫だった<br><span class="ph-hint">覚えているところだけで大丈夫</span></div>
+        <div class="toggle" data-write><button type="button" class="on" data-v="me">自分だけ</button><button type="button" data-v="pub">みんなに公開</button></div>
+        <button type="button" class="btn" data-write-btn>日記に残す</button>
+      </div>
+      <div class="tab"><span class="cur"><i></i>書く</span><span><i></i>日記</span><span><i></i>みんなの夢</span></div>
+    </div></div><div class="phone-cap">書く</div></div>
+
+    <div class="ph pd night"><div class="dev"><div class="scr">
+      <div class="sb"><span>1:20</span><span>●●● 64%</span></div>
+      <div class="pg">
+        <div class="sky"><span>わたしの夢 · 11月</span><button type="button" class="me" data-acct aria-label="アカウント">ね</button></div>
+        <div data-diary data-open="0">
+          <div class="item tap" data-vis="pub" data-day="26日">海の上の学校。先生が猫だった。廊下が波でゆれていた</div>
+          <div class="item tap" data-vis="pub" data-day="25日">エレベーターが横に動いて、知らない駅に着いた</div>
+          <div class="item tap" data-vis="me" data-day="23日">歯が全部抜ける夢。また</div>
+        </div>
+      </div>
+      <div class="tab"><span><i></i>書く</span><span class="cur"><i></i>日記</span><span><i></i>みんなの夢</span></div>
+    </div></div><div class="phone-cap">日記 (タップしたところ)</div></div>
+
+    <div class="ph pd night"><div class="dev"><div class="scr">
+      <div class="sb"><span>23:48</span><span>●●● 31%</span></div>
+      <div class="pg">
+        <div class="sky"><span>みんなの夢</span><span class="sun"><i></i>夜</span></div>
+        <div class="item"><div class="meta"><span>ねむいアザラシ · 3分前</span></div>空を泳いでいたら、雲がわたあめの味だった
+          <div class="stamps"><span>見たことある 4</span><span class="hit">いいな 12</span></div></div>
+        <div class="item"><div class="meta"><span>3時のクジラ · 18分前</span></div>エレベーターが横に動いて、知らない駅に着いた
+          <div class="stamps"><span class="hit">見たことある 21</span><span>ふしぎ 8</span></div></div>
+        <div class="item"><div class="meta"><span>青いまくら · 40分前</span></div>試験の日なのに教室が見つからない
+          <div class="stamps"><span>こわい 6</span><span>見たことある 30</span></div></div>
+      </div>
+      <div class="tab"><span><i></i>書く</span><span><i></i>日記</span><span class="cur"><i></i>みんなの夢</span></div>
+    </div></div><div class="phone-cap">新着の流れ</div></div>
+  </div>
+
+  <div class="rowlabel">朝 (日の出のあと)</div>
+  <div class="phones">
+    <div class="ph pd dawn"><div class="dev"><div class="scr">
+      <div class="sb"><span>6:42</span><span>●●● 82%</span></div>
+      <div class="pg">
+        <div class="sky"><span>11.26 WED</span><span class="sun"><i></i>おはよう · 日の出 6:31</span></div>
+        <div class="big">どんな夢を<br>見ていましたか</div>
+        <div class="well">海の上の学校。先生が猫だった<br><span class="ph-hint">覚えているところだけで大丈夫</span></div>
+        <div class="toggle" data-write><button type="button" class="on" data-v="me">自分だけ</button><button type="button" data-v="pub">みんなに公開</button></div>
+        <button type="button" class="btn" data-write-btn>日記に残す</button>
+      </div>
+      <div class="tab"><span class="cur"><i></i>書く</span><span><i></i>日記</span><span><i></i>みんなの夢</span></div>
+    </div></div><div class="phone-cap">書く</div></div>
+
+    <div class="ph pd dawn"><div class="dev"><div class="scr">
+      <div class="sb"><span>7:05</span><span>●●● 78%</span></div>
+      <div class="pg">
+        <div class="sky"><span>わたしの夢 · 11月</span><button type="button" class="me" data-acct aria-label="アカウント">ね</button></div>
+        <div data-diary>
+          <div class="item tap" data-vis="me" data-day="26日">海の上の学校。先生が猫だった</div>
+          <div class="item tap" data-vis="pub" data-day="25日">エレベーターが横に動いて、知らない駅に着いた</div>
+          <div class="item tap" data-vis="me" data-day="23日">歯が全部抜ける夢。また</div>
+        </div>
+      </div>
+      <div class="tab"><span><i></i>書く</span><span class="cur"><i></i>日記</span><span><i></i>みんなの夢</span></div>
+    </div></div><div class="phone-cap">日記</div></div>
+
+    <div class="ph pd dawn"><div class="dev"><div class="scr">
+      <div class="sb"><span>7:30</span><span>●●● 74%</span></div>
+      <div class="pg">
+        <div class="sky"><span>みんなの夢</span><span class="sun"><i></i>朝</span></div>
+        <div class="item"><div class="meta"><span>ねむいアザラシ · 3分前</span></div>空を泳いでいたら、雲がわたあめの味だった
+          <div class="stamps"><span>見たことある 4</span><span class="hit">いいな 12</span></div></div>
+        <div class="item"><div class="meta"><span>3時のクジラ · 18分前</span></div>エレベーターが横に動いて、知らない駅に着いた
+          <div class="stamps"><span class="hit">見たことある 21</span><span>ふしぎ 8</span></div></div>
+        <div class="item"><div class="meta"><span>青いまくら · 40分前</span></div>試験の日なのに教室が見つからない
+          <div class="stamps"><span>こわい 6</span><span>見たことある 30</span></div></div>
+      </div>
+      <div class="tab"><span><i></i>書く</span><span><i></i>日記</span><span class="cur"><i></i>みんなの夢</span></div>
+    </div></div><div class="phone-cap">新着の流れ</div></div>
+  </div>
+
+  <div class="rowlabel">さわって試す (書く画面の公開範囲・日記の夢・日記の右上の丸・スタンプの ＋ はどれも押せます)</div>
+  <div class="phones">
+    <div class="ph pd night"><div class="dev"><div class="scr">
+      <div class="sb"><span>23:51</span><span>●●● 30%</span></div>
+      <div class="pg">
+        <div class="sky"><span>みんなの夢</span><span class="sun"><i></i>夜</span></div>
+        <div class="item" data-st='{"mita":4,"kowai":0,"fushigi":0,"iina":12}' data-mine="" data-open="1"><div class="meta"><span>ねむいアザラシ · 3分前</span></div>空を泳いでいたら、雲がわたあめの味だった
+          <div class="stamps"></div></div>
+        <div class="item" data-st='{"mita":21,"kowai":0,"fushigi":8,"iina":0}' data-mine="mita"><div class="meta"><span>3時のクジラ · 18分前</span></div>エレベーターが横に動いて、知らない駅に着いた
+          <div class="stamps"></div></div>
+      </div>
+      <div class="tab"><span><i></i>書く</span><span><i></i>日記</span><span class="cur"><i></i>みんなの夢</span></div>
+    </div></div><div class="phone-cap">棚を開いたところ</div></div>
+
+    <div class="ph pd dawn"><div class="dev"><div class="scr">
+      <div class="sb"><span>7:32</span><span>●●● 73%</span></div>
+      <div class="pg">
+        <div class="sky"><span>みんなの夢</span><span class="sun"><i></i>朝</span></div>
+        <div class="item" data-st='{"mita":4,"kowai":0,"fushigi":1,"iina":13}' data-mine="iina fushigi"><div class="meta"><span>ねむいアザラシ · 5分前</span></div>空を泳いでいたら、雲がわたあめの味だった
+          <div class="stamps"></div></div>
+        <div class="item" data-st='{"mita":30,"kowai":6,"fushigi":0,"iina":0}' data-mine=""><div class="meta"><span>青いまくら · 42分前</span></div>試験の日なのに教室が見つからない
+          <div class="stamps"></div></div>
+      </div>
+      <div class="tab"><span><i></i>書く</span><span><i></i>日記</span><span class="cur"><i></i>みんなの夢</span></div>
+    </div></div><div class="phone-cap">押した直後 (いいな・ふしぎ を押した)</div></div>
+  </div>
+</section>
+
+<script>
+/* あとの章 (ホームに追加) の画面も動くよう、ページを読み終えてから付ける */
+addEventListener("DOMContentLoaded",()=>{
+/* 書く画面: 公開範囲でボタンの言葉が変わる */
+document.querySelectorAll(".pd [data-write]").forEach(t=>{
+  const btn=t.parentElement.querySelector("[data-write-btn]");
+  t.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+    t.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));
+    btn.textContent=b.dataset.v==="pub"?"残して公開する":"日記に残す";
+  }));
+});
+/* 日記: 夢をタップすると下から編集のシート。文と公開範囲を変えて保存 */
+document.querySelectorAll(".pd [data-diary]").forEach(list=>{
+  const scr=list.closest(".scr");
+  const items=[...list.querySelectorAll(".tap")];
+  function draw(it){
+    const pub=it.dataset.vis==="pub";
+    it.innerHTML="";
+    const d=document.createElement("div");d.className="day";
+    d.innerHTML="<span>"+it.dataset.day+"</span>"+(pub?'<span class="badge">公開中</span>':"");
+    const t=document.createElement("div");t.textContent=it.dataset.text;
+    it.append(d,t);
+  }
+  function open(it){
+    const veil=document.createElement("div");veil.className="veil";
+    const sh=document.createElement("div");sh.className="sheet";sh.setAttribute("role","dialog");sh.setAttribute("aria-label","夢をなおす");
+    let vis=it.dataset.vis;
+    sh.innerHTML='<div class="grab"></div><div class="day"><span>'+it.dataset.day+'の夢</span></div>';
+    const ta=document.createElement("textarea");ta.value=it.dataset.text;ta.setAttribute("aria-label","夢の文");
+    const tg=document.createElement("div");tg.className="toggle";
+    [["me","自分だけ"],["pub","みんなに公開"]].forEach(([v,n])=>{
+      const b=document.createElement("button");b.type="button";b.textContent=n;b.classList.toggle("on",v===vis);
+      b.addEventListener("click",()=>{vis=v;tg.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))});tg.appendChild(b);
+    });
+    const acts=document.createElement("div");acts.className="acts";
+    const no=document.createElement("button");no.type="button";no.textContent="やめる";
+    const ok=document.createElement("button");ok.type="button";ok.className="save";ok.textContent="保存";
+    const del=document.createElement("button");del.type="button";del.className="del";del.textContent="この夢を消す";
+    acts.append(no,ok);sh.append(ta,tg,acts,del);veil.appendChild(sh);scr.appendChild(veil);
+    const close=()=>veil.remove();
+    no.addEventListener("click",close);
+    veil.addEventListener("click",e=>{if(e.target===veil)close()});
+    ok.addEventListener("click",()=>{it.dataset.text=ta.value.trim()||it.dataset.text;it.dataset.vis=vis;draw(it);close()});
+    del.addEventListener("click",()=>{it.remove();close()});
+  }
+  items.forEach(it=>{
+    it.dataset.text=it.textContent.trim();it.setAttribute("role","button");it.tabIndex=0;draw(it);
+    it.addEventListener("click",()=>open(it));
+    it.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open(it)}});
+  });
+  if(list.dataset.open==="0"&&items[0])open(items[0]);
+});
+/* アカウント: ユーザー名の丸をタップすると設定のシート。ユーザー名はタップするとその場で変えられる */
+let myName="ねむいアザラシ";
+document.querySelectorAll(".pd [data-acct]").forEach(btn=>{
+  const scr=btn.closest(".scr");
+  btn.addEventListener("click",()=>{
+    const veil=document.createElement("div");veil.className="veil";
+    const sh=document.createElement("div");sh.className="sheet";sh.setAttribute("role","dialog");sh.setAttribute("aria-label","アカウント");
+    sh.innerHTML='<div class="grab"></div>';
+    const who=document.createElement("div");who.className="who";
+    const av=document.createElement("button");av.type="button";av.className="me";av.tabIndex=-1;av.textContent=myName[0];
+    const nm=document.createElement("div");nm.innerHTML="<b></b>";nm.querySelector("b").textContent=myName;
+    who.append(av,nm);
+    const rows=document.createElement("div");rows.className="rows";
+    const row=(label,sub,cls)=>{const b=document.createElement("button");b.type="button";if(cls)b.className=cls;b.innerHTML=label+(sub?"<span>"+sub+"</span>":"");rows.appendChild(b);return b};
+    const rn=nm;nm.style.cursor="pointer";nm.setAttribute("role","button");nm.setAttribute("aria-label","ユーザー名を変える");nm.tabIndex=0;
+    row("地域","東京");
+    row("ミュートしたユーザー","2人");
+    row("データをダウンロード","");
+    row("パスキー","この端末");
+    row("アカウントを削除","","danger");
+    rn.addEventListener("click",()=>{if(!nm.querySelector("b"))return;
+      const inp=document.createElement("input");inp.value=myName;inp.setAttribute("aria-label","ユーザー名");
+      nm.querySelector("b").replaceWith(inp);inp.focus();inp.select();
+      const done=()=>{myName=inp.value.trim()||myName;const b=document.createElement("b");b.textContent=myName;inp.replaceWith(b);av.textContent=myName[0];
+        document.querySelectorAll(".pd [data-acct]").forEach(x=>x.textContent=myName[0])};
+      inp.addEventListener("keydown",e=>{if(e.key==="Enter")done()});inp.addEventListener("blur",done);
+    });
+    sh.append(who,rows);veil.appendChild(sh);scr.appendChild(veil);
+    veil.addEventListener("click",e=>{if(e.target===veil)veil.remove()});
+  });
+});
+/* スタンプのモック: 「＋」で棚を開き、押すと数が増えて色が付く。もう一度押すと取り消し */
+(function(){
+  const NAMES={mita:"見たことある",kowai:"こわい",fushigi:"ふしぎ",iina:"いいな"};
+  const EMO={mita:"👀",kowai:"😨",fushigi:"🌀",iina:"✨"};
+  /* 押せない見本のスタンプ (「見たことある 4」) も絵文字の丸にする */
+  const byName=Object.fromEntries(Object.entries(NAMES).map(([k,v])=>[v,k]));
+  document.querySelectorAll(".pd .stamps span").forEach(s=>{
+    const m=s.textContent.trim().match(/^(.+?)\s+(\d+)$/);if(!m||!byName[m[1]])return;
+    s.innerHTML='<span class="emo">'+EMO[byName[m[1]]]+"</span><b>"+m[2]+"</b>";s.title=m[1];s.setAttribute("aria-label",m[1]+" "+m[2]);
+  });
+  document.querySelectorAll(".pd [data-st]").forEach((card,ci)=>{
+    const st=JSON.parse(card.dataset.st);
+    const mine=new Set(card.dataset.mine.split(" ").filter(Boolean));
+    let open=card.dataset.open==="1",popKey="";
+    const row=card.querySelector(".stamps");
+    const shelf=document.createElement("div");shelf.className="shelf";card.appendChild(shelf);
+    function toggle(k){
+      if(mine.has(k)){mine.delete(k);st[k]--}else{mine.add(k);st[k]++}
+      popKey=k;draw();
+    }
+    function draw(){
+      row.innerHTML="";
+      Object.keys(NAMES).forEach(k=>{
+        if(st[k]<=0)return;
+        const b=document.createElement("button");b.type="button";
+        b.className=(mine.has(k)?"hit":"")+(popKey===k?" pop":"");
+        b.innerHTML='<span class="emo">'+EMO[k]+"</span><b>"+st[k]+"</b>";b.title=NAMES[k];b.setAttribute("aria-label",NAMES[k]+" "+st[k]);
+        b.addEventListener("click",()=>toggle(k));
+        row.appendChild(b);
+      });
+      const plus=document.createElement("button");plus.type="button";plus.className="plus";plus.textContent="＋";
+      plus.setAttribute("aria-label","スタンプを押す");plus.setAttribute("aria-expanded",String(open));
+      plus.addEventListener("click",()=>{open=!open;draw()});
+      row.appendChild(plus);
+      shelf.hidden=!open;shelf.innerHTML="";
+      Object.keys(NAMES).forEach(k=>{
+        const b=document.createElement("button");b.type="button";b.setAttribute("aria-pressed",String(mine.has(k)));
+        b.textContent=EMO[k];b.title=NAMES[k];b.setAttribute("aria-label",NAMES[k]);b.addEventListener("click",()=>toggle(k));shelf.appendChild(b);
+      });
+      popKey="";
+    }
+    draw();
+  });
+})();
+});
+</script>
+
+<section class="s" id="home" data-toc="ホームに追加">
+  <span class="eyebrow">案 D · iPhone のホーム画面</span>
+  <h2>ホームに追加したとき</h2>
+  <div class="phones" style="margin-top:16px">
+    <div class="ph"><div class="dev"><div class="scr hs">
+      <div class="sb" style="color:#fff"><span>6:40</span><span>●●● 82%</span></div>
+      <div class="grid">
+        <span class="app"><i></i>天気</span><span class="app"><i></i>カメラ</span><span class="app"><i></i>写真</span><span class="app"><i></i>時計</span>
+        <span class="app"><i></i>メモ</span><span class="app mine"><i class="ico" aria-hidden="true"></i>夢日記</span><span class="app"><i></i>設定</span><span class="app"><i></i>地図</span>
+      </div>
+      <div class="dock"><i></i><i></i><i></i><i></i></div>
+    </div></div><div class="phone-cap">ホーム画面のアイコン</div></div>
+
+    <div class="ph pd dawn"><div class="dev"><div class="scr">
+      <div class="sb"><span>6:42</span><span>●●● 82%</span></div>
+      <div class="pg" style="padding-top:4px">
+        <div class="sky"><span>11.26 WED</span><span class="sun"><i></i>おはよう · 日の出 6:31</span></div>
+        <div class="big">どんな夢を<br>見ていましたか</div>
+        <div class="well">海の上の学校。先生が猫だった</div>
+        <div class="toggle" data-write><button type="button" class="on" data-v="me">自分だけ</button><button type="button" data-v="pub">みんなに公開</button></div>
+        <button type="button" class="btn" data-write-btn>日記に残す</button>
+      </div>
+      <div class="tab" style="padding-bottom:22px"><span class="cur"><i></i>書く</span><span><i></i>日記</span><span><i></i>みんなの夢</span></div>
+      <div class="homebar" aria-hidden="true"></div>
+    </div></div><div class="phone-cap">アイコンから開いたところ (ブラウザの枠なし)</div></div>
+  </div>
+</section>
+
+<section class="s" id="choose" data-toc="選び方">
+  <h2>選び方</h2>
+  <div class="lead" style="margin-top:12px">
+    <p>このページにコメントで、気に入った案と、混ぜたいところを書いてください。例:「B の色で、新着は A の紙片」「C の書く画面だけ使う」。</p>
+    <p>選んだ形は夢日記SNS のアイディアの「デザイン」に書き、工場はそれに合わせて作ります。今夜 23:10 の計画より前に決まれば、最初の版からその見た目で作ります。</p>
+  </div>
+</section>
+
+</div>
+</main>
+</div>
+
+<script>
+/* ===== BEGIN artifact-toc（ここから END までは触らない） =====
+   左の目次を [data-toc] の章から作り、クリックで確実にその章までスクロールする。
+   ・スクロールは window.scrollTo で行う（CSS の scroll-behavior:smooth は使わない）
+   ・スクロール中は「今いる章」の追従を止める。追従中に scrollIntoView を呼ぶと、
+     ページのスクロールが途中で止まってしまうため（2026-11-09 に実際に起きた不具合）
+   ・スマホの横スクロール目次は、目次の中だけを scrollTo で動かす */
+(function(){
+  const nav=document.querySelector(".toc"),list=document.getElementById("toc");
+  if(!nav||!list)return;
+  const secs=[...document.querySelectorAll("[data-toc][id]")];
+  const numbered=nav.hasAttribute("data-numbered");
+  list.innerHTML=secs.map((s,i)=>`<li><a href="#${s.id}">${numbered?`<span class="n">${i+1}</span>`:""}<span>${s.dataset.toc.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}</span></a></li>`).join("");
+  const links=[...list.querySelectorAll("a")];
+  const byId=new Map(links.map(a=>[a.getAttribute("href").slice(1),a]));
+  let lockUntil=0;
+  function setActive(id){
+    const a=byId.get(id);if(!a)return;
+    links.forEach(x=>x.classList.toggle("active",x===a));
+    if(list.scrollWidth>list.clientWidth+2)list.scrollTo({left:Math.max(0,a.offsetLeft-16)});
+  }
+  function jumpTo(id){
+    const el=document.getElementById(id);if(!el)return;
+    const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const topBar=nav.offsetWidth>=window.innerWidth-2?nav.offsetHeight:0;
+    const top=el.getBoundingClientRect().top+window.scrollY-topBar-12;
+    setActive(id);lockUntil=Date.now()+1200;
+    const se=document.scrollingElement||document.documentElement;
+    if(se.scrollHeight>se.clientHeight+2)window.scrollTo({top:Math.max(0,top),behavior:reduce?"auto":"smooth"});
+    else el.scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"});
+    try{history.replaceState(null,"","#"+id)}catch(e){}
+  }
+  links.forEach(a=>a.addEventListener("click",e=>{e.preventDefault();jumpTo(a.getAttribute("href").slice(1))}));
+  const io=new IntersectionObserver(es=>{
+    if(Date.now()<lockUntil)return;
+    es.forEach(en=>{if(en.isIntersecting)setActive(en.target.id)});
+  },{rootMargin:"-30% 0px -65% 0px"});
+  secs.forEach(s=>io.observe(s));
+  addEventListener("scrollend",()=>{lockUntil=0});
+  if(secs[0])setActive(secs[0].id);
+  const h=location.hash.slice(1);
+  if(h&&byId.has(h))setTimeout(()=>jumpTo(h),50);
+})();
+/* ===== END artifact-toc ===== */
+</script>
