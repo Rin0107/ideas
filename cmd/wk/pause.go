@@ -16,11 +16,13 @@ import (
 // 持ち主がアプリをいったん休ませる (2026-11-25、kisekae-closet を止めてほかのアイディアへ)。
 // drop と違い、本番からも消さず repo も archive しない。休んだアプリは tick・計画・作りかけの数 (max_wip) に入らない。
 // 主力 (focus) のアプリを休ませるときは focus も外す (残すと、主力がないとみて同じアイディアを選び直す)。
+// --focus を付けると、主力をそのアイディアに付け替える (休ませるのと同時に、次の主力を選ばせる)。
 
 func cmdPause(args []string) error {
 	fs := flag.NewFlagSet("pause", flag.ContinueOnError)
 	repo := fs.String("repo", "", "休ませるアプリの repo (owner/name)")
 	reason := fs.String("reason", "", "休ませる理由")
+	focus := fs.String("focus", "", "次の主力にするアイディアの ID (ideas_dir にあるもの)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -39,8 +41,18 @@ func cmdPause(args []string) error {
 	if p == nil || !p.Active() {
 		return fmt.Errorf("作りかけのアプリに %q がない", *repo)
 	}
-	if e.cfg.Focus == p.Idea {
-		if err := clearFocus(e.cfg.Root, p.Idea); err != nil {
+	next := e.cfg.Focus
+	if next == p.Idea {
+		next = ""
+	}
+	if *focus != "" {
+		if _, err := os.Stat(filepath.Join(e.cfg.Root, e.cfg.IdeasDir, *focus, "idea.md")); err != nil {
+			return fmt.Errorf("次の主力のアイディア %q がない: %w", *focus, err)
+		}
+		next = *focus
+	}
+	if next != e.cfg.Focus {
+		if err := setFocus(e.cfg.Root, e.cfg.Focus, next); err != nil {
 			return err
 		}
 	}
@@ -71,16 +83,16 @@ func cmdResume(args []string) error {
 	return e.save()
 }
 
-// clearFocus は factory.json の focus を空にする (ほかの設定の書き方はそのまま)。
-func clearFocus(root, idea string) error {
+// setFocus は factory.json の focus を from から to に書きかえる (ほかの設定の書き方はそのまま)。
+func setFocus(root, from, to string) error {
 	path := filepath.Join(root, "factory.json")
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
-	re := regexp.MustCompile(`"focus"\s*:\s*"` + regexp.QuoteMeta(idea) + `"`)
+	re := regexp.MustCompile(`"focus"\s*:\s*"` + regexp.QuoteMeta(from) + `"`)
 	if !re.Match(b) {
-		return fmt.Errorf("factory.json の focus を書きかえられない (%s)", idea)
+		return fmt.Errorf("factory.json の focus を書きかえられない (%s)", from)
 	}
-	return os.WriteFile(path, re.ReplaceAll(b, []byte(`"focus": ""`)), 0o644)
+	return os.WriteFile(path, re.ReplaceAll(b, []byte(`"focus": "`+to+`"`)), 0o644)
 }

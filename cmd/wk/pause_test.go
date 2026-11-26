@@ -44,6 +44,21 @@ func TestPauseAndResume(t *testing.T) {
 	}
 }
 
+// --focus は主力を付け替える (主力を休ませても、主力でないものを休ませても)
+func TestPauseFocus(t *testing.T) {
+	for name, from := range map[string]string{"主力を休ませる": "00001-alpha", "主力がない": ""} {
+		t.Run(name, func(t *testing.T) {
+			f := newFactory(t)
+			f.writeConfig(map[string]any{"focus": from})
+			f.projects(active())
+			must(t, cmdPause([]string{"--repo", "Tester/alpha", "--reason", "次の主力に場所をあける", "--focus", "00003-gamma"}))
+			if cfg := f.read("factory.json"); !strings.Contains(cfg, `"focus": "00003-gamma"`) {
+				t.Fatal(cfg)
+			}
+		})
+	}
+}
+
 func TestPauseErrors(t *testing.T) {
 	cases := map[string]struct {
 		args  []string
@@ -57,6 +72,8 @@ func TestPauseErrors(t *testing.T) {
 			f.projects(active(func(p *state.Project) { p.Status = state.Shipped }))
 		}, want: "作りかけのアプリに"},
 		"設定が壊れている": {setup: func(f *factory) { f.write("factory.json", "{") }, want: "factory.json"},
+		"次の主力がない": {args: []string{"--repo", "Tester/alpha", "--reason", "いったん止めてほかのアイディアへ", "--focus", "09999-nope"},
+			want: `"09999-nope" がない`},
 		"focus が読めない": {setup: func(f *factory) {
 			f.writeConfig(map[string]any{"focus": "00001-alpha"})
 			readOnly(t, filepath.Join(f.root, "factory.json"))
@@ -78,12 +95,12 @@ func TestPauseErrors(t *testing.T) {
 	}
 }
 
-func TestClearFocusErrors(t *testing.T) {
+func TestSetFocusErrors(t *testing.T) {
 	dir := t.TempDir()
-	errHas(t, clearFocus(dir, "a"), "factory.json")
+	errHas(t, setFocus(dir, "a", ""), "factory.json")
 	f := newFactory(t)
 	f.writeConfig(map[string]any{"focus": "00002-beta"})
-	errHas(t, clearFocus(f.root, "00001-alpha"), "focus を書きかえられない")
+	errHas(t, setFocus(f.root, "00001-alpha", ""), "focus を書きかえられない")
 }
 
 func TestResumeErrors(t *testing.T) {
