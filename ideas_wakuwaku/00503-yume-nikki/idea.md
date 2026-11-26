@@ -40,6 +40,12 @@
 - **反応はスタンプだけ**: 決まった数種類 (例: 見たことある・こわい・ふしぎ・いいな)。自由な文字のコメント・DM は作らない
 - **誰でも登録できる**: 知らない人どうしが見る前提で、守り (下) を最初から入れる
 - **色は夜と夜明け** (持ち主のコメント、2026-11-26):「ダークモードを基本、朝の時間（日の出以降はちょっと明るい、日の出の色のイメージ）なUIがいいな」。基本は暗い夜の色 (モチーフなし)。日の出のあとは藍から桃・橙の夜明けの色で少し明るく。日の出の時刻は端末の中で計算し、位置はサーバーに送らない (地域は自分で選ぶか端末の時間帯から)。UI モックの案 D
+- **ホームに追加したら iPhone のアプリのように** (持ち主:「kisekaeと同じようにiPhoneのあぷりっぽくホームに登録したときのUIも最初っから作っておいて」): 最初の版から入れる
+  - manifest (display: standalone、name・short_name は「夢日記」、start_url・scope は ./、background_color と theme_color は夜の色)、apple-touch-icon (180px)、apple-mobile-web-app-capable・apple-mobile-web-app-title・apple-mobile-web-app-status-bar-style (暗い画面なので black-translucent)、viewport-fit=cover
+  - 中身はステータスバーとホームバーに重ならない (env(safe-area-inset-*) で上下左右をあける。kisekae-closet #58 で上部が重なった)。下のタブはホームバーの上に置く
+  - 夜と夜明けで theme-color も変える (ステータスバーの地の色が画面とそろう)
+  - アイコンは夜明け前の空の色の上に、小さな月か朝日。ホーム画面で文字なしでも分かる形
+  - e2e で、iPhone の大きさ (390×844) の standalone 表示で、上下の要素が安全な範囲に収まることを確かめる
 - 見た目と画面の形の細かいところは、UI モックの案から持ち主が選ぶ
 
 ## 守り (docs/DESIGN-v3.md §10)
