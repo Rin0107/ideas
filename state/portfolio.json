@@ -315,16 +315,17 @@
     {
       "idea": "00503-yume-nikki",
       "repo": "Rin0107/yume-nikki",
-      "status": "building",
+      "status": "iterating",
       "stack": "web-db",
       "started": "2026-11-27",
-      "milestone": "MVP",
-      "iteration": 0,
+      "milestone": "v0.2",
+      "iteration": 1,
       "ticks": {
         "total": 1,
         "phase": 0
       },
       "url": "",
+      "planned": "2026-11-26",
       "history": [
         {
           "date": "2026-11-27",
@@ -335,6 +336,11 @@
           "date": "2026-11-27",
           "event": "scaffolded",
           "note": "Rin0107/yume-nikki / issue 3 件"
+        },
+        {
+          "date": "2026-11-27",
+          "event": "planned",
+          "note": "v0.2: 規約に同意してパスキーで入り、起き抜けの夢の断片を 10 秒で日記に残して見返せる。見せたい夢だけ公開すると新着の流れに並び、絵文字のスタンプで反応できる。個人が分かることは端末とサーバーの両方で止める (task 28 件)"
         }
       ]
     }

@@ -1,0 +1,890 @@
+{
+  "tasks": {
+    "10": {
+      "issue": 10,
+      "title": "新着の流れ (GET /api/feed) と、公開の夢を読む仕様 (spec/Access.tla)",
+      "branch": "wk/t10",
+      "tests": {
+        "tests/unit/plan/v0.1-05-feed-api.test.ts": "025969358d4791ba583be4375a597c3a8c672dc49e91385bbe451bc38226a156",
+        "tests/unit/plan/worker-harness.ts": "a425aec182aa9221fde9b294b5e3efeb02e9f32c0a81b5a384d1dd25fbc7847c"
+      },
+      "paths": [
+        "src/worker/db.ts",
+        "src/worker/api.ts",
+        "spec/Access.tla",
+        "spec/Access.cfg",
+        "tests/unit/worker.test.ts",
+        "tests/unit/db.test.ts",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "新着の流れ",
+          "run": "npx vitest run tests/unit/plan/v0.1-05-feed-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        9
+      ],
+      "plan": "2026-11-27"
+    },
+    "11": {
+      "issue": 11,
+      "title": "スタンプの API (POST /api/dreams/:id/stamps) と回数の上限",
+      "branch": "wk/t11",
+      "tests": {
+        "tests/unit/plan/v0.1-06-stamp-api.test.ts": "e4d05580f68192e76497cfa3626afc71ff9b28ef2a1b318c990c418d15fc8a91",
+        "tests/unit/plan/worker-harness.ts": "a425aec182aa9221fde9b294b5e3efeb02e9f32c0a81b5a384d1dd25fbc7847c"
+      },
+      "paths": [
+        "src/stamps.ts",
+        "src/worker/db.ts",
+        "src/worker/api.ts",
+        "tests/unit/worker.test.ts",
+        "tests/unit/db.test.ts",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "スタンプの API",
+          "run": "npx vitest run tests/unit/plan/v0.1-06-stamp-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        10
+      ],
+      "plan": "2026-11-27"
+    },
+    "12": {
+      "issue": 12,
+      "title": "通報とミュートの API (report・mute・GET/DELETE /api/mutes)",
+      "branch": "wk/t12",
+      "tests": {
+        "tests/unit/plan/v0.1-07-report-mute-api.test.ts": "39dfa443ff658c68d66cd85f71f72a084c7eb4e555c05baf26e832de3ed1ba3e",
+        "tests/unit/plan/worker-harness.ts": "a425aec182aa9221fde9b294b5e3efeb02e9f32c0a81b5a384d1dd25fbc7847c"
+      },
+      "paths": [
+        "src/worker/db.ts",
+        "src/worker/api.ts",
+        "tests/unit/worker.test.ts",
+        "tests/unit/db.test.ts",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "通報とミュートの API",
+          "run": "npx vitest run tests/unit/plan/v0.1-07-report-mute-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        11
+      ],
+      "plan": "2026-11-27"
+    },
+    "13": {
+      "issue": 13,
+      "title": "画面からサーバーを呼ぶ関数 (src/client.ts) に夢・流れ・スタンプ・通報・ミュート",
+      "branch": "wk/t13",
+      "tests": {
+        "tests/unit/plan/v0.1-08-client.test.ts": "5fd46cedac33cceb492f98ae24561f0a8e55b01366cb9bb8f11ae884beba3d39"
+      },
+      "paths": [
+        "src/client.ts",
+        "tests/unit/client.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "通信の関数",
+          "run": "npx vitest run tests/unit/plan/v0.1-08-client.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-27"
+    },
+    "14": {
+      "issue": 14,
+      "title": "利用規約とプライバシーポリシーの画面 (src/Legal.tsx)",
+      "branch": "wk/t14",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "4be4f0187454a5210ed8de212ad69697aa7ff6cb18aaa6280089d5cd61ed7180",
+        "tests/unit/plan/v0.1-09-legal.test.tsx": "fbda7f131011b47ecc0d226fea3259cffaeda80a5130278b1a0ee2202228c4aa"
+      },
+      "paths": [
+        "src/Legal.tsx",
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx",
+        "tests/unit/legal.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "規約とポリシー",
+          "run": "npx vitest run tests/unit/plan/v0.1-09-legal.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-27"
+    },
+    "15": {
+      "issue": 15,
+      "title": "初めてのときと規約の版が上がったときの同意の画面",
+      "branch": "wk/t15",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "4be4f0187454a5210ed8de212ad69697aa7ff6cb18aaa6280089d5cd61ed7180",
+        "tests/unit/plan/v0.1-10-agree.test.tsx": "42f3d43808bb464bfa4af6e9a914885d5e7d16db749fcd771e77016a554ce3ae"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx",
+        "tests/e2e/smoke.spec.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "同意の画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-10-agree.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "規約とポリシー (前の task)",
+          "run": "npx vitest run tests/unit/plan/v0.1-09-legal.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        8,
+        13,
+        14
+      ],
+      "plan": "2026-11-27"
+    },
+    "16": {
+      "issue": 16,
+      "title": "下のタブ (書く・日記・みんなの夢) と「書く」の画面。服の画面を外す",
+      "branch": "wk/t16",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "4be4f0187454a5210ed8de212ad69697aa7ff6cb18aaa6280089d5cd61ed7180",
+        "tests/unit/plan/v0.1-11-write.test.tsx": "8d1ef5fc04a712129cea4ccb9ef8da236ec345fa344beac2afca68edf9bcd820"
+      },
+      "paths": [
+        "src/Home.tsx",
+        "src/Write.tsx",
+        "src/App.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx",
+        "tests/unit/main.test.tsx",
+        "tests/e2e/smoke.spec.ts",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "書く画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-11-write.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "同意 (前の task)",
+          "run": "npx vitest run tests/unit/plan/v0.1-10-agree.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        5,
+        13,
+        15
+      ],
+      "plan": "2026-11-27"
+    },
+    "17": {
+      "issue": 17,
+      "title": "日記の画面: 日付ごとに並べて、キーワードで探す",
+      "branch": "wk/t17",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "4be4f0187454a5210ed8de212ad69697aa7ff6cb18aaa6280089d5cd61ed7180",
+        "tests/unit/plan/v0.1-12-diary.test.tsx": "f56e170069d347035dc57c3c234a5143d32c634c834f97bb41ed7f22fe44c463"
+      },
+      "paths": [
+        "src/Diary.tsx",
+        "src/Home.tsx",
+        "src/style.css",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "日記の画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-12-diary.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        16
+      ],
+      "plan": "2026-11-27"
+    },
+    "18": {
+      "issue": 18,
+      "title": "日記の夢を押すと下から「夢をなおす」シート (直す・公開範囲・消す)",
+      "branch": "wk/t18",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "4be4f0187454a5210ed8de212ad69697aa7ff6cb18aaa6280089d5cd61ed7180",
+        "tests/unit/plan/v0.1-13-edit-sheet.test.tsx": "eb0f3d564c2be802f30049b984e09f4fd9378338bdb705a365b439cf19f459b9"
+      },
+      "paths": [
+        "src/EditSheet.tsx",
+        "src/Diary.tsx",
+        "src/style.css"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "なおすシート",
+          "run": "npx vitest run tests/unit/plan/v0.1-13-edit-sheet.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "日記 (前の task)",
+          "run": "npx vitest run tests/unit/plan/v0.1-12-diary.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        17
+      ],
+      "plan": "2026-11-27"
+    },
+    "19": {
+      "issue": 19,
+      "title": "みんなの夢の画面: 新着の流れ (ユーザー名・何分前・本文)",
+      "branch": "wk/t19",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "4be4f0187454a5210ed8de212ad69697aa7ff6cb18aaa6280089d5cd61ed7180",
+        "tests/unit/plan/v0.1-14-feed.test.tsx": "af37db8f4e465269563e72723ef0f68c50a46b27816672851f38772a361466d9"
+      },
+      "paths": [
+        "src/time.ts",
+        "src/Feed.tsx",
+        "src/Home.tsx",
+        "src/style.css",
+        "tests/unit/time.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "みんなの夢",
+          "run": "npx vitest run tests/unit/plan/v0.1-14-feed.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        16
+      ],
+      "plan": "2026-11-27"
+    },
+    "20": {
+      "issue": 20,
+      "title": "スタンプ (絵文字 + 数の丸と「＋」の棚)",
+      "branch": "wk/t20",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "4be4f0187454a5210ed8de212ad69697aa7ff6cb18aaa6280089d5cd61ed7180",
+        "tests/unit/plan/v0.1-15-stamps-ui.test.tsx": "3ffbe09430cbecab6f7a728d70e33d6f3449cb8f88045174334141c4475bae72"
+      },
+      "paths": [
+        "src/Feed.tsx",
+        "src/style.css",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "スタンプの画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-15-stamps-ui.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "みんなの夢 (前の task)",
+          "run": "npx vitest run tests/unit/plan/v0.1-14-feed.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        11,
+        19
+      ],
+      "plan": "2026-11-27"
+    },
+    "21": {
+      "issue": 21,
+      "title": "公開の夢の「その他」から通報する・この人をミュート",
+      "branch": "wk/t21",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "4be4f0187454a5210ed8de212ad69697aa7ff6cb18aaa6280089d5cd61ed7180",
+        "tests/unit/plan/v0.1-16-report-mute-ui.test.tsx": "8d07e2bf07fc93dc5b47d162efa119c4f37e3ba578406b7145dee58c2f5bd029"
+      },
+      "paths": [
+        "src/Feed.tsx",
+        "src/style.css"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "通報とミュートの画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-16-report-mute-ui.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "スタンプ (前の task)",
+          "run": "npx vitest run tests/unit/plan/v0.1-15-stamps-ui.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        12,
+        20
+      ],
+      "plan": "2026-11-27"
+    },
+    "22": {
+      "issue": 22,
+      "title": "日記の右上の丸からアカウントのシート (ダウンロード・ログアウト・削除・規約)",
+      "branch": "wk/t22",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "4be4f0187454a5210ed8de212ad69697aa7ff6cb18aaa6280089d5cd61ed7180",
+        "tests/unit/plan/v0.1-17-account-sheet.test.tsx": "456fef9db2698e0254d6bde03ee005a35440c599c8c289ee9e8664f845659e81"
+      },
+      "paths": [
+        "src/Account.tsx",
+        "src/Diary.tsx",
+        "src/Home.tsx",
+        "src/style.css"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "アカウントのシート",
+          "run": "npx vitest run tests/unit/plan/v0.1-17-account-sheet.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "日記 (前の task)",
+          "run": "npx vitest run tests/unit/plan/v0.1-12-diary.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        14,
+        17
+      ],
+      "plan": "2026-11-27"
+    },
+    "23": {
+      "issue": 23,
+      "title": "ユーザー名を変える API (PATCH /api/profile)",
+      "branch": "wk/t23",
+      "tests": {
+        "tests/unit/plan/v0.1-18-handle-api.test.ts": "1fd4dc40933f0a615107b8c3326993260415c7923ada30e0ee32cf0d6e762e70",
+        "tests/unit/plan/worker-harness.ts": "a425aec182aa9221fde9b294b5e3efeb02e9f32c0a81b5a384d1dd25fbc7847c"
+      },
+      "paths": [
+        "src/worker/db.ts",
+        "src/worker/api.ts",
+        "src/client.ts",
+        "tests/unit/db.test.ts",
+        "tests/unit/client.test.ts",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "ユーザー名の API",
+          "run": "npx vitest run tests/unit/plan/v0.1-18-handle-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        10,
+        13
+      ],
+      "plan": "2026-11-27"
+    },
+    "24": {
+      "issue": 24,
+      "title": "アカウントのシートでユーザー名をその場で変える",
+      "branch": "wk/t24",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "4be4f0187454a5210ed8de212ad69697aa7ff6cb18aaa6280089d5cd61ed7180",
+        "tests/unit/plan/v0.1-19-handle-ui.test.tsx": "c6ec81839423e457f6b1e0606e2f5a33b10cc35076e01e418b4e4782e055b9d1"
+      },
+      "paths": [
+        "src/Account.tsx",
+        "src/Home.tsx",
+        "src/Diary.tsx",
+        "src/App.tsx",
+        "src/style.css"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "ユーザー名の画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-19-handle-ui.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "アカウントのシート (前の task)",
+          "run": "npx vitest run tests/unit/plan/v0.1-17-account-sheet.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        22,
+        23
+      ],
+      "plan": "2026-11-27"
+    },
+    "25": {
+      "issue": 25,
+      "title": "アカウントのシートの「ミュートしたユーザー」の一覧とミュートをやめる",
+      "branch": "wk/t25",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "4be4f0187454a5210ed8de212ad69697aa7ff6cb18aaa6280089d5cd61ed7180",
+        "tests/unit/plan/v0.1-20-mute-list.test.tsx": "05758b932fde69c46e570b941725bf49e0e79b67b2c0e80c3fc5c2dab5ab1dc8"
+      },
+      "paths": [
+        "src/Account.tsx",
+        "src/style.css"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "ミュートの一覧",
+          "run": "npx vitest run tests/unit/plan/v0.1-20-mute-list.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "アカウントのシート (前の task)",
+          "run": "npx vitest run tests/unit/plan/v0.1-17-account-sheet.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        12,
+        22
+      ],
+      "plan": "2026-11-27"
+    },
+    "26": {
+      "issue": 26,
+      "title": "日の出と日の入りの計算 (src/sun.ts) と地域の一覧 (src/regions.ts)",
+      "branch": "wk/t26",
+      "tests": {
+        "tests/unit/plan/v0.1-21-sun.test.ts": "f5d84093658faba355650c79ac2a546c918c70260517c82b36add8d0df0b2e25"
+      },
+      "paths": [
+        "src/sun.ts",
+        "src/regions.ts",
+        "tests/unit/sun.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "日の出の計算",
+          "run": "npx vitest run tests/unit/plan/v0.1-21-sun.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-27"
+    },
+    "27": {
+      "issue": 27,
+      "title": "夜と夜明けの色 (data-sky と theme-color) と、アカウントのシートの「地域」",
+      "branch": "wk/t27",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "4be4f0187454a5210ed8de212ad69697aa7ff6cb18aaa6280089d5cd61ed7180",
+        "tests/unit/plan/v0.1-22-sky-theme.test.tsx": "14b7bd4fde8a272a787b68c3536df42880392c86010bf96601a82622b6df0e4a"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/Home.tsx",
+        "src/Account.tsx",
+        "src/style.css",
+        "DATA.md",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "夜と夜明けの色",
+          "run": "npx vitest run tests/unit/plan/v0.1-22-sky-theme.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "アカウントのシート (前の task)",
+          "run": "npx vitest run tests/unit/plan/v0.1-17-account-sheet.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        22,
+        26
+      ],
+      "plan": "2026-11-27"
+    },
+    "28": {
+      "issue": 28,
+      "title": "ホームに追加したときの名前・色と、安全な範囲 (manifest・index.html・.tabs)",
+      "branch": "wk/t28",
+      "tests": {
+        "tests/unit/plan/v0.1-23-home-screen.test.ts": "ca6f9743749d924364de2c36f0cb989bd11210bbe3486e6226caf12eddb00565"
+      },
+      "paths": [
+        "public/manifest.webmanifest",
+        "index.html",
+        "src/style.css"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "ホームに追加",
+          "run": "npx vitest run tests/unit/plan/v0.1-23-home-screen.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        16
+      ],
+      "plan": "2026-11-27"
+    },
+    "29": {
+      "issue": 29,
+      "title": "ホーム画面のアイコン: 夜明け前の空と月 (180・192・512px)",
+      "branch": "wk/t29",
+      "tests": {
+        "tests/unit/plan/v0.1-24-icon.test.ts": "4b24b176ccc3699534315f0f10a2f71e889095c7d56967fdf0fefd2bb3a10c8e"
+      },
+      "paths": [
+        "tools/make-icons.mjs",
+        "public/icons/icon-180.png",
+        "public/icons/icon-192.png",
+        "public/icons/icon-512.png",
+        "README.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "アイコン",
+          "run": "npx vitest run tests/unit/plan/v0.1-24-icon.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-27"
+    },
+    "30": {
+      "issue": 30,
+      "title": "書き出し (GET /api/export) は自分のユーザー名と夢を全部",
+      "branch": "wk/t30",
+      "tests": {
+        "tests/unit/plan/v0.1-26-export.test.ts": "209ac8fbe0f64f3a488a25a9e3aeb9d4e106cc1ae5f7dfc93de89340104c687d",
+        "tests/unit/plan/worker-harness.ts": "a425aec182aa9221fde9b294b5e3efeb02e9f32c0a81b5a384d1dd25fbc7847c"
+      },
+      "paths": [
+        "src/worker/api.ts",
+        "tests/unit/worker.test.ts",
+        "tests/unit/routes.test.ts",
+        "DATA.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "書き出し",
+          "run": "npx vitest run tests/unit/plan/v0.1-26-export.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        9
+      ],
+      "plan": "2026-11-27"
+    },
+    "31": {
+      "issue": 31,
+      "title": "サーバーから服・コーデ・写真を片付ける (migrations/0003_drop_clothes.sql)",
+      "branch": "wk/t31",
+      "tests": {
+        "tests/unit/plan/v0.1-25-cleanup-server.test.ts": "9566328a3b54cb07d168146e91d86d188dc187e79b3b2b0782f621036683e162"
+      },
+      "paths": [
+        "migrations/0003_drop_clothes.sql",
+        "src/worker/api.ts",
+        "src/worker/db.ts",
+        "src/worker/photo.ts",
+        "tests/unit/photo.test.ts",
+        "tests/unit/worker.test.ts",
+        "tests/unit/routes.test.ts",
+        "tests/unit/db.test.ts",
+        "tests/e2e/smoke.spec.ts",
+        "DATA.md",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "サーバーの片付け",
+          "run": "npx vitest run tests/unit/plan/v0.1-25-cleanup-server.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        12,
+        16,
+        23,
+        30
+      ],
+      "plan": "2026-11-27"
+    },
+    "32": {
+      "issue": 32,
+      "title": "画面の側から天気・おすすめ・写真の縮小を片付ける",
+      "branch": "wk/t32",
+      "tests": {
+        "tests/unit/plan/v0.1-27-cleanup-client.test.ts": "09781ffb87b4b3767d0a17baeb24d161fe1ca8a266bb51cdd2ccf0268a829e8f"
+      },
+      "paths": [
+        "src/weather.ts",
+        "src/recommend.ts",
+        "src/shrink.ts",
+        "tests/unit/weather.test.ts",
+        "tests/unit/recommend.test.ts",
+        "tests/unit/shrink.test.ts",
+        "spec/recommend.smt2",
+        "src/App.tsx",
+        "src/client.ts",
+        "tests/unit/client.test.ts",
+        "tests/unit/app.test.tsx",
+        "DATA.md",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "画面の片付け",
+          "run": "npx vitest run tests/unit/plan/v0.1-27-cleanup-client.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        16,
+        27
+      ],
+      "plan": "2026-11-27"
+    },
+    "5": {
+      "issue": 5,
+      "title": "個人が分かる文を見つける関数 findPersonalInfo (src/pii.ts)",
+      "branch": "wk/t5",
+      "tests": {
+        "tests/unit/plan/v0.1-00-pii.test.ts": "a3ccdcb9bf019ff281fbeab4853ac28a7c269aab62a8b590e0f665ba7186503a"
+      },
+      "paths": [
+        "src/pii.ts",
+        "tests/unit/pii.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "個人が分かる文の検査",
+          "run": "npx vitest run tests/unit/plan/v0.1-00-pii.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-27"
+    },
+    "6": {
+      "issue": 6,
+      "title": "夢日記の表 (migrations/0002_dreams.sql) とプロフィールの Store 関数",
+      "branch": "wk/t6",
+      "tests": {
+        "tests/unit/plan/v0.1-01-tables.test.ts": "7e660a193599056f742996bd96fb1b2b86cd3e8edc51a910778425fbdc619aac"
+      },
+      "paths": [
+        "migrations/0002_dreams.sql",
+        "src/worker/db.ts",
+        "DATA.md",
+        "tests/unit/db.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "表とプロフィール",
+          "run": "npx vitest run tests/unit/plan/v0.1-01-tables.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-27"
+    },
+    "7": {
+      "issue": 7,
+      "title": "夢を置く Store 関数 (足す・並べる・直す・消す・数える)",
+      "branch": "wk/t7",
+      "tests": {
+        "tests/unit/plan/v0.1-02-dream-store.test.ts": "3d245d6084188424f7c52a48578d3488d60b766c42d4bb5560665cea5f75f588"
+      },
+      "paths": [
+        "src/worker/db.ts",
+        "tests/unit/db.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "夢の Store",
+          "run": "npx vitest run tests/unit/plan/v0.1-02-dream-store.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        6
+      ],
+      "plan": "2026-11-27"
+    },
+    "8": {
+      "issue": 8,
+      "title": "プロフィールと同意の API (GET /api/profile・POST /api/agree) とランダムなユーザー名",
+      "branch": "wk/t8",
+      "tests": {
+        "tests/unit/plan/v0.1-03-profile-api.test.ts": "6fc607fe5aa387e98e29cc98accb16e923c91f1f39554a958dd676b1300c0e48",
+        "tests/unit/plan/worker-harness.ts": "a425aec182aa9221fde9b294b5e3efeb02e9f32c0a81b5a384d1dd25fbc7847c"
+      },
+      "paths": [
+        "src/terms.ts",
+        "src/handle.ts",
+        "src/worker/api.ts",
+        "docs/architecture.md",
+        "tests/unit/handle.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "プロフィールと同意の API",
+          "run": "npx vitest run tests/unit/plan/v0.1-03-profile-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        6
+      ],
+      "plan": "2026-11-27"
+    },
+    "9": {
+      "issue": 9,
+      "title": "夢の API (GET/POST /api/dreams・PATCH/DELETE /api/dreams/:id) に同意・個人情報・長さ・回数の検査",
+      "branch": "wk/t9",
+      "tests": {
+        "tests/unit/plan/v0.1-04-dream-api.test.ts": "dd844b1688419257209cc5b830b7d976735ab8dba59d61fb836997c4ee3cc04b",
+        "tests/unit/plan/worker-harness.ts": "a425aec182aa9221fde9b294b5e3efeb02e9f32c0a81b5a384d1dd25fbc7847c"
+      },
+      "paths": [
+        "src/worker/api.ts",
+        "tests/unit/worker.test.ts",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "夢の API",
+          "run": "npx vitest run tests/unit/plan/v0.1-04-dream-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        5,
+        7,
+        8
+      ],
+      "plan": "2026-11-27"
+    }
+  }
+}
