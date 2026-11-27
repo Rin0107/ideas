@@ -188,20 +188,39 @@ func TestDecideParallel(t *testing.T) {
 				s.Apps = []App{apps[0], {Project: &state.Project{Idea: "x", Repo: "R/x", Status: state.Building, Ticks: state.Ticks{Total: 30}}}}
 			}, state.PhaseRetro, ""},
 		{"主力のアプリがあれば、それだけを進める (古いものより先)",
-			func(s *Snapshot) { s.Cfg.Focus = b.Idea }, state.PhaseTriage, b.Repo},
+			func(s *Snapshot) { s.Cfg.Focus = config.Focus{b.Idea} }, state.PhaseTriage, b.Repo},
 		{"主力のアプリをほかの実行が持っていれば、ほかを進めず idle",
-			func(s *Snapshot) { s.Cfg.Focus, s.Claimed = b.Idea, map[string]bool{b.Repo: true} }, state.PhaseIdle, ""},
+			func(s *Snapshot) { s.Cfg.Focus, s.Claimed = config.Focus{b.Idea}, map[string]bool{b.Repo: true} }, state.PhaseIdle, ""},
 		{"主力のアプリがまだ作りかけになく、雛形もなければ、選ばずに待つ",
-			func(s *Snapshot) { s.Cfg.Focus = "00999-closet" }, state.PhaseIdle, ""},
+			func(s *Snapshot) { s.Cfg.Focus = config.Focus{"00999-closet"} }, state.PhaseIdle, ""},
 		{"主力のアプリの雛形ができていれば、主力の select から始める",
-			func(s *Snapshot) { s.Cfg.Focus, s.FocusReady = "00999-closet", true }, state.PhaseSelect, ""},
+			func(s *Snapshot) { s.Cfg.Focus, s.FocusReady = config.Focus{"00999-closet"}, true }, state.PhaseSelect, ""},
 		{"主力の select をほかの実行がしていれば idle",
 			func(s *Snapshot) {
-				s.Cfg.Focus, s.FocusReady, s.Claimed = "00999-closet", true, map[string]bool{state.PhaseSelect: true}
+				s.Cfg.Focus, s.FocusReady, s.Claimed = config.Focus{"00999-closet"}, true, map[string]bool{state.PhaseSelect: true}
+			}, state.PhaseIdle, ""},
+		{"主力が複数: ほかの実行が持っていない主力を進める",
+			func(s *Snapshot) {
+				s.Cfg.Focus, s.Claimed = config.Focus{a.Idea, b.Idea}, map[string]bool{a.Repo: true}
+			}, state.PhaseTriage, b.Repo},
+		{"主力が複数: 作りかけの主力が全部持たれていれば、まだ始めていない主力を select",
+			func(s *Snapshot) {
+				s.Cfg.Focus, s.FocusReady, s.Cfg.MaxWIP = config.Focus{b.Idea, "00999-closet"}, true, 2
+				s.Claimed = map[string]bool{b.Repo: true}
+			}, state.PhaseSelect, ""},
+		{"主力が複数: 主力の作りかけが上限なら始めない",
+			func(s *Snapshot) {
+				s.Cfg.Focus, s.FocusReady, s.Cfg.MaxWIP = config.Focus{b.Idea, "00999-closet"}, true, 1
+				s.Claimed = map[string]bool{b.Repo: true}
+			}, state.PhaseIdle, ""},
+		{"休ませた・捨てた主力 (portfolio にある) はもう一度始めない",
+			func(s *Snapshot) {
+				s.Cfg.Focus, s.FocusReady, s.Cfg.MaxWIP = config.Focus{"00999-closet"}, true, 4
+				s.Tried = map[string]bool{"00999-closet": true}
 			}, state.PhaseIdle, ""},
 		{"主力のアプリがあっても retro はする",
 			func(s *Snapshot) {
-				s.Cfg.Focus = b.Idea
+				s.Cfg.Focus = config.Focus{b.Idea}
 				s.Meta = &state.Meta{LastIntake: "2026-11-09"}
 				s.Apps = []App{apps[0], {Project: &state.Project{Idea: "x", Repo: "R/x", Status: state.Building, Ticks: state.Ticks{Total: 30}}}}
 			}, state.PhaseRetro, ""},
@@ -222,9 +241,33 @@ func TestDecideParallel(t *testing.T) {
 		})
 	}
 	s := base()
-	s.Cfg.Focus, s.FocusReady = "00999-closet", true
+	s.Cfg.Focus, s.FocusReady = config.Focus{"00999-closet"}, true
 	if got := Decide(s); got.Idea != "00999-closet" || got.Role == "" {
 		t.Fatalf("主力の select にアイディアがない: %+v", got)
+	}
+	for _, c := range []struct {
+		mut  func(*Snapshot)
+		want string
+	}{
+		{func(s *Snapshot) {
+			s.Cfg.Focus, s.Claimed = config.Focus{a.Idea, b.Idea}, map[string]bool{a.Repo: true, b.Repo: true}
+		}, "主力のアプリ (" + a.Idea + "・" + b.Idea + ") はほかの実行が進めている"},
+		{func(s *Snapshot) {
+			s.Cfg.Focus, s.Tried = config.Focus{"00999-closet"}, map[string]bool{"00999-closet": true}
+		}, "主力のアイディア (00999-closet) はどれも始めたか、休んでいるか、捨てた"},
+		{func(s *Snapshot) {
+			s.Cfg.Focus, s.Cfg.MaxWIP, s.Claimed = config.Focus{a.Idea, "00999-closet"}, 1, map[string]bool{a.Repo: true}
+		}, "主力の作りかけが 1 件 (上限 1)。主力の 00999-closet はまだ始めない"},
+		{func(s *Snapshot) {
+			s.Cfg.Focus, s.FocusReady, s.Cfg.MaxWIP = config.Focus{a.Idea, b.Idea, "00999-closet", "00998-x"}, true, 4
+			s.Claimed = map[string]bool{a.Repo: true, b.Repo: true}
+		}, "主力のアプリ (00999-closet) を始める"},
+	} {
+		s := base()
+		c.mut(&s)
+		if got := Decide(s); got.Reason != c.want {
+			t.Fatalf("got %q, want %q", got.Reason, c.want)
+		}
 	}
 	s = base()
 	s.Cfg.MaxWIP = 0 // 0 は 1

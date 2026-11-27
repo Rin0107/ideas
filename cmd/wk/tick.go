@@ -106,7 +106,7 @@ func (e *env) snapshot() (next.Snapshot, error) {
 		return next.Snapshot{}, err
 	}
 	s := next.Snapshot{Now: e.now, Cfg: e.cfg, Meta: meta, Untried: ideas.Untried(all, e.pf.Tried()),
-		FactoryRepo: e.factoryRepo(), Claimed: map[string]bool{}, FocusReady: focusTemplateReady(e)}
+		FactoryRepo: e.factoryRepo(), Claimed: map[string]bool{}, FocusReady: focusTemplateReady(e), Tried: e.pf.Tried()}
 	if s.FactoryFixes, err = gh.LabeledIssues(s.FactoryRepo, next.LabelFix); err != nil {
 		return next.Snapshot{}, err
 	}
@@ -681,8 +681,8 @@ func cmdCandidates(args []string) error {
 	}
 	var out []cand
 	cands := ideas.Candidates(all, e.pf.Tried(), *n, e.today())
-	if e.cfg.Focus != "" { // 主力のアプリを始めるときは、主力のアイディアだけ (docs/DESIGN-v3.md §10)
-		cands = slices.DeleteFunc(all, notFocus(e.cfg.Focus))
+	if len(e.cfg.Focus) > 0 { // 主力のアプリを始めるときは、まだ始めていない主力のアイディアだけ (docs/DESIGN-v3.md §10)
+		cands = slices.DeleteFunc(all, notFocus(e.cfg.Focus, e.pf.Tried()))
 	}
 	for _, i := range cands {
 		out = append(out, cand{i.Dir, i.Title, i.Sections["概要"], i.Sections["体験の核"], i.Sections["わくわくポイント"]})

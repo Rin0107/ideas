@@ -58,12 +58,12 @@ func TestDecideTask(t *testing.T) {
 	}
 	// 主力のアプリがあれば、それだけ
 	c := v4cfg()
-	c.Focus = "00999-other"
+	c.Focus = config.Focus{"00999-other"}
 	a := Decide(Snapshot{Now: now, Cfg: c, Meta: meta(), Apps: []App{{Project: iter(), Issues: []Issue{{Number: 3}}, Tasks: tasks}}})
 	if a.Phase != state.PhaseIdle {
 		t.Fatalf("%+v", a)
 	}
-	c.Focus = "00141-regex-crossword"
+	c.Focus = config.Focus{"00141-regex-crossword"}
 	if a := Decide(Snapshot{Now: now, Cfg: c, Meta: meta(), Apps: []App{{Project: iter(), Issues: []Issue{{Number: 3}}, Tasks: tasks}}}); a.Phase != state.PhaseTask {
 		t.Fatalf("%+v", a)
 	}

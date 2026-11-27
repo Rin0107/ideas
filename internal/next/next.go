@@ -4,7 +4,9 @@ package next
 
 import (
 	"fmt"
+	"maps"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/Rin0107/ideas/internal/config"
@@ -60,6 +62,8 @@ type Snapshot struct {
 	Prefer string
 	// FocusReady は主力のアプリの雛形 (templates/web-db) があるか。なければ主力を始めずに待つ (docs/DESIGN-v3.md §10)
 	FocusReady bool
+	// Tried は portfolio にあるアイディア (作りかけ・休み・捨てた・出した)。主力をもう一度始めないために使う
+	Tried map[string]bool
 	// Planner は計画の実行 (v4、wk next --planner)。偽なら tick の実行 (task だけをやる)
 	Planner bool
 }
@@ -143,7 +147,7 @@ func decide(s Snapshot) Action {
 		return Action{Phase: state.PhaseRetro, Reason: "前回の retro から " + fmt.Sprint(c.RetroEveryDays) + " 日以上"}
 	}
 	// 主力のアプリ (focus) があれば、それだけを進める。ほかの作りかけは止め、新しいアイディアは選ばない (docs/DESIGN-v3.md §10)
-	if c.Focus != "" {
+	if len(c.Focus) > 0 {
 		return decideFocus(s, apps)
 	}
 	// 作りかけのアプリを、ほかの実行が進めていないものから 1 つ進める
@@ -277,23 +281,44 @@ func batch(is []Issue, first Issue) []int {
 	return out
 }
 
-// decideFocus は主力のアプリだけを進める。まだ portfolio になければ (土台を人の側が作っている) 待つ。
+// decideFocus は主力のアプリだけを進める (主力は複数あってよい、書いた順)。ほかの実行が進めていない主力の作りかけを 1 つ進め、
+// なければ、まだ始めていない主力のアイディアを作りかけの上限 (max_wip) まで select から始める。
 func decideFocus(s Snapshot, apps []App) Action {
+	focus := s.Cfg.Focus
+	started := maps.Clone(s.Tried)
+	if started == nil {
+		started = map[string]bool{}
+	}
+	var busy []string
+	n := 0 // 主力の作りかけの数。主力があるときは主力でない作りかけは止まっているので、上限 (max_wip) には主力だけを数える
 	for _, ap := range apps {
-		if ap.Project.Idea != s.Cfg.Focus {
+		started[ap.Project.Idea] = true
+		if !focus.Has(ap.Project.Idea) {
 			continue
 		}
+		n++
 		if s.claimed(ap.Project) {
-			return Action{Phase: state.PhaseIdle, Reason: "主力のアプリ (" + s.Cfg.Focus + ") はほかの実行が進めている"}
+			busy = append(busy, ap.Project.Idea)
+			continue
 		}
 		return decideApp(s, ap)
 	}
+	next := focus.Next(started)
+	if next == "" {
+		if len(busy) > 0 {
+			return Action{Phase: state.PhaseIdle, Reason: "主力のアプリ (" + strings.Join(busy, "・") + ") はほかの実行が進めている"}
+		}
+		return Action{Phase: state.PhaseIdle, Reason: "主力のアイディア (" + focus.String() + ") はどれも始めたか、休んでいるか、捨てた"}
+	}
+	if n >= s.Cfg.WIP() {
+		return Action{Phase: state.PhaseIdle, Reason: fmt.Sprintf("主力の作りかけが %d 件 (上限 %d)。主力の %s はまだ始めない", n, s.Cfg.WIP(), next)}
+	}
 	// まだ作りかけにない: 雛形 (templates/web-db) ができていれば、主力のアイディアの select から始める
 	if !s.FocusReady {
-		return Action{Phase: state.PhaseIdle, Reason: "主力のアプリ (" + s.Cfg.Focus + ") の土台 (雛形) を待っている"}
+		return Action{Phase: state.PhaseIdle, Reason: "主力のアプリ (" + next + ") の土台 (雛形) を待っている"}
 	}
 	if s.Claimed[state.PhaseSelect] {
-		return Action{Phase: state.PhaseIdle, Reason: "ほかの実行が主力のアプリ (" + s.Cfg.Focus + ") を始めている"}
+		return Action{Phase: state.PhaseIdle, Reason: "ほかの実行が主力のアプリ (" + next + ") を始めている"}
 	}
-	return Action{Phase: state.PhaseSelect, Idea: s.Cfg.Focus, Reason: "主力のアプリ (" + s.Cfg.Focus + ") を始める"}
+	return Action{Phase: state.PhaseSelect, Idea: next, Reason: "主力のアプリ (" + next + ") を始める"}
 }

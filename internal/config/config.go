@@ -129,8 +129,9 @@ type Config struct {
 	MaxParallel int `json:"max_parallel"`
 	MaxWIP      int `json:"max_wip"`
 
-	// Focus は主力のアプリのアイディア (v3.3、docs/DESIGN-v3.md §10)。空でなければ工場はそれだけを進め、捨てず・出して終わりにせず磨き続ける
-	Focus string `json:"focus"`
+	// Focus は主力のアプリのアイディア (v3.3、docs/DESIGN-v3.md §10)。空でなければ工場はそれだけを進め、捨てず・出して終わりにせず磨き続ける。
+	// 複数持てる (2026-11-27、持ち主「同時は 4 まで」)。書いた順に、作りかけの上限 (max_wip) まで始める。1 つなら文字列でも書ける
+	Focus Focus `json:"focus"`
 
 	// Site は公開した Web アプリをまとめて配る repo (Cloudflare の GitHub 連携で配信する)
 	Site Site `json:"site"`
@@ -243,4 +244,39 @@ func defaulted(v, def int) int {
 		return v
 	}
 	return def
+}
+
+// Focus は主力のアイディアの ID の並び (書いた順)。factory.json では文字列 1 つ ("" は主力なし) か、文字列の配列。
+type Focus []string
+
+func (f *Focus) UnmarshalJSON(b []byte) error {
+	var one string
+	if err := json.Unmarshal(b, &one); err == nil {
+		*f = nil
+		if one != "" {
+			*f = Focus{one}
+		}
+		return nil
+	}
+	var list []string
+	if err := json.Unmarshal(b, &list); err != nil {
+		return fmt.Errorf("focus は文字列か文字列の配列: %w", err)
+	}
+	*f = slices.DeleteFunc(list, func(s string) bool { return s == "" })
+	return nil
+}
+
+// Has は idea が主力か。
+func (f Focus) Has(idea string) bool { return slices.Contains(f, idea) }
+
+func (f Focus) String() string { return strings.Join(f, "・") }
+
+// Next は主力のうち、まだ始めていない (tried にない) 最初のもの。なければ ""。
+func (f Focus) Next(tried map[string]bool) string {
+	for _, i := range f {
+		if !tried[i] {
+			return i
+		}
+	}
+	return ""
 }

@@ -1,8 +1,10 @@
 package config
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -117,5 +119,29 @@ func TestWebDBURL(t *testing.T) {
 	}
 	if u := (WebDB{Subdomain: "f"}).URL("Rin0107/kisekae-closet"); u != "https://kisekae-closet.f.workers.dev/" {
 		t.Fatal(u)
+	}
+}
+
+// focus は文字列 1 つ ("" は主力なし) か配列 (空の要素は捨てる)。それ以外は読めない
+func TestFocus(t *testing.T) {
+	for in, want := range map[string]Focus{`""`: nil, `"a"`: {"a"}, `["a","","b"]`: {"a", "b"}, `[]`: {}} {
+		var f Focus
+		if err := json.Unmarshal([]byte(in), &f); err != nil || !slices.Equal(f, want) || (f == nil) != (want == nil) {
+			t.Fatalf("%s: %#v %v", in, f, err)
+		}
+	}
+	var f Focus
+	if err := json.Unmarshal([]byte(`1`), &f); err == nil || !strings.Contains(err.Error(), "文字列か文字列の配列") {
+		t.Fatal(err)
+	}
+	f = Focus{"a", "b", "c"}
+	if !f.Has("b") || f.Has("z") || f.String() != "a・b・c" {
+		t.Fatal(f)
+	}
+	if got := f.Next(map[string]bool{"a": true, "c": true}); got != "b" {
+		t.Fatal(got)
+	}
+	if got := f.Next(map[string]bool{"a": true, "b": true, "c": true}); got != "" {
+		t.Fatal(got)
 	}
 }

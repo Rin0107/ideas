@@ -143,6 +143,7 @@ v2 との違い:
 依頼: 「次のプロジェクトは『今日の服を選ぶアプリ』にして。… しばらくはずっとこれを機能開発＆改善（パフォーマンスやUX）、セキュリティ対策とやっていく」。決定は okuos の decisions/2026-11-15-wakuwaku-closet-focus.md。
 
 - `focus` (アイディアの ID) があれば、`wk next` はそのアプリだけを進める。ほかの作りかけは止まり (状態はそのまま)、intake・select はしない。repair と retro はする
+- 2026-11-27 から `focus` は配列でも書ける (持ち主「同時は 4 まで」)。主力の作りかけをほかの実行が持っていない順に進め、どれも持たれていれば、まだ portfolio にない主力を書いた順に select する。上限 (max_wip) は主力の作りかけだけを数える。休ませた・捨てた主力はもう一度始めない
 - 主力のアプリがまだ作りかけになければ、雛形 (`templates/web-db/wk.json`) ができるまで idle。できたら主力のアイディアの select から始める (`wk candidates` は主力だけを出し、`wk select` は主力の点数だけを使う。stack は `web-db`、足切りはしない)。web-db はほかのアイディアには選ばない
 - **web-db の配信** (`cmd/wk/webdb.go`): Cloudflare Worker + D1。`wk deploy` が本番に出す (プレビューはない。ship はしない)
   - ビルド (`npm ci --ignore-scripts`・`verify`・`build`・`bundle`) は手元で、鍵らしい環境変数を消して動かす

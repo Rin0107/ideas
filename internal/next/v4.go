@@ -13,7 +13,7 @@ import (
 func decideTask(s Snapshot) Action {
 	for _, ap := range s.apps() {
 		p := ap.Project
-		if s.Cfg.Focus != "" && p.Idea != s.Cfg.Focus || s.claimed(p) || ap.Tasks == nil || p.Verdict != "" {
+		if len(s.Cfg.Focus) > 0 && !s.Cfg.Focus.Has(p.Idea) || s.claimed(p) || ap.Tasks == nil || p.Verdict != "" {
 			continue
 		}
 		open := map[int]bool{}

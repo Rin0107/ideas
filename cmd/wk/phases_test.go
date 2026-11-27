@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Rin0107/ideas/internal/config"
 	"github.com/Rin0107/ideas/internal/fakegh"
 	"github.com/Rin0107/ideas/internal/state"
 )
@@ -104,7 +105,7 @@ func TestSelectFocus(t *testing.T) {
 		t.Fatalf("%+v", p)
 	}
 	_, err = capture(t, func() error { return cmdSelect([]string{"--scores", selectScores(t, db)}) })
-	errHas(t, err, "00003-gamma はもう作りかけ")
+	errHas(t, err, "主力のアイディア (00003-gamma) はどれも始めている")
 }
 
 func TestFocusTemplateReady(t *testing.T) {
@@ -114,7 +115,7 @@ func TestFocusTemplateReady(t *testing.T) {
 	if focusTemplateReady(e) {
 		t.Fatal("focus がないのに ready")
 	}
-	e.cfg.Focus = "00003-gamma"
+	e.cfg.Focus = config.Focus{"00003-gamma"}
 	if !focusTemplateReady(e) {
 		t.Fatal("雛形があるのに ready でない")
 	}
@@ -709,7 +710,7 @@ func TestPrivacyScan(t *testing.T) {
 // 主力のアプリは ship でも drop でも磨き続ける (docs/DESIGN-v3.md §10)
 func TestEvaluateFocusKeepsIterating(t *testing.T) {
 	f := newFactory(t)
-	f.writeConfig(map[string]any{"focus": "00001-alpha"})
+	f.writeConfig(map[string]any{"focus": []string{"00002-beta", "00001-alpha"}})
 	f.projects(active())
 	for _, c := range []struct {
 		core       bool
@@ -721,4 +722,27 @@ func TestEvaluateFocusKeepsIterating(t *testing.T) {
 			t.Fatal(out, err)
 		}
 	}
+}
+
+// 主力が複数: 候補はまだ始めていない主力だけ、select は書いた順で最初のまだ始めていないもの。全部始めていれば選ばない
+func TestSelectFocusList(t *testing.T) {
+	f := newFactory(t)
+	f.writeConfig(map[string]any{"focus": []string{"00001-alpha", "00003-gamma", "00002-beta"}, "site": map[string]string{"repo": "", "url": ""}})
+	f.projects(active()) // 00001-alpha はもう作りかけ
+	out, err := capture(t, func() error { return cmdCandidates(nil) })
+	if err != nil || strings.Count(out, `"Idea"`) != 2 || strings.Contains(out, `"00001-alpha"`) {
+		t.Fatal(out, err)
+	}
+	db := `[{"idea":"00002-beta","wakuwaku":5,"light":5,"free":5,"own":5,"findy":5,"data_plan":"D1","stack":"web-db","needs_server":true,"reason":"r"},
+ {"idea":"00003-gamma","wakuwaku":2,"light":2,"free":2,"own":2,"findy":2,"data_plan":"D1","stack":"web-db","needs_server":true,"reason":"r"}]`
+	if _, err := capture(t, func() error { return cmdSelect([]string{"--scores", selectScores(t, db)}) }); err != nil {
+		t.Fatal(err)
+	}
+	if p := f.portfolio().ByIdea("00003-gamma"); p == nil || p.Status != state.Selected || f.portfolio().ByIdea("00002-beta") != nil {
+		t.Fatalf("%+v", p)
+	}
+	e := &env{cfg: mustCfg(t, f.root), pf: f.portfolio()}
+	e.pf.Projects = append(e.pf.Projects, &state.Project{Idea: "00002-beta"})
+	_, err = chooseIdea(e, nil)
+	errHas(t, err, "どれも始めている")
 }

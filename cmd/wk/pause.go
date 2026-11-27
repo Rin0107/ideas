@@ -1,14 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
+	"github.com/Rin0107/ideas/internal/config"
 	"github.com/Rin0107/ideas/internal/state"
 )
 
@@ -41,18 +44,17 @@ func cmdPause(args []string) error {
 	if p == nil || !p.Active() {
 		return fmt.Errorf("作りかけのアプリに %q がない", *repo)
 	}
-	next := e.cfg.Focus
-	if next == p.Idea {
-		next = ""
-	}
+	next := slices.DeleteFunc(slices.Clone(e.cfg.Focus), func(i string) bool { return i == p.Idea })
 	if *focus != "" {
 		if _, err := os.Stat(filepath.Join(e.cfg.Root, e.cfg.IdeasDir, *focus, "idea.md")); err != nil {
 			return fmt.Errorf("次の主力のアイディア %q がない: %w", *focus, err)
 		}
-		next = *focus
+		if !next.Has(*focus) {
+			next = append(next, *focus)
+		}
 	}
-	if next != e.cfg.Focus {
-		if err := setFocus(e.cfg.Root, e.cfg.Focus, next); err != nil {
+	if !slices.Equal(next, e.cfg.Focus) {
+		if err := setFocus(e.cfg.Root, next); err != nil {
 			return err
 		}
 	}
@@ -83,16 +85,21 @@ func cmdResume(args []string) error {
 	return e.save()
 }
 
-// setFocus は factory.json の focus を from から to に書きかえる (ほかの設定の書き方はそのまま)。
-func setFocus(root, from, to string) error {
+// setFocus は factory.json の focus を to に書きかえる (ほかの設定の書き方はそのまま)。1 つなら文字列、複数なら配列で書く。
+func setFocus(root string, to config.Focus) error {
 	path := filepath.Join(root, "factory.json")
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
-	re := regexp.MustCompile(`"focus"\s*:\s*"` + regexp.QuoteMeta(from) + `"`)
+	re := regexp.MustCompile(`"focus"\s*:\s*("[^"]*"|\[[^\]]*\])`)
 	if !re.Match(b) {
-		return fmt.Errorf("factory.json の focus を書きかえられない (%s)", from)
+		return errors.New("factory.json に focus がないので書きかえられない")
 	}
-	return os.WriteFile(path, re.ReplaceAll(b, []byte(`"focus": "`+to+`"`)), 0o644)
+	var val any = strings.Join(to, "") // 1 つ (か主力なし) は文字列
+	if len(to) > 1 {
+		val = []string(to)
+	}
+	j, _ := json.Marshal(val) // 文字列と文字列の配列は必ず書ける
+	return os.WriteFile(path, re.ReplaceAllLiteral(b, append([]byte(`"focus": `), j...)), 0o644)
 }

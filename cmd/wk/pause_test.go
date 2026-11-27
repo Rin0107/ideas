@@ -2,9 +2,11 @@ package main
 
 import (
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/Rin0107/ideas/internal/config"
 	"github.com/Rin0107/ideas/internal/state"
 )
 
@@ -95,12 +97,30 @@ func TestPauseErrors(t *testing.T) {
 	}
 }
 
-func TestSetFocusErrors(t *testing.T) {
-	dir := t.TempDir()
-	errHas(t, setFocus(dir, "a", ""), "factory.json")
+// 主力が複数: 休ませたものだけ外し、--focus は後ろに足す (もうあれば足さない)。書いたものは読み直せる
+func TestPauseFocusList(t *testing.T) {
 	f := newFactory(t)
-	f.writeConfig(map[string]any{"focus": "00002-beta"})
-	errHas(t, setFocus(f.root, "00001-alpha", ""), "focus を書きかえられない")
+	f.writeConfig(map[string]any{"focus": []string{"00001-alpha", "00002-beta"}})
+	f.projects(active())
+	must(t, cmdPause([]string{"--repo", "Tester/alpha", "--reason", "次の主力に場所をあける", "--focus", "00003-gamma"}))
+	if cfg := f.read("factory.json"); !strings.Contains(cfg, `"focus": ["00002-beta","00003-gamma"]`) {
+		t.Fatal(cfg)
+	}
+	if c := mustCfg(t, f.root); !slices.Equal(c.Focus, config.Focus{"00002-beta", "00003-gamma"}) {
+		t.Fatal(c.Focus)
+	}
+	f.projects(active())
+	must(t, cmdPause([]string{"--repo", "Tester/alpha", "--reason", "次の主力に場所をあける", "--focus", "00002-beta"}))
+	if cfg := f.read("factory.json"); !strings.Contains(cfg, `"focus": ["00002-beta","00003-gamma"]`) {
+		t.Fatal(cfg)
+	}
+}
+
+func TestSetFocusErrors(t *testing.T) {
+	errHas(t, setFocus(t.TempDir(), nil), "factory.json")
+	f := newFactory(t)
+	f.write("factory.json", "{}")
+	errHas(t, setFocus(f.root, nil), "focus がない")
 }
 
 func TestResumeErrors(t *testing.T) {

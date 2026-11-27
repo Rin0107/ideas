@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Rin0107/ideas/internal/config"
 	"github.com/Rin0107/ideas/internal/gh"
 	"github.com/Rin0107/ideas/internal/ideas"
 	"github.com/Rin0107/ideas/internal/next"
@@ -155,22 +156,26 @@ func (e *env) appendIdeaHistory(idea, line string) error {
 
 // focusTemplateReady は主力のアプリの雛形 (templates/web-db) があるか。なければ主力を始めずに待つ (docs/DESIGN-v3.md §10)。
 func focusTemplateReady(e *env) bool {
-	if e.cfg.Focus == "" {
+	if len(e.cfg.Focus) == 0 {
 		return false
 	}
 	_, err := os.Stat(filepath.Join(e.cfg.Root, "templates", verdict.StackWebDB, "wk.json"))
 	return err == nil
 }
 
-// notFocus は主力のアイディアでないものを見分ける (wk candidates が主力だけを出す)。
-func notFocus(focus string) func(*ideas.Idea) bool {
-	return func(i *ideas.Idea) bool { return i.Dir != focus }
+// notFocus は、主力でないか、もう始めた (tried にある) アイディアを見分ける (wk candidates がまだ始めていない主力だけを出す)。
+func notFocus(focus config.Focus, tried map[string]bool) func(*ideas.Idea) bool {
+	return func(i *ideas.Idea) bool { return !focus.Has(i.Dir) || tried[i.Dir] }
 }
 
 // chooseIdea は点数から 1 件選ぶ。主力 (focus) があれば、その点数だけを使う (候補・足切り・配信の準備は見ない)。
 func chooseIdea(e *env, scores []verdict.SelectScore) (verdict.SelectScore, error) {
-	if e.cfg.Focus != "" {
-		return verdict.ChooseFocus(scores, e.cfg.Focus)
+	if len(e.cfg.Focus) > 0 { // 主力が複数なら、まだ始めていない最初のもの
+		next := e.cfg.Focus.Next(e.pf.Tried())
+		if next == "" {
+			return verdict.SelectScore{}, fmt.Errorf("主力のアイディア (%s) はどれも始めている", e.cfg.Focus)
+		}
+		return verdict.ChooseFocus(scores, next)
 	}
 	if act := e.pf.Actives(); len(act) >= e.cfg.WIP() {
 		return verdict.SelectScore{}, fmt.Errorf("作りかけが上限まである (%d 件。最初は %s %s)", len(act), act[0].Idea, act[0].Status)
@@ -214,12 +219,9 @@ func cmdSelect(args []string) error {
 	if err := verdict.ReadJSON(*scoresPath, &scores); err != nil {
 		return err
 	}
-	best, err := chooseIdea(e, scores)
+	best, err := chooseIdea(e, scores) // 主力でも候補でも、もう portfolio にあるアイディアは選ばない
 	if err != nil {
 		return err
-	}
-	if e.pf.ByIdea(best.Idea) != nil {
-		return fmt.Errorf("%s はもう作りかけ・作ったものにある", best.Idea)
 	}
 	note := fmt.Sprintf("合計 %d/25 (わくわく%d・軽さ%d・無料%d・自分ごと%d・Findy%d) %s", best.Total(), best.Wakuwaku, best.Light,
 		best.Free, best.Own, best.Findy, best.Reason)
@@ -491,7 +493,7 @@ func cmdEvaluate(args []string) error {
 		return err
 	}
 	// 主力のアプリは捨てず・出して終わりにせず、磨き続ける (docs/DESIGN-v3.md §10)
-	if p.Idea == e.cfg.Focus && v != "iterate" {
+	if e.cfg.Focus.Has(p.Idea) && v != "iterate" {
 		v, why = "iterate", "主力のアプリなので "+v+" にせず磨き続ける ("+why+")"
 	}
 	p.Status, p.Verdict = state.Evaluating, v
