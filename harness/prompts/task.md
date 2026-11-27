@@ -10,8 +10,9 @@ gh issue view <N> --repo <repo> --comments
 git -C $APP fetch origin
 git -C $APP worktree add ~/src/wakuwaku/.wt/<名前>-t<N> -b wk/t<N> origin/wk/t<N>
 cd ~/src/wakuwaku/.wt/<名前>-t<N>
-git rebase -q origin/main          # 先の task の merge を取り込む (受け入れテストのコミットはそのまま)
+git merge -q --no-edit origin/main # 先の task の merge を取り込む (受け入れテストのコミットはそのまま)
 ```
+- **rebase はしない**。rebase すると受け入れテストのコミットが書き換わり、手順 4 の push が non-fast-forward で拒否される (force push は guard が止める。2026-11 の kisekae-closet #179 / PR #199)。main を取り込むのはいつも `git merge`
 - ブランチ `wk/t<N>` には、計画が書いた **受け入れテスト** が入っている。読んで、何を通せばよいかを知る
 - 前の試行のコメント (`wakuwaku factory: 試行 … が失敗`) があれば、同じ失敗をしない
 - アプリの `CLAUDE.md` を読む
@@ -36,6 +37,7 @@ gh pr create --repo <repo> --base main --head wk/t<N> --title "<issue の題>" -
 wk review <repo> <PR 番号>
 wk merge <repo> <PR 番号>
 ```
+- push が non-fast-forward で拒否されたら、`git fetch origin && git merge -q --no-edit origin/wk/t<N>` (rebase も force push もしない) → `wk verify <N>` → push。拒否されたまま `gh pr create` しない (古いブランチで PR ができる)
 - `wk merge` は、`wk verify` が通ったコミットだけを merge する。push したあとに変えたら `wk verify` からやり直す
 - `request_changes` なら直して (変えてよいファイルの中で)、コミット → `wk verify` → push → `wk review`。**最大 2 回**
 - CI が赤なら `gh run view --repo <repo> --log-failed` を読んで直す。原因が工場・雛形の側なら `result: fix`
