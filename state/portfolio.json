@@ -64,7 +64,7 @@
     {
       "idea": "00161-onsen-passport",
       "repo": "Rin0107/yu-no-passport",
-      "status": "iterating",
+      "status": "dropped",
       "stack": "web",
       "started": "2026-11-15",
       "milestone": "v0.3",
@@ -130,6 +130,11 @@
           "date": "2026-11-15",
           "event": "preview",
           "note": "https://bf5288ba-wakuwaku-site.wakuwaku-factory.workers.dev/yu-no-passport/"
+        },
+        {
+          "date": "2026-11-27",
+          "event": "dropped",
+          "note": "持ち主の判断 (2026-11-27): yu-no-passport はもういい、終わりにする。夢日記SNS と投稿できる 3 アプリ (00504〜00506) に枠を回す"
         }
       ]
     },
