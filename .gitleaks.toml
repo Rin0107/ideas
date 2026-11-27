@@ -1,0 +1,11 @@
+# 既定のルールに足す。計画が固定した受け入れテストの sha256 (state/tasks/*.json の "tests/...": "<64 桁>") は鍵ではない
+# (ファイル名に api が入ると generic-api-key に当たる。2026-11-27 夢日記SNS の計画で 6 件。持ち主の許可済み)
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "受け入れテストの sha256"
+condition = "AND"
+paths = ['''^state/tasks/[^/]+\.json$''']
+regexTarget = "line"
+regexes = ['''^\s*"tests/[^"]+": "[0-9a-f]{64}",?\s*$''']
