@@ -351,8 +351,8 @@
     },
     {
       "idea": "00504-yofukashi-seiza",
-      "repo": "",
-      "status": "selected",
+      "repo": "Rin0107/yofukashi-seiza",
+      "status": "building",
       "stack": "web-db",
       "started": "2026-11-27",
       "milestone": "MVP",
@@ -367,6 +367,11 @@
           "date": "2026-11-27",
           "event": "selected",
           "note": "合計 17/25 (わくわく4・軽さ2・無料3・自分ごと4・Findy4) 持ち主の依頼の主力 (focus)。今起きている人を数えて共有するのでサーバーが要る例外。規約・ポリシー・同意と個人情報の検査を最初に作り、その上に「開くと自分の星が灯る → まばらな空で人数と一言を読む → 一言を置く」の核を作る"
+        },
+        {
+          "date": "2026-11-27",
+          "event": "scaffolded",
+          "note": "Rin0107/yofukashi-seiza / issue 3 件"
         }
       ]
     }
