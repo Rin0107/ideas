@@ -142,3 +142,5 @@
 {"start":"2026-11-27T09:06:23.68877258+09:00","end":"2026-11-27T09:10:08.4876932+09:00","phase":"repair","repo":"Rin0107/ideas","issue":4,"role":"sre","result":"ok","note":"#4: task.md で main を merge で取り込む (rebase で push が拒否される問題)","tokens":21428,"cache_read":1206439}
 {"start":"2026-11-27T09:10:15.109529218+09:00","end":"2026-11-27T09:12:04.632719507+09:00","phase":"select","role":"leader","result":"ok","note":"選定: 00503-yume-nikki → yume-nikki","tokens":25991,"cache_read":825676}
 {"start":"2026-11-27T12:56:27.30433998+09:00","end":"2026-11-27T12:58:36.479016992+09:00","phase":"select","role":"leader","result":"ok","note":"選定: 00504-yofukashi-seiza → yofukashi-seiza","tokens":36160,"cache_read":987653}
+{"start":"2026-11-27T09:12:08.871306507+09:00","end":"2026-11-28T08:40:52.620731685+09:00","phase":"plan","repo":"Rin0107/yume-nikki","result":"aborted","note":"ロックが auto-wakuwaku-plan-run-7-20261127T0006 に残っていた"}
+{"start":"2026-11-27T12:58:41.900420772+09:00","end":"2026-11-28T08:40:52.620731685+09:00","phase":"plan","repo":"Rin0107/yofukashi-seiza","result":"aborted","note":"ロックが auto-wakuwaku-plan-run-8-20261127T0354 に残っていた"}
