@@ -136,7 +136,7 @@
     {
       "idea": "00502-kisekae-closet",
       "repo": "Rin0107/kisekae-closet",
-      "status": "paused",
+      "status": "iterating",
       "stack": "web-db",
       "started": "2026-11-17",
       "milestone": "v0.14",
@@ -148,7 +148,6 @@
       "url": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
       "preview": "https://kisekae-closet.wakuwaku-factory.workers.dev/",
       "planned": "2026-11-25",
-      "paused_from": "iterating",
       "history": [
         {
           "date": "2026-11-17",
@@ -299,6 +298,11 @@
           "date": "2026-11-26",
           "event": "paused",
           "note": "持ち主の判断 (2026-11-25): 11-26 の夜の tick までで kisekae-closet をいったん終え、ほかのアイディアを作る"
+        },
+        {
+          "date": "2026-11-27",
+          "event": "resumed",
+          "note": "持ち主が戻した"
         }
       ]
     }
