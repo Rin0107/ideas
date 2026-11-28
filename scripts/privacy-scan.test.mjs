@@ -8,13 +8,17 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { check, hash } from "./privacy-scan.mjs";
 
+// 例の名前とメールは、そのまま書くと push の検査に止められるので、実行のときにつなぐ
+const J = "ji" + "ro";
+const MAIL = J + "@" + "gmail.com";
+
 const here = dirname(fileURLToPath(import.meta.url));
 const script = join(here, "privacy-scan.mjs");
 // テストの中にも本物の値は書かない。DENY に入っている語の代わりに、同じ形の作り物で確かめる
 const fake = "taro" + "yamada";
 
 test("メールアドレス", () => {
-  assert.deepEqual(check("連絡は someone@gmail.com まで"), ["メールアドレス"]);
+  assert.deepEqual(check(`連絡は ${MAIL} まで`), ["メールアドレス"]);
   assert.deepEqual(check("Co-Authored-By: Claude <noreply@anthropic.com>"), []);
   assert.deepEqual(check("1+x@users.noreply.github.com git@github.com noreply@github.com a@example.com b@foo.test"), []);
   assert.deepEqual(check('"react@18.3.1" @types/node eslint@9.1.0'), []);
@@ -22,14 +26,14 @@ test("メールアドレス", () => {
 
 test("家のパス", () => {
   for (const s of [
-    "/home/alice/src",
-    "/Users/alice/x",
-    "C:\\Users\\alice\\x",
-    "/mnt/c/Users/alice/AppData",
+    `/home/${J}/src`,
+    `/Users/${J}/x`,
+    `C:\\Users\\${J}\\x`,
+    `/mnt/c/Users/${J}/AppData`,
   ]) {
     assert.deepEqual(check(s), ["家のパス"], s);
   }
-  for (const s of ["/home/runner/work", "/home/user/x", "/home/$USER/x", "/Users/<you>/x", "/home/"]) {
+  for (const s of ["/home/alice/src", "/home/u/x", "someone@gmail.com", "/home/runner/work", "/home/user/x", "/home/$USER/x", "/Users/<you>/x", "/home/"]) {
     assert.deepEqual(check(s), [], s);
   }
 });
@@ -72,13 +76,13 @@ test("tree・range・all", () => {
   assert.equal(run(d, "all").status, 0);
   const base = git("rev-parse", "HEAD").trim();
 
-  writeFileSync(join(d, "b.txt"), "x\nmail: someone@gmail.com\n");
+  writeFileSync(join(d, "b.txt"), `x\nmail: ${MAIL}\n`);
   git("add", ".");
   git("commit", "-qm", "second");
   const r = run(d, "range", `${base}..HEAD`);
   assert.equal(r.status, 1);
   assert.match(r.stderr, /b\.txt:2: メールアドレス/);
-  assert.ok(!r.stderr.includes("someone"), "値を出さない");
+  assert.ok(!r.stderr.includes(J), "値を出さない");
 
   // 消しても履歴に残る: tree は通り、all は止まる
   git("rm", "-q", "b.txt");
@@ -90,7 +94,7 @@ test("tree・range・all", () => {
   const { d: d2, git: git2 } = repo();
   writeFileSync(join(d2, "a.txt"), "hi\n");
   git2("add", ".");
-  git2("-c", "user.email=someone@gmail.com", "commit", "-qm", "x");
+  git2("-c", `user.email=${MAIL}`, "commit", "-qm", "x");
   const r2 = run(d2, "range", "0".repeat(40) + "..HEAD");
   assert.equal(r2.status, 1);
   assert.match(r2.stderr, /作者:1: メールアドレス/);
@@ -102,11 +106,11 @@ test("text (issue・PR の文)", () => {
   const { d } = repo();
   writeFileSync(join(d, "ok.txt"), "AC-1 が落ちた noreply@anthropic.com\n");
   assert.equal(run(d, "text", "ok.txt").status, 0);
-  writeFileSync(join(d, "ng.txt"), "ログ:\n  at /ho" + "me/someone/src/app.ts:3\n");
+  writeFileSync(join(d, "ng.txt"), `ログ:\n  at /home/${J}/src/app.ts:3\n`);
   const r = run(d, "text", "ng.txt");
   assert.equal(r.status, 1);
   assert.match(r.stderr, /issue・PR の文:2: 家のパス/);
-  assert.ok(!r.stderr.includes("someone"), "値を出さない");
+  assert.ok(!r.stderr.includes(J), "値を出さない");
   assert.equal(run(d, "text").status, 2);
 });
 

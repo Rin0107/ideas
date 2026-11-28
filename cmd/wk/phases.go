@@ -679,7 +679,7 @@ var privacyScan = func(e *env, repo string) []string {
 		return []string{err.Error()}
 	}
 	if _, err := gh.Run(dir, "node", filepath.Join(e.factoryMain(), "scripts", "privacy-scan.mjs"), "all"); err != nil {
-		return []string{"個人情報の検査に通らない: " + err.Error()}
+		return []string{"個人情報の検査に通らない: " + scanMessage(err)}
 	}
 	return nil
 }

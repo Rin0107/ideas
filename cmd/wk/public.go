@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/Rin0107/ideas/internal/gh"
+	"github.com/Rin0107/ideas/internal/guard"
 )
 
 // securePublic は public の repo に、鍵の push を GitHub の側で止める設定 (secret scanning と push protection) と、
@@ -187,7 +188,65 @@ var textScan = func(e *env, repo string) []string {
 	}
 	defer os.Remove(file)
 	if _, err := gh.Run("", "node", filepath.Join(e.factoryMain(), "scripts", "privacy-scan.mjs"), "text", file); err != nil {
-		return []string{"issue・PR の文に個人情報がある: " + err.Error()}
+		return []string{"issue・PR の文に個人情報がある: " + scanMessage(err)}
 	}
 	return nil
+}
+
+// scanMessage は検査の失敗から、検査の出力 (場所と種類だけ。値は出さない) を取り出す。
+// 実行したコマンドの文字列には家のパスが入るので、public の issue に書けない
+func scanMessage(err error) string {
+	msg := err.Error()
+	if i := strings.Index(msg, "NG: "); i >= 0 {
+		return msg[i:]
+	}
+	return "検査が動かない (詳しくは手元で wk audit を実行して見る)"
+}
+
+// cmdAudit は毎日の見回り (Orca の automation の precheck から。エージェントは使わない)。
+// 持ち主の public の repo を全部 (fork は除く。orca は持ち主が「そのまま」と決めた)、全履歴・PR の ref・issue と PR の文まで見る。
+// 見つかったら、工場のアプリは private に戻し、どれも人に知らせる (持ち主の指定 2026-11-28:「二度と起こらないように」)
+func cmdAudit(args []string) error {
+	if len(args) > 0 {
+		return errors.New("使い方: wk audit")
+	}
+	e, err := load()
+	if err != nil {
+		return err
+	}
+	out, err := gh.GH("repo", "list", e.cfg.Owner, "--visibility", "public", "--limit", "200",
+		"--json", "nameWithOwner,isFork", "--jq", ".[] | select(.isFork | not) | .nameWithOwner")
+	if err != nil {
+		return err
+	}
+	var found []string
+	for _, r := range strings.Fields(out) {
+		probs := append(privacyScan(e, r), textScan(e, r)...)
+		if len(probs) == 0 {
+			fmt.Println("ok:", r)
+			continue
+		}
+		line := r + ": " + strings.Join(probs, " / ")
+		if e.pf.Repos()[r] {
+			if _, err := gh.GH("repo", "edit", r, "--visibility", "private", "--accept-visibility-change-consequences"); err != nil {
+				line += " (private に戻せない)"
+			} else {
+				line += " → private に戻した"
+			}
+		}
+		found = append(found, line)
+	}
+	if len(found) == 0 {
+		fmt.Println("見回り: 個人情報なし")
+		return nil
+	}
+	body := "毎日の見回り (wk audit) で、public の repo に個人情報が見つかった。値は書かない (この issue も public)。\n\n- " +
+		strings.Join(found, "\n- ") + "\n\n工場のアプリは private に戻した。ほかの repo は人が直す。手元で `wk audit` を実行すると同じものが出る。"
+	if hit := guard.Personal(body); len(hit) > 0 {
+		body = "毎日の見回り (wk audit) で、public の repo に個人情報が見つかった。詳しくは手元で `wk audit` を実行して見る (知らせの文にも個人情報が入るので書かない)。"
+	}
+	if err := openHuman(e, "public の repo に個人情報 (wk audit)", body); err != nil {
+		return err
+	}
+	return errors.New("見回り: 個人情報が見つかった:\n  " + strings.Join(found, "\n  "))
 }

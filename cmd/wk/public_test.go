@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -229,5 +230,90 @@ process.exit(readFileSync(process.argv[3], "utf8").includes("NG") ? 1 : 0);
 				t.Fatal(got)
 			}
 		})
+	}
+}
+
+func auditRules(extra ...fakegh.Rule) []fakegh.Rule {
+	return append(extra,
+		fakegh.Rule{Match: `^repo list Tester --visibility public`, Out: "Tester/alpha\nTester/zenn\n"},
+		fakegh.Rule{Match: `^repo edit Tester/alpha --visibility private`},
+		fakegh.Rule{Match: `^label create wk:human`},
+		fakegh.Rule{Match: `^issue create --repo Tester/factory --title wk:human public の repo に個人情報`},
+	)
+}
+
+func TestAuditClean(t *testing.T) {
+	f := newFactory(t, auditRules()...)
+	f.projects(active())
+	stubScans(t, nil, nil)
+	out, err := capture(t, func() error { return cmdAudit(nil) })
+	if err != nil || !strings.Contains(out, "ok: Tester/zenn") || !strings.Contains(out, "個人情報なし") || f.gh.Called("issue create") {
+		t.Fatal(out, err, f.gh.Calls())
+	}
+}
+
+// 見つかったら、工場のアプリは private に戻し、ほかの repo はそのまま。どちらも人に知らせる (値は書かない)
+func TestAuditFound(t *testing.T) {
+	f := newFactory(t, auditRules()...)
+	f.projects(active())
+	og, ot := privacyScan, textScan
+	t.Cleanup(func() { privacyScan, textScan = og, ot })
+	privacyScan = func(_ *env, r string) []string { return []string{"個人情報の検査に通らない: NG: " + r} }
+	textScan = func(*env, string) []string { return nil }
+	_, err := capture(t, func() error { return cmdAudit(nil) })
+	errHas(t, err, "Tester/alpha: 個人情報の検査に通らない: NG: Tester/alpha → private に戻した")
+	if !f.gh.Called("repo edit Tester/alpha --visibility private --accept-visibility-change-consequences") || f.gh.Called("repo edit Tester/zenn") ||
+		!f.gh.Called("ほかの repo は人が直す") {
+		t.Fatal(f.gh.Calls())
+	}
+}
+
+func TestAuditErrors(t *testing.T) {
+	cases := map[string]struct {
+		args  []string
+		rules []fakegh.Rule
+		text  []string
+		want  string
+	}{
+		"引数がある":         {args: []string{"x"}, want: "使い方"},
+		"一覧が読めない":       {rules: []fakegh.Rule{{Match: `^repo list`, Code: 1}}, want: "repo list"},
+		"private に戻せない": {rules: []fakegh.Rule{{Match: `^repo edit`, Code: 1}}, text: []string{"x"}, want: "(private に戻せない)"},
+		"知らせられない":       {rules: []fakegh.Rule{{Match: `^issue create`, Code: 1}}, text: []string{"x"}, want: "issue create"},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			f := newFactory(t, auditRules(c.rules...)...)
+			f.projects(active())
+			stubScans(t, nil, c.text)
+			_, err := capture(t, func() error { return cmdAudit(c.args) })
+			errHas(t, err, c.want)
+		})
+	}
+	f := newFactory(t)
+	f.write("factory.json", "{")
+	_, err := capture(t, func() error { return cmdAudit(nil) })
+	errHas(t, err, "factory.json")
+}
+
+// 知らせの文に個人情報が入りそうなら (検査の出力にパスが混ざったなど)、詳しく書かない
+func TestAuditBodyHasNoPersonal(t *testing.T) {
+	f := newFactory(t, auditRules()...)
+	f.projects(active())
+	stubScans(t, []string{"at /ho" + "me/hanako/x"}, nil)
+	_, err := capture(t, func() error { return cmdAudit(nil) })
+	errHas(t, err, "見つかった")
+	for _, c := range f.gh.Calls() {
+		if strings.HasPrefix(c, "issue create") && (strings.Contains(c, "hanako") || !strings.Contains(c, "知らせの文にも個人情報が入るので書かない")) {
+			t.Fatal(c)
+		}
+	}
+}
+
+func TestScanMessage(t *testing.T) {
+	if got := scanMessage(errors.New("node /ho" + "me/hanako/x.mjs all: exit status 1: NG: 2 か所")); got != "NG: 2 か所" {
+		t.Fatal(got)
+	}
+	if got := scanMessage(errors.New("node: not found")); strings.Contains(got, "node") {
+		t.Fatal(got)
 	}
 }

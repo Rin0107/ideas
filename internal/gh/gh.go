@@ -82,6 +82,44 @@ func Checks(repo string, pr int) ([]Check, error) {
 	return cs, nil
 }
 
+// CommitChecks は、そのコミットの CI (check run) の結果。PR を使わない流れ (wk land) で、ブランチの先頭を見る。
+func CommitChecks(repo, sha string) ([]Check, error) {
+	out, err := GH("api", "repos/"+repo+"/commits/"+sha+"/check-runs?per_page=100",
+		"--jq", "[.check_runs[] | {name, status, conclusion}]")
+	if err != nil {
+		return nil, err
+	}
+	var runs []struct {
+		Name       string `json:"name"`
+		Status     string `json:"status"`
+		Conclusion string `json:"conclusion"`
+	}
+	if err := json.Unmarshal([]byte(out), &runs); err != nil {
+		return nil, fmt.Errorf("check run の出力を読めない: %w", err)
+	}
+	cs := make([]Check, 0, len(runs))
+	for _, r := range runs {
+		cs = append(cs, Check{Name: r.Name, Bucket: bucket(r.Status, r.Conclusion)})
+	}
+	return cs, nil
+}
+
+// bucket は check run の状態を、gh pr checks と同じ分け方 (pass / fail / pending / skipping / cancel) にする。
+func bucket(status, conclusion string) string {
+	if status != "completed" {
+		return "pending"
+	}
+	switch conclusion {
+	case "success", "neutral":
+		return "pass"
+	case "skipped":
+		return "skipping"
+	case "cancelled":
+		return "cancel"
+	}
+	return "fail" // failure・timed_out・action_required・startup_failure など
+}
+
 func Labels(repo string, pr int) ([]string, error) {
 	out, err := GH("pr", "view", fmt.Sprint(pr), "--repo", repo, "--json", "labels", "--jq", "[.labels[].name]")
 	if err != nil {

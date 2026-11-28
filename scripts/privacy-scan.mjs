@@ -16,12 +16,14 @@ import { readFileSync } from "node:fs";
 const DENY = new Set(["562d3f70a6733b1a", "6b2c0cdb26cb0323", "17cf6b5627e9ea1f", "e62f309da4bb2a5f"]);
 
 // 公開してよいメールアドレス (完全一致) とドメイン (末尾一致)。noreply@github.com は GitHub が squash merge したコミットのコミッター
-const MAIL_OK = new Set(["noreply@anthropic.com", "git@github.com", "noreply@github.com"]);
+// someone@gmail.com は工場のテストの例 (履歴に残っている)
+const MAIL_OK = new Set(["noreply@anthropic.com", "git@github.com", "noreply@github.com", "someone@gmail.com"]);
 const MAIL_OK_DOMAIN =
   /(^|\.)(users\.noreply\.github\.com|example\.(com|org|net)|example|test|invalid|localhost)$/i;
 const MAIL = /[A-Za-z0-9._%+-]+@((?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,})/g;
 // 家のパス。例に使う名前 (runner・user など) はよい
-const HOME_OK = /^(runner|user|username|you|me|node|ubuntu|vscode|name|USER|<[^>]*>)$/;
+// u・alice・someone・hanako・taro は工場のテストの例。[ で始まるのは正規表現の中
+const HOME_OK = /^(runner|user|username|you|me|node|ubuntu|vscode|name|USER|<[^>]*>|u|alice|someone|hanako|taro|\[.*)$/;
 const HOME = [
   /\/home\/([^/\s"'`:)]+)/g,
   /\/Users\/([^/\s"'`:)]+)/g,

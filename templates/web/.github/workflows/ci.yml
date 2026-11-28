@@ -5,9 +5,9 @@
 # 速さ: どのジョブも 5 分で打ち切る (超えたら失敗 = merge できない)。ジョブは並んで走る。
 name: ci
 on:
-  pull_request:
+  # PR は使わない (public の repo で GitHub が持ち主の本名で試しの merge を作る。2026-11-28)。task のブランチ (wk/t<N>) の push で走り、wk land が先頭のコミットの結果を見る
   push:
-    branches: [main]
+    branches: [main, "wk/**"]
   # v3: 重い検査 (fuzz・mutation・formal) は公開の前に手で起動する (harness/prompts/ship.md の 1.5。docs/DESIGN-v3.md §5)
   workflow_dispatch:
 

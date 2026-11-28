@@ -25,6 +25,8 @@ func TestBashDenies(t *testing.T) {
 		"gh repo edit Rin0107/regex-crossword --visibility public",
 		"gh repo edit someone/else --add-topic x",
 		"gh pr merge 3 --squash",
+		"gh pr create --repo Rin0107/regex-crossword --fill",
+		"gh pr reopen 3 --repo Rin0107/regex-crossword",
 		// public の repo: ほかの人のコメントを読まない・個人情報を書かない・public にするのは人
 		"gh issue view 3 --repo Rin0107/regex-crossword --comments",
 		"gh pr view 3 --repo Rin0107/regex-crossword --json title,comments",
@@ -32,7 +34,7 @@ func TestBashDenies(t *testing.T) {
 		"gh api repos/Rin0107/regex-crossword/pulls/3/reviews",
 		"wk publicize --repo Rin0107/regex-crossword",
 		"gh issue comment 3 --repo Rin0107/regex-crossword --body \"at /ho" + "me/hanako/src/app.ts:3\"",
-		"cd /w && gh pr create --repo Rin0107/regex-crossword --title x --body \"連絡は hanako@" + "mail.example.jp\"",
+		"cd /w && gh issue create --repo Rin0107/regex-crossword --title x --body \"連絡は hanako@" + "mail.example.jp\"",
 		"gh release create v1 --repo Rin0107/regex-crossword --notes \"C:\\\\Us" + "ers\\\\taro\\\\x\"",
 		"gh issue create --repo Rin0107/regex-crossword --title x --body-file /nope/body.md",
 		"git push --force origin feature",
@@ -111,7 +113,6 @@ func TestBashAllows(t *testing.T) {
 		"git -C ~/src/wakuwaku/x worktree add ~/src/wakuwaku/.wt/x-3 -b wk/issue-3 origin/main",
 		"gh issue list --repo Rin0107/regex-crossword --state open",
 		"gh issue create --repo Rin0107/regex-crossword --title x --body y",
-		"gh pr create --repo Rin0107/regex-crossword --fill",
 		"gh repo view Rin0107/regex-crossword",
 		"gh issue list --repo cli/cli --label 'good first issue'",
 		"gh api repos/cli/cli/issues",
@@ -119,7 +120,7 @@ func TestBashAllows(t *testing.T) {
 		"gh issue view 3 --repo Rin0107/regex-crossword",
 		"wk comments 3 --repo Rin0107/regex-crossword",
 		"cd /ho" + "me/hanako/src/x && npm test",
-		"gh pr create --repo Rin0107/regex-crossword --title x --body \"Co-Authored-By: Claude <noreply@anthropic.com> 例: /home/runner/work と a@example.com\"",
+		"gh issue create --repo Rin0107/regex-crossword --title x --body \"Co-Authored-By: Claude <noreply@anthropic.com> 例: /home/runner/work と a@example.com\"",
 		"npm ci && npm run verify",
 		"npm run e2e",
 		"cat factory.json",
@@ -186,11 +187,11 @@ func TestBashPostBodyFile(t *testing.T) {
 	}
 	write("ok.md", "AC-1 が落ちた (tests/unit/a.test.ts:3)\n")
 	write("ng.md", "ログ:\n  /Us"+"ers/hanako/src/a.ts\n")
-	if why := Bash("gh pr create --repo Rin0107/regex-crossword --title x --body-file ok.md", c); why != "" {
+	if why := Bash("gh issue create --repo Rin0107/regex-crossword --title x --body-file ok.md", c); why != "" {
 		t.Fatal(why)
 	}
 	for _, cmd := range []string{
-		"gh pr create --repo Rin0107/regex-crossword --title x --body-file ng.md",
+		"gh issue create --repo Rin0107/regex-crossword --title x --body-file ng.md",
 		"gh issue comment 3 --repo Rin0107/regex-crossword -F \"" + filepath.Join(c.Root, "ng.md") + "\"",
 	} {
 		if why := Bash(cmd, c); !strings.Contains(why, "家のパス") {

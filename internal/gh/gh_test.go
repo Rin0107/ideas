@@ -249,3 +249,31 @@ func TestLabeledIssues(t *testing.T) {
 		t.Fatal("gh の失敗を通した")
 	}
 }
+
+func TestCommitChecksBuckets(t *testing.T) {
+	fakegh.Install(t,
+		fakegh.Rule{Match: `commits/a/check-runs`, Out: `[{"name":"a","status":"in_progress","conclusion":null},` +
+			`{"name":"b","status":"completed","conclusion":"success"},{"name":"c","status":"completed","conclusion":"neutral"},` +
+			`{"name":"d","status":"completed","conclusion":"skipped"},{"name":"e","status":"completed","conclusion":"cancelled"},` +
+			`{"name":"f","status":"completed","conclusion":"timed_out"},{"name":"g","status":"queued","conclusion":null}]`},
+		fakegh.Rule{Match: `commits/b/check-runs`, Out: `{`},
+		fakegh.Rule{Match: `commits/c/check-runs`, Code: 1},
+	)
+	cs, err := CommitChecks("o/r", "a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, c := range cs {
+		got = append(got, c.Name+"="+c.Bucket)
+	}
+	if strings.Join(got, " ") != "a=pending b=pass c=pass d=skipping e=cancel f=fail g=pending" {
+		t.Fatal(got)
+	}
+	if _, err := CommitChecks("o/r", "b"); err == nil || !strings.Contains(err.Error(), "読めない") {
+		t.Fatal(err)
+	}
+	if _, err := CommitChecks("o/r", "c"); err == nil {
+		t.Fatal("読めないのに通った")
+	}
+}

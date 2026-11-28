@@ -39,6 +39,7 @@ var denyRules = []rule{
 	r(`\bgh\s+repo\s+edit\b[^|;&]*--visibility`, "公開範囲の変更は wk ship で行う"),
 	r(`\bgh\s+repo\s+archive\b`, "archive は wk drop で行う"),
 	r(`\bgh\s+pr\s+merge\b`, "merge は wk merge で行う (CI と reviewer を待つため)"),
+	r(`\bgh\s+pr\s+(create|reopen)\b`, "PR は作らない (public の repo では GitHub が持ち主の本名で試しの merge を作る)。task は wk land で main に入れる"),
 	// public の repo (2026-11-28): コメントは誰でも書けるので、持ち主のものだけを wk comments で読む。public にするのは人だけ
 	r(`\bgh\s+(issue|pr)\s+view\b[^|;&]*(--comments|--json\s+\S*\b(comments|reviews)\b)`, "コメントは wk comments <issue> --repo <repo> で読む (public の repo では誰でも書ける。持ち主のものだけを読む)"),
 	r(`\bgh\s+api\b[^|;&]*/(comments|reviews)\b`, "コメントは wk comments <issue> --repo <repo> で読む (public の repo では誰でも書ける。持ち主のものだけを読む)"),

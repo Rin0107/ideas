@@ -679,14 +679,14 @@ func TestPrivacyScan(t *testing.T) {
 	}
 
 	// 消したファイルも履歴に残る
-	must(t, os.WriteFile(filepath.Join(work, "b.txt"), []byte("someone@gmail.com\n"), 0o644))
+	must(t, os.WriteFile(filepath.Join(work, "b.txt"), []byte("jiro@" + "gmail.com\n"), 0o644))
 	git("add", ".")
 	git("commit", "-qm", "second")
 	git("rm", "-q", "b.txt")
 	git("commit", "-qm", "third")
 	git("push", "-q", filepath.Join(f.remote, "Tester", "alpha.git"), "HEAD:main")
 	got := privacyScan(e, "Tester/alpha")
-	if len(got) != 1 || !strings.Contains(got[0], "個人情報の検査に通らない") || !strings.Contains(got[0], "メールアドレス") || strings.Contains(got[0], "someone") {
+	if len(got) != 1 || !strings.Contains(got[0], "個人情報の検査に通らない") || !strings.Contains(got[0], "メールアドレス") || strings.Contains(got[0], "jiro") {
 		t.Fatal(got)
 	}
 

@@ -30,18 +30,17 @@ wk verify <N>
 - `"ok": false` なら、`problems` と落ちた `checks` の `output` を読んで直し、コミットしてもう一度 `wk verify <N>`
 - 何度やっても通らない (同じところで 3 回落ちた・やることが issue から読み取れない) なら、手順 6
 
-## 4. PR → レビュー → merge
+## 4. push → wk land (PR は作らない)
 ```bash
 git push -u origin wk/t<N>
-gh pr create --repo <repo> --base main --head wk/t<N> --title "<issue の題>" --body "Closes #<N>"
-wk review <repo> <PR 番号>
-wk merge <repo> <PR 番号>
+wk land <N>
 ```
-- push が non-fast-forward で拒否されたら、`git fetch origin && git merge -q --no-edit origin/wk/t<N>` (rebase も force push もしない) → `wk verify <N>` → push。拒否されたまま `gh pr create` しない (古いブランチで PR ができる)
-- `wk merge` は、`wk verify` が通ったコミットだけを merge する。push したあとに変えたら `wk verify` からやり直す
-- `request_changes` なら直して (変えてよいファイルの中で)、コミット → `wk verify` → push → `wk review`。**最大 2 回**
-- CI が赤なら `gh run view --repo <repo> --log-failed` を読んで直す。原因が工場・雛形の側なら `result: fix`
-- CI のジョブが 20 分以上 `in_progress`・`queued` のまま進まないときは、1 回だけ `gh run rerun <run の ID> --repo <repo>` してから `wk merge` を待つ (11-21 の #29 は ac-coverage が止まったままで 2 回 fix になり、再実行で通った)。それでも進まなければ `result: fix`
+- **PR は作らない** (guard が止める)。public の repo で PR を開くと、GitHub が持ち主の本名と会社のメールで試しの merge のコミットを作り、消せない
+- `wk land` は、push した先頭で `wk verify` が通っているか・守りの部分に触れていないか・そのコミットの CI が全部 green かを確かめ、reviewer 全員が approve なら main に入れて issue を閉じる。reviewer の文は issue のコメントに残る
+- push が non-fast-forward で拒否されたら、`git fetch origin && git merge -q --no-edit origin/wk/t<N>` (rebase も force push もしない) → `wk verify <N>` → push
+- `request_changes` なら直して (変えてよいファイルの中で)、コミット → `wk verify` → push → `wk land`。**最大 2 回**
+- CI が赤なら `gh run list --repo <repo> --branch wk/t<N>` と `gh run view <run の ID> --repo <repo> --log-failed` を読んで直す。原因が工場・雛形の側なら `result: fix`
+- CI のジョブが 20 分以上 `in_progress`・`queued` のまま進まないときは、1 回だけ `gh run rerun <run の ID> --repo <repo>` してから `wk land` をやり直す。それでも進まなければ `result: fix`
 
 ## 5. 出して片付ける
 ```bash

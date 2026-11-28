@@ -48,11 +48,13 @@ var commands = map[string]command{
 	"merge":  {"<repo> <pr>: CI 全部 green かつ wk:reviewed のときだけ squash merge", cmdMerge},
 	// public の repo (2026-11-28)
 	"comments":  {"<issue> --repo <owner/name>: issue の題・本文と、持ち主のコメントだけを出す (ほかの人の文はエージェントに見せない)", cmdComments},
+	"audit":     {"毎日の見回り: public の repo を全部、全履歴・PR の ref・issue と PR の文まで見る。見つかれば工場のアプリは private に戻し、人に知らせる", cmdAudit},
 	"publicize": {"--repo <owner/name>: 全履歴と issue・PR の文に個人情報がないか見てから public にする (人だけ)", cmdPublicize},
 	// v4 (docs/DESIGN-v4.md)
 	"inbox":  {"持ち主が工場に頼んだ issue (wk:・role: のラベルなし) を JSON で出す。計画が task にして閉じる", cmdInbox},
 	"plan":   {"--plan <json> [--dir <worktree>]: 計画を task の issue と受け入れテストのブランチにする (v4、計画の実行だけ)", cmdPlan},
 	"retest": {"<issue> --reason <text> [--dir <worktree>]: 計画が固定した受け入れテストを直す (計画の実行だけ。tick の中では使えない)", cmdRetest},
+	"land":   {"<issue>: task のブランチを PR なしで main に入れる (wk verify・CI・reviewer を確かめてから。task の tick の中だけ)", cmdLand},
 	"verify": {"[<issue>]: task の完了条件を wk が実行して判定する。通れば今のコミットを merge してよい (v4)", cmdVerify},
 	"deploy": {"作っているアプリを出す: Web はプレビュー (配信用 repo の preview)、CLI はタグとリリース", cmdDeploy},
 	"site":   {"init: 配信用の repo を作る (人が 1 回だけ。docs/SETUP.md)", cmdSite},

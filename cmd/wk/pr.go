@@ -20,7 +20,7 @@ import (
 	"github.com/Rin0107/ideas/internal/usage"
 )
 
-const maxDiffBytes = 150_000
+var maxDiffBytes = 150_000
 
 // ---- review: 別の Claude に PR を見せる ----
 
@@ -99,34 +99,12 @@ func cmdReview(args []string) error {
 	material := fmt.Sprintf("# PR #%d: %s\n%s\n\n# issue と受け入れ条件\n%s\n# CI\n%v\n\n# 差分\n```diff\n%s\n```\n",
 		pr, v.Title, v.Body, issues.String(), checks, diff)
 
-	// ロールごとに、会話を引き継がない別の Claude が自分の持ち場の目で見る (docs/ROLES.md)。
-	// 途中で request_changes が出ても全員に見せる (直す側が 1 回で全部の指摘を受け取れるように)。
-	result := reviews{Verdict: "approve"}
-	for _, who := range reviewersFor(files, e.cfg.Reviewers) {
-		instr, err := os.ReadFile(filepath.Join(e.cfg.Root, "harness", "reviewers", who+".md"))
-		if err != nil {
-			return err
-		}
-		out, err := runClaude(e, string(instr)+"\n\n"+material)
-		if err != nil {
-			return err
-		}
-		var r review
-		if err := json.Unmarshal([]byte(extractJSON(out)), &r); err != nil || (r.Verdict != "approve" && r.Verdict != "request_changes") {
-			return fmt.Errorf("%s の reviewer の出力が JSON の形でない: %v\n%s", who, err, out)
-		}
-		r.Role = who // 出力に role が書かれていても信じない
-		comment := fmt.Sprintf("**wakuwaku reviewer (%s): %s**\n\n%s\n", who, r.Verdict, r.Summary)
-		for _, is := range r.Issues {
-			comment += "- " + is + "\n"
-		}
-		if _, err := gh.GH("pr", "comment", fmt.Sprint(pr), "--repo", repo, "--body", comment); err != nil {
-			return err
-		}
-		if r.Verdict != "approve" {
-			result.Verdict = "request_changes"
-		}
-		result.Reviews = append(result.Reviews, r)
+	result, err := reviewAll(e, files, material, func(comment string) error {
+		_, err := gh.GH("pr", "comment", fmt.Sprint(pr), "--repo", repo, "--body", comment)
+		return err
+	})
+	if err != nil {
+		return err
 	}
 	// 全員が approve したときだけ、approve として記録する (wk merge はこの記録を見る)
 	if result.Verdict == "approve" {
@@ -217,40 +195,14 @@ func cmdMerge(args []string) error {
 	} else if hit := guard.TouchesProtected(files, appHard); len(hit) > 0 {
 		return fmt.Errorf("工場の力を広げる守りの部分 (フック・検査の設定) を変えている PR は merge しない (人だけ): %s", strings.Join(hit, ", "))
 	}
-	start := time.Now()
-	for {
-		cs, err := gh.Checks(repo, pr)
-		if err != nil {
-			return err
-		}
-		pending, failed := 0, []string{}
-		for _, c := range cs {
-			switch c.Bucket {
-			case "pending":
-				pending++
-			case "fail", "cancel":
-				failed = append(failed, c.Name)
-			}
-		}
-		// switch の case の条件はミューテーションの道具がカバレッジの範囲外と見なすので、if で書く
-		if len(failed) > 0 {
-			return fmt.Errorf("CI が赤: %s", strings.Join(failed, ", "))
-		}
-		if len(cs) == 0 && time.Since(start) > mergeNoCI {
-			return errors.New("CI が 1 つも動いていない (雛形の workflow を確認)")
-		}
-		if len(cs) > 0 && pending == 0 {
-			if err := mergeFF(e, repo, pr, head); err != nil {
-				return err
-			}
-			fmt.Printf("merge した: %s#%d (チェック %d 件 green)\n", repo, pr, len(cs))
-			return nil
-		}
-		if time.Since(start) > mergeWait {
-			return errors.New("CI が " + mergeWait.String() + " で終わらない")
-		}
-		time.Sleep(mergePoll)
+	if err := waitChecks(func() ([]gh.Check, error) { return gh.Checks(repo, pr) }); err != nil {
+		return err
 	}
+	if err := mergeFF(e, repo, pr, head); err != nil {
+		return err
+	}
+	fmt.Printf("merge した: %s#%d (CI は全部 green)\n", repo, pr)
+	return nil
 }
 
 func repoPR(args []string) (string, int, error) {
@@ -441,4 +393,72 @@ func mergeFF(e *env, repo string, pr int, head string) error {
 		fmt.Fprintln(os.Stderr, "ブランチを消せない:", v.HeadRefName, err)
 	}
 	return nil
+}
+
+// reviewAll はロールごとに、会話を引き継がない別の Claude に材料を見せる。post は各 reviewer の文を残す先 (PR か issue のコメント)。
+func reviewAll(e *env, files []string, material string, post func(string) error) (reviews, error) {
+	// ロールごとに、会話を引き継がない別の Claude が自分の持ち場の目で見る (docs/ROLES.md)。
+	// 途中で request_changes が出ても全員に見せる (直す側が 1 回で全部の指摘を受け取れるように)。
+	result := reviews{Verdict: "approve"}
+	for _, who := range reviewersFor(files, e.cfg.Reviewers) {
+		instr, err := os.ReadFile(filepath.Join(e.cfg.Root, "harness", "reviewers", who+".md"))
+		if err != nil {
+			return result, err
+		}
+		out, err := runClaude(e, string(instr)+"\n\n"+material)
+		if err != nil {
+			return result, err
+		}
+		var r review
+		if err := json.Unmarshal([]byte(extractJSON(out)), &r); err != nil || (r.Verdict != "approve" && r.Verdict != "request_changes") {
+			return result, fmt.Errorf("%s の reviewer の出力が JSON の形でない: %v\n%s", who, err, out)
+		}
+		r.Role = who // 出力に role が書かれていても信じない
+		comment := fmt.Sprintf("**wakuwaku reviewer (%s): %s**\n\n%s\n", who, r.Verdict, r.Summary)
+		for _, is := range r.Issues {
+			comment += "- " + is + "\n"
+		}
+		if err := post(comment); err != nil {
+			return result, err
+		}
+		if r.Verdict != "approve" {
+			result.Verdict = "request_changes"
+		}
+		result.Reviews = append(result.Reviews, r)
+	}
+	return result, nil
+}
+
+// waitChecks は CI が全部終わるまで待つ。赤・1 つも動かない・終わらないときは理由を返す。
+func waitChecks(get func() ([]gh.Check, error)) error {
+	start := time.Now()
+	for {
+		cs, err := get()
+		if err != nil {
+			return err
+		}
+		pending, failed := 0, []string{}
+		for _, c := range cs {
+			switch c.Bucket {
+			case "pending":
+				pending++
+			case "fail", "cancel":
+				failed = append(failed, c.Name)
+			}
+		}
+		// switch の case の条件はミューテーションの道具がカバレッジの範囲外と見なすので、if で書く
+		if len(failed) > 0 {
+			return fmt.Errorf("CI が赤: %s", strings.Join(failed, ", "))
+		}
+		if len(cs) == 0 && time.Since(start) > mergeNoCI {
+			return errors.New("CI が 1 つも動いていない (雛形の workflow を確認)")
+		}
+		if len(cs) > 0 && pending == 0 {
+			return nil
+		}
+		if time.Since(start) > mergeWait {
+			return errors.New("CI が " + mergeWait.String() + " で終わらない")
+		}
+		time.Sleep(mergePoll)
+	}
 }
