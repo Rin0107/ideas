@@ -1,0 +1,640 @@
+{
+  "tasks": {
+    "10": {
+      "issue": 10,
+      "title": "マイページの API (GET mine・GET voted・POST decide・DELETE questions/:id) と片付け (sweep)",
+      "branch": "wk/t10",
+      "tests": {
+        "tests/unit/plan/v0.1-06-mine-api.test.ts": "6b9ca0d001cdb5ecc8e5e37341b7e26e8bbf319fe5ff2e97b70f4beba9e3e0ec",
+        "tests/unit/plan/worker-harness.ts": "0d5d2ac780b161ffd980b054c9840c6b8fdeb99fa777eea4458c826d417fbd3c"
+      },
+      "paths": [
+        "src/worker/api.ts",
+        "docs/architecture.md",
+        "docs/runbook.md",
+        "tests/unit/worker.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "マイページの API",
+          "run": "npx vitest run tests/unit/plan/v0.1-06-mine-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        9
+      ],
+      "plan": "2026-11-28"
+    },
+    "11": {
+      "issue": 11,
+      "title": "通報の API (POST questions/:id/report)。3 人で自動の非表示",
+      "branch": "wk/t11",
+      "tests": {
+        "tests/unit/plan/v0.1-07-report-api.test.ts": "4c292184f2d7458794f2ae834dcddb21b6612087b0c8dca58f39fea7eac715ec",
+        "tests/unit/plan/worker-harness.ts": "0d5d2ac780b161ffd980b054c9840c6b8fdeb99fa777eea4458c826d417fbd3c"
+      },
+      "paths": [
+        "src/worker/api.ts",
+        "docs/runbook.md",
+        "tests/unit/worker.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "通報の API",
+          "run": "npx vitest run tests/unit/plan/v0.1-07-report-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        9
+      ],
+      "plan": "2026-11-28"
+    },
+    "12": {
+      "issue": 12,
+      "title": "画面からサーバーを呼ぶ関数 (src/client.ts の api) に二択・票・結果・通報",
+      "branch": "wk/t12",
+      "tests": {
+        "tests/unit/plan/v0.1-08-client.test.ts": "6d29c05bd3e78952b42fef4420eede97156fa0b82242b8dec3d784fc147b745f"
+      },
+      "paths": [
+        "src/client.ts",
+        "tests/unit/client.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "画面からの呼び出し",
+          "run": "npx vitest run tests/unit/plan/v0.1-08-client.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-28"
+    },
+    "13": {
+      "issue": 13,
+      "title": "利用規約とプライバシーポリシーの画面 (src/Legal.tsx)",
+      "branch": "wk/t13",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "cf806c925dc188e0e6fbb442eb51567ef3be60c59885de75795ac78c982817ef",
+        "tests/unit/plan/v0.1-09-legal.test.tsx": "e2a3efe1d4140cd30de8ce8196f050c462e2badb366911ff4845920538e7ecfc"
+      },
+      "paths": [
+        "src/Legal.tsx",
+        "src/App.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/legal.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "規約とポリシーの画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-09-legal.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-28"
+    },
+    "14": {
+      "issue": 14,
+      "title": "同意の画面と下のタブ (答える・聞く・マイページ)。服の画面を外す",
+      "branch": "wk/t14",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "cf806c925dc188e0e6fbb442eb51567ef3be60c59885de75795ac78c982817ef",
+        "tests/unit/plan/v0.1-10-agree.test.tsx": "f43ede28e3d2f2b661a7314fd31f998bc4fd77413dcda592549f9452a27b86e7"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/Agree.tsx",
+        "src/Home.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx",
+        "tests/unit/main.test.tsx",
+        "tests/unit/home.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "同意の画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-10-agree.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        7,
+        12,
+        13
+      ],
+      "plan": "2026-11-28"
+    },
+    "15": {
+      "issue": 15,
+      "title": "聞くの画面 (src/AskForm.tsx): 迷っていること 30 字・A と B 15 字・時間",
+      "branch": "wk/t15",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "cf806c925dc188e0e6fbb442eb51567ef3be60c59885de75795ac78c982817ef",
+        "tests/unit/plan/v0.1-11-ask.test.tsx": "21684db68de9f0ecb5fed9b7576589deef0854a386cec9890675a4257a206e4f"
+      },
+      "paths": [
+        "src/AskForm.tsx",
+        "src/Home.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/ask-form.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "聞くの画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-11-ask.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        4,
+        14
+      ],
+      "plan": "2026-11-28"
+    },
+    "16": {
+      "issue": 16,
+      "title": "答えるの画面 (src/Deck.tsx): 1 画面に 1 枚、上にスワイプで次。押すと割合",
+      "branch": "wk/t16",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "cf806c925dc188e0e6fbb442eb51567ef3be60c59885de75795ac78c982817ef",
+        "tests/unit/plan/v0.1-12-answer.test.tsx": "a7dedc6e7b3f4cacf2e427933da82298ea8658fb3abbce20ca6e7a863a3cdabc"
+      },
+      "paths": [
+        "src/Deck.tsx",
+        "src/Home.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/deck.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "答えるの画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-12-answer.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        12,
+        14
+      ],
+      "plan": "2026-11-28"
+    },
+    "17": {
+      "issue": 17,
+      "title": "マイページの「聞いたこと」: 問い・人数・残り時間と、多かった方の選択肢を色付きで",
+      "branch": "wk/t17",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "cf806c925dc188e0e6fbb442eb51567ef3be60c59885de75795ac78c982817ef",
+        "tests/unit/plan/v0.1-13-mypage.test.tsx": "58dde1c1954396f0cfbe11245430cad9b1f2d952af8baa7bf16ad2202e8fd116"
+      },
+      "paths": [
+        "src/MyPage.tsx",
+        "src/Home.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/mypage.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "マイページの聞いたこと",
+          "run": "npx vitest run tests/unit/plan/v0.1-13-mypage.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        12,
+        14
+      ],
+      "plan": "2026-11-28"
+    },
+    "18": {
+      "issue": 18,
+      "title": "結果のシート: 割合と人数・「こっちにした」・この二択を消す",
+      "branch": "wk/t18",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "cf806c925dc188e0e6fbb442eb51567ef3be60c59885de75795ac78c982817ef",
+        "tests/unit/plan/v0.1-14-result.test.tsx": "f4fcdad7ee3263e7264a623171fdc07ca05e93f170bc90e01f64d830b7e16047"
+      },
+      "paths": [
+        "src/ResultSheet.tsx",
+        "src/MyPage.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/result-sheet.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "結果のシート",
+          "run": "npx vitest run tests/unit/plan/v0.1-14-result.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        17
+      ],
+      "plan": "2026-11-28"
+    },
+    "19": {
+      "issue": 19,
+      "title": "マイページの「票を入れた二択」: 票を入れた人にも結果が届く",
+      "branch": "wk/t19",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "cf806c925dc188e0e6fbb442eb51567ef3be60c59885de75795ac78c982817ef",
+        "tests/unit/plan/v0.1-15-voted-ui.test.tsx": "8a1a6e607f3e4fd8f1b1d7add00d9e5a539fc8441ffe868f50d41ff3db28bf31"
+      },
+      "paths": [
+        "src/MyPage.tsx",
+        "src/Home.tsx",
+        "src/style.css",
+        "tests/unit/mypage.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "票を入れた二択",
+          "run": "npx vitest run tests/unit/plan/v0.1-15-voted-ui.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        17
+      ],
+      "plan": "2026-11-28"
+    },
+    "20": {
+      "issue": 20,
+      "title": "マイページの下の設定: パスキー・規約・ポリシー・お問い合わせ・ログアウト・アカウントを削除",
+      "branch": "wk/t20",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "cf806c925dc188e0e6fbb442eb51567ef3be60c59885de75795ac78c982817ef",
+        "tests/unit/plan/v0.1-16-settings.test.tsx": "e1b19b2a19cb249cc22ffeec0ad24dde8667b336e08fe21c2f72d4b4004de625"
+      },
+      "paths": [
+        "src/MyPage.tsx",
+        "src/App.tsx",
+        "src/Home.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/mypage.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "設定",
+          "run": "npx vitest run tests/unit/plan/v0.1-16-settings.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        13,
+        17
+      ],
+      "plan": "2026-11-28"
+    },
+    "21": {
+      "issue": 21,
+      "title": "答えるのカードの「その他」から通報する",
+      "branch": "wk/t21",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "cf806c925dc188e0e6fbb442eb51567ef3be60c59885de75795ac78c982817ef",
+        "tests/unit/plan/v0.1-17-report-ui.test.tsx": "2426b91bd20a676f6c17072f37f35e665cf8362e0dbdb324e88bb87ee447632a"
+      },
+      "paths": [
+        "src/Deck.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/deck.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "通報の画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-17-report-ui.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        16
+      ],
+      "plan": "2026-11-28"
+    },
+    "22": {
+      "issue": 22,
+      "title": "サーバーから服・コーデ・写真・書き出しを片付ける (migrations/0003_drop_clothes.sql)",
+      "branch": "wk/t22",
+      "tests": {
+        "tests/unit/plan/v0.1-20-cleanup-server.test.ts": "af13e9540b67d396c1bd6272fc4f1266fe75b671c0c2f1bd5ef0ac80525f1dbe"
+      },
+      "paths": [
+        "migrations/0003_drop_clothes.sql",
+        "src/worker/api.ts",
+        "src/worker/db.ts",
+        "src/worker/photo.ts",
+        "tests/unit/photo.test.ts",
+        "tests/unit/worker.test.ts",
+        "tests/unit/db.test.ts",
+        "tests/unit/routes.test.ts",
+        "DATA.md",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "サーバーの片付け",
+          "run": "npx vitest run tests/unit/plan/v0.1-20-cleanup-server.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        10,
+        11
+      ],
+      "plan": "2026-11-28"
+    },
+    "23": {
+      "issue": 23,
+      "title": "画面の側から天気・おすすめ・写真の縮小を片付ける",
+      "branch": "wk/t23",
+      "tests": {
+        "tests/unit/plan/v0.1-21-cleanup-client.test.ts": "90ca86c54182517c216709278faf69577308aefa9aec4a1b947726b6db06fd27"
+      },
+      "paths": [
+        "src/weather.ts",
+        "src/recommend.ts",
+        "src/shrink.ts",
+        "src/client.ts",
+        "src/App.tsx",
+        "tests/unit/weather.test.ts",
+        "tests/unit/recommend.test.ts",
+        "tests/unit/shrink.test.ts",
+        "tests/unit/client.test.ts",
+        "spec/recommend.smt2",
+        "DATA.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "画面の側の片付け",
+          "run": "npx vitest run tests/unit/plan/v0.1-21-cleanup-client.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        14
+      ],
+      "plan": "2026-11-28"
+    },
+    "24": {
+      "issue": 24,
+      "title": "ホームに追加したときの名前と色・下のタブを切り欠きの上に",
+      "branch": "wk/t24",
+      "tests": {
+        "tests/unit/plan/v0.1-19-home-screen.test.ts": "c2e8a08c76c639aa7f41f87dd7f4378e98127acd425a2d0630df7942cae34377"
+      },
+      "paths": [
+        "public/manifest.webmanifest",
+        "index.html",
+        "src/style.css",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "ホーム画面の名前と色",
+          "run": "npx vitest run tests/unit/plan/v0.1-19-home-screen.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        14
+      ],
+      "plan": "2026-11-28"
+    },
+    "4": {
+      "issue": 4,
+      "title": "個人が分かる文を見つける関数 findPersonalInfo (src/pii.ts)",
+      "branch": "wk/t4",
+      "tests": {
+        "tests/unit/plan/v0.1-00-pii.test.ts": "7ab31232af72d9f232222eee17eb591cac5680b0f17d59cf57ddd064f1e2a9af"
+      },
+      "paths": [
+        "src/pii.ts",
+        "tests/unit/pii.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "個人が分かる文の検査",
+          "run": "npx vitest run tests/unit/plan/v0.1-00-pii.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-28"
+    },
+    "5": {
+      "issue": 5,
+      "title": "二択と票の表 (migrations/0002_questions.sql) とプロフィールの Store 関数",
+      "branch": "wk/t5",
+      "tests": {
+        "tests/unit/plan/v0.1-01-tables.test.ts": "69a2fcf1f8e158d380b80c69ed51b8862e54248e8313783db6fac70e2def28ab"
+      },
+      "paths": [
+        "migrations/0002_questions.sql",
+        "src/worker/db.ts",
+        "DATA.md",
+        "tests/unit/db.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "二択と票の表",
+          "run": "npx vitest run tests/unit/plan/v0.1-01-tables.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-28"
+    },
+    "6": {
+      "issue": 6,
+      "title": "二択と票の Store 関数 (足す・答えるの順番・票・結果・こっちにした・消す・通報・片付け)",
+      "branch": "wk/t6",
+      "tests": {
+        "tests/unit/plan/v0.1-02-question-store.test.ts": "0379ebf06a9038c4eb3f8d226d6be1255865cb940066d95d76e2f00ac17cb6ac"
+      },
+      "paths": [
+        "src/worker/db.ts",
+        "tests/unit/db.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "二択と票の Store",
+          "run": "npx vitest run tests/unit/plan/v0.1-02-question-store.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        5
+      ],
+      "plan": "2026-11-28"
+    },
+    "7": {
+      "issue": 7,
+      "title": "プロフィールと同意の API (GET /api/profile・POST /api/agree) と規約の版 (src/terms.ts)",
+      "branch": "wk/t7",
+      "tests": {
+        "tests/unit/plan/v0.1-03-profile-api.test.ts": "afd7d4c81493b07cce0143270ac0f6af65d597d54c88bea2f44c7fc96071b16e",
+        "tests/unit/plan/worker-harness.ts": "0d5d2ac780b161ffd980b054c9840c6b8fdeb99fa777eea4458c826d417fbd3c"
+      },
+      "paths": [
+        "src/terms.ts",
+        "src/worker/api.ts",
+        "docs/architecture.md",
+        "tests/unit/worker.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "プロフィールと同意",
+          "run": "npx vitest run tests/unit/plan/v0.1-03-profile-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        5
+      ],
+      "plan": "2026-11-28"
+    },
+    "8": {
+      "issue": 8,
+      "title": "二択を投げる API (POST /api/questions) に同意・長さ・個人情報・回数の検査",
+      "branch": "wk/t8",
+      "tests": {
+        "tests/unit/plan/v0.1-04-ask-api.test.ts": "f0b6bb1c539464093a3b4f0b2c96204efe5de1fc90128cec5f1d6687e637b0c6",
+        "tests/unit/plan/worker-harness.ts": "0d5d2ac780b161ffd980b054c9840c6b8fdeb99fa777eea4458c826d417fbd3c"
+      },
+      "paths": [
+        "src/worker/api.ts",
+        "docs/architecture.md",
+        "tests/unit/worker.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "二択を投げる API",
+          "run": "npx vitest run tests/unit/plan/v0.1-04-ask-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        4,
+        6,
+        7
+      ],
+      "plan": "2026-11-28"
+    },
+    "9": {
+      "issue": 9,
+      "title": "答えるの API (GET /api/deck・POST questions/:id/vote) と、二択を読む仕様 (spec/Access.tla)",
+      "branch": "wk/t9",
+      "tests": {
+        "tests/unit/plan/v0.1-05-deck-vote-api.test.ts": "762c2d12d4fcace801b7e836426a7931529d15051ea91517a334d64c4027451b",
+        "tests/unit/plan/worker-harness.ts": "0d5d2ac780b161ffd980b054c9840c6b8fdeb99fa777eea4458c826d417fbd3c"
+      },
+      "paths": [
+        "src/worker/api.ts",
+        "spec/Access.tla",
+        "spec/Access.cfg",
+        "tests/unit/worker.test.ts",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "答えるの API",
+          "run": "npx vitest run tests/unit/plan/v0.1-05-deck-vote-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        8
+      ],
+      "plan": "2026-11-28"
+    }
+  }
+}
