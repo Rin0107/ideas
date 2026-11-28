@@ -55,6 +55,32 @@ func decidePlan(s Snapshot, ap App, a Action) Action {
 		a.Phase, a.Reason = state.PhasePlan, "最初の版の計画"
 		return a
 	}
+	if p.Status != state.Evaluating && !progressed(ap) {
+		a.Phase, a.Reason = state.PhaseIdle, "前の計画の task がまだ 1 件も終わっていない (評価しても前と同じ)"
+		return a
+	}
 	a.Phase, a.Reason = state.PhaseEvaluate, "前の計画のあとを評価する"
 	return a
+}
+
+// progressed は最新の計画の task のうち 1 件でも閉じたか。task がなければ (v3 から来た・計画が登録しなかった) 進んだとみなす。
+// 2026-11-28: 夜に PC が止まって task が 0 件のまま評価すると、雛形のまま採点して drop しかねない
+func progressed(ap App) bool {
+	if ap.Tasks == nil || len(ap.Tasks.Tasks) == 0 {
+		return true
+	}
+	last := ""
+	for _, t := range ap.Tasks.Tasks {
+		last = max(last, t.Plan)
+	}
+	open := map[int]bool{}
+	for _, is := range ap.Issues {
+		open[is.Number] = true
+	}
+	for _, t := range ap.Tasks.Tasks {
+		if t.Plan == last && !open[t.Issue] {
+			return true
+		}
+	}
+	return false
 }

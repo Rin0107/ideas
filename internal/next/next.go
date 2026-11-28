@@ -290,7 +290,8 @@ func decideFocus(s Snapshot, apps []App) Action {
 		started = map[string]bool{}
 	}
 	var busy []string
-	n := 0 // 主力の作りかけの数。主力があるときは主力でない作りかけは止まっているので、上限 (max_wip) には主力だけを数える
+	var idle *Action // 進める段のなかった主力のアプリ。ほかの主力を先に見る (2026-11-28: 1 つ目が待ちだと 2 つ目の計画に進めなかった)
+	n := 0           // 主力の作りかけの数。主力があるときは主力でない作りかけは止まっているので、上限 (max_wip) には主力だけを数える
 	for _, ap := range apps {
 		started[ap.Project.Idea] = true
 		if !focus.Has(ap.Project.Idea) {
@@ -301,10 +302,20 @@ func decideFocus(s Snapshot, apps []App) Action {
 			busy = append(busy, ap.Project.Idea)
 			continue
 		}
-		return decideApp(s, ap)
+		a := decideApp(s, ap)
+		if a.Phase == state.PhaseIdle {
+			if idle == nil {
+				idle = &a
+			}
+			continue
+		}
+		return a
 	}
 	next := focus.Next(started)
 	if next == "" {
+		if idle != nil {
+			return *idle
+		}
 		if len(busy) > 0 {
 			return Action{Phase: state.PhaseIdle, Reason: "主力のアプリ (" + strings.Join(busy, "・") + ") はほかの実行が進めている"}
 		}
