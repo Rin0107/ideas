@@ -679,7 +679,7 @@ func TestPrivacyScan(t *testing.T) {
 	}
 
 	// 消したファイルも履歴に残る
-	must(t, os.WriteFile(filepath.Join(work, "b.txt"), []byte("jiro@" + "gmail.com\n"), 0o644))
+	must(t, os.WriteFile(filepath.Join(work, "b.txt"), []byte("jiro@"+"gmail.com\n"), 0o644))
 	git("add", ".")
 	git("commit", "-qm", "second")
 	git("rm", "-q", "b.txt")

@@ -402,14 +402,20 @@ func cmdPlan(args []string) error {
 	if err := state.SaveTasks(e.cfg.Root, p.Repo, tasks); err != nil {
 		return err
 	}
-	// 3. 前の計画の残りは閉じる (この計画が作り直した。ブロックの理由は issue に残っている)
+	// 3. 前の計画の残りは閉じる (この計画が作り直した。ブロックの理由は issue に残っている)。
+	// 作っていないので wk:task を外し「見送り」で閉じる。外さないと CI の ac-coverage が「閉じた task」として
+	// その受け入れ条件のテストを求め、新しい計画の task がどれも main に入らない (2026-11-28 夜ふかし星座)
 	if old != "" && old != ms {
 		rest, err := gh.OpenIssues(p.Repo, old)
 		if err != nil {
 			return err
 		}
 		for _, is := range rest {
-			if _, err := gh.GH("issue", "close", fmt.Sprint(is.Number), "--repo", p.Repo, "--comment", "wakuwaku factory: "+ms+" の計画で作り直した"); err != nil {
+			if _, err := gh.GH("issue", "edit", fmt.Sprint(is.Number), "--repo", p.Repo, "--remove-label", "wk:task"); err != nil {
+				return err
+			}
+			if _, err := gh.GH("issue", "close", fmt.Sprint(is.Number), "--repo", p.Repo, "--reason", "not planned",
+				"--comment", "wakuwaku factory: "+ms+" の計画で作り直した"); err != nil {
 				return err
 			}
 		}

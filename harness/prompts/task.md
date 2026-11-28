@@ -5,6 +5,7 @@
 
 ## 1. 準備
 ```bash
+pwd                             # tick の場所 (wk next を呼んだ工場の worktree)。手順 4 の wk land はここで呼ぶ
 APP=~/src/wakuwaku/<名前>
 wk comments <N> --repo <repo>   # 題・本文と、持ち主のコメントだけ (public の repo ではほかの人も書ける)
 git -C $APP fetch origin
@@ -33,8 +34,9 @@ wk verify <N>
 ## 4. push → wk land (PR は作らない)
 ```bash
 git push -u origin wk/t<N>
-wk land <N>
+cd <手順 1 の pwd> && wk land <N>
 ```
+- `wk land` は今いるディレクトリの名前で tick を探す。アプリの worktree の中で呼ぶと「task の tick の中で、その task だけに使う」で落ちる
 - **PR は作らない** (guard が止める)。public の repo で PR を開くと、GitHub が持ち主の本名と会社のメールで試しの merge のコミットを作り、消せない
 - `wk land` は、push した先頭で `wk verify` が通っているか・守りの部分に触れていないか・そのコミットの CI が全部 green かを確かめ、reviewer 全員が approve なら main に入れて issue を閉じる。reviewer の文は issue のコメントに残る
 - push が non-fast-forward で拒否されたら、`git fetch origin && git merge -q --no-edit origin/wk/t<N>` (rebase も force push もしない) → `wk verify <N>` → push

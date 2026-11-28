@@ -131,7 +131,8 @@ func TestV4Plan(t *testing.T) {
 		"--milestone v0.3 --label wk:task --label role:engineer",
 		"--label role:designer",
 		"## 先に終わっている task\n- #11",
-		"issue close 3 --repo Tester/alpha --comment wakuwaku factory: v0.3 の計画で作り直した",
+		"issue edit 3 --repo Tester/alpha --remove-label wk:task",
+		"issue close 3 --repo Tester/alpha --reason not planned --comment wakuwaku factory: v0.3 の計画で作り直した",
 		"issue close 5 --repo Tester/factory --comment wakuwaku factory: task にした: Tester/alpha#12",
 	} {
 		if !f4called(v, call) {
@@ -194,6 +195,7 @@ func TestV4PlanErrors(t *testing.T) {
 		"issue の番号がない":     {rules: []fakegh.Rule{{Match: `^issue create`, Out: "ok"}}, want: "番号を読めない"},
 		"古い issue を読めない":   {rules: []fakegh.Rule{{Match: `^issue list --repo Tester/alpha --milestone v0.2`, Code: 1}}, want: "milestone v0.2"},
 		"古い issue を閉じられない": {rules: []fakegh.Rule{{Match: `^issue close 3`, Code: 1}}, want: "issue close 3"},
+		"古い issue の印を外せない": {rules: []fakegh.Rule{{Match: `^issue edit 3`, Code: 1}}, want: "issue edit 3"},
 		"人の issue を閉じられない": {rules: []fakegh.Rule{{Match: `^issue close 5`, Code: 1}}, want: "issue close 5"},
 		"知らない引数":           {want: "-x"},
 		"設定が壊れている":         {mut: func(v *v4fix, _ *V4Plan) { v.write("factory.json", "{") }, want: "factory.json"},
