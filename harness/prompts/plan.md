@@ -7,7 +7,7 @@
 - 最新の評価 (`reports/evaluations/<repo>-<n>.md`): 「一番の弱点」と「バグ」
 - idea.md の全文と `## 履歴`
 - 昨夜の task の結果: `gh issue list --repo <repo> --milestone <今のマイルストーン> --state all --json number,title,state,labels`。
-  `wk:blocked` のものはコメント (`試行 … が失敗`) を読み、**なぜ Sonnet が詰まったか** を知る (大きすぎた・やることが曖昧・テストが厳しすぎた)
+  `wk:blocked` のものはコメント (`試行 … が失敗`) を `wk comments <N> --repo <repo>` で読み、**なぜ Sonnet が詰まったか** を知る (大きすぎた・やることが曖昧・テストが厳しすぎた)
   - 原因が **受け入れテストの側** (待ちが足りない・環境で揺れる・前のテストと矛盾) で、作りは issue どおりなら、作り直さずにテストだけ直す:
     テストのブランチ (`origin/wk/t<N>`) の worktree でテストを直し、`wk retest <N> --dir <worktree> --reason "<なぜ>"`。
     wk が「直したテストも今の main では落ちる」を確かめ、ブランチに足して sha を書き直し、blocked と試行の数を外す。tick の中では使えない (11-24 の #107 は AC-3 が setTimeout(0) 1 回の待ちで、CI だけ落ちた)

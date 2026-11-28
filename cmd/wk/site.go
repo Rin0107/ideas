@@ -266,7 +266,7 @@ func cmdSite(args []string) error {
 			return err
 		}
 	}
-	if err := gh.CreateAndPush(repo, dir, "わくわく工場が公開したアプリを配る (Cloudflare Workers)"); err != nil {
+	if err := gh.CreateAndPush(repo, dir, "わくわく工場が公開したアプリを配る (Cloudflare Workers)", false); err != nil {
 		return err
 	}
 	fmt.Printf("作った: https://github.com/%s\n次: Cloudflare でこの repo を連携し、出た URL を factory.json の site.url に書く (docs/SETUP.md)\n", repo)

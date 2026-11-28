@@ -6,7 +6,7 @@
 ## 1. 準備
 ```bash
 APP=~/src/wakuwaku/<名前>
-gh issue view <N> --repo <repo> --comments
+wk comments <N> --repo <repo>   # 題・本文と、持ち主のコメントだけ (public の repo ではほかの人も書ける)
 git -C $APP fetch origin
 git -C $APP worktree add ~/src/wakuwaku/.wt/<名前>-t<N> -b wk/t<N> origin/wk/t<N>
 cd ~/src/wakuwaku/.wt/<名前>-t<N>

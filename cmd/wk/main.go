@@ -46,6 +46,9 @@ var commands = map[string]command{
 
 	"review": {"<repo> <pr>: ロールごとに別の Claude が PR を見る (SRE・engineer・UI なら designer)。全員 approve なら wk:reviewed", cmdReview},
 	"merge":  {"<repo> <pr>: CI 全部 green かつ wk:reviewed のときだけ squash merge", cmdMerge},
+	// public の repo (2026-11-28)
+	"comments":  {"<issue> --repo <owner/name>: issue の題・本文と、持ち主のコメントだけを出す (ほかの人の文はエージェントに見せない)", cmdComments},
+	"publicize": {"--repo <owner/name>: 全履歴と issue・PR の文に個人情報がないか見てから public にする (人だけ)", cmdPublicize},
 	// v4 (docs/DESIGN-v4.md)
 	"inbox":  {"持ち主が工場に頼んだ issue (wk:・role: のラベルなし) を JSON で出す。計画が task にして閉じる", cmdInbox},
 	"plan":   {"--plan <json> [--dir <worktree>]: 計画を task の issue と受け入れテストのブランチにする (v4、計画の実行だけ)", cmdPlan},

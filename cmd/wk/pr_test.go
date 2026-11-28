@@ -27,6 +27,7 @@ func fakeClaude(t *testing.T, out string, code int, sleep string) {
 // reviewRules は PR #5 (Tester/alpha) を見るための gh の決まり。
 func reviewRules(extra ...fakegh.Rule) []fakegh.Rule {
 	return append(extra,
+		fakegh.Rule{Match: `^pr view 5 --repo Tester/alpha --json author`, Out: "Tester false\n"},
 		fakegh.Rule{Match: `^pr view 5 --repo Tester/alpha --json headRefOid`, Out: sha},
 		fakegh.Rule{Match: `^pr diff 5`, Out: "+a\n"},
 		fakegh.Rule{Match: `^pr view 5 --repo Tester/alpha --json title`, Out: `{"title":"t","body":"Closes #1","closingIssuesReferences":[{"number":1}]}`},
@@ -182,6 +183,7 @@ func mergeFactory(t *testing.T, extra ...fakegh.Rule) (*factory, string) {
 	fastMerge(t)
 	src, head := mergeRepo(t)
 	f := newFactory(t, append(extra,
+		fakegh.Rule{Match: `^pr view 5 --repo Tester/alpha --json author`, Out: "Tester false\n"},
 		fakegh.Rule{Match: `^pr view 5 --repo Tester/alpha --json labels`, Out: `["wk:reviewed"]`},
 		fakegh.Rule{Match: `^pr view 5 --repo Tester/alpha --json headRefOid`, Out: head},
 		fakegh.Rule{Match: `^pr view 5 --repo Tester/alpha --json files`, Out: "src/a.ts\ntests/a.test.ts\n"},

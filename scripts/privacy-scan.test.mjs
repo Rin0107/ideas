@@ -98,6 +98,18 @@ test("tree・range・all", () => {
   assert.equal(run(d, "nope").status, 2);
 });
 
+test("text (issue・PR の文)", () => {
+  const { d } = repo();
+  writeFileSync(join(d, "ok.txt"), "AC-1 が落ちた noreply@anthropic.com\n");
+  assert.equal(run(d, "text", "ok.txt").status, 0);
+  writeFileSync(join(d, "ng.txt"), "ログ:\n  at /ho" + "me/someone/src/app.ts:3\n");
+  const r = run(d, "text", "ng.txt");
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /issue・PR の文:2: 家のパス/);
+  assert.ok(!r.stderr.includes("someone"), "値を出さない");
+  assert.equal(run(d, "text").status, 2);
+});
+
 test("雛形の写しは正本と同じ", () => {
   const root = join(here, "..");
   const src = readFileSync(script, "utf8");

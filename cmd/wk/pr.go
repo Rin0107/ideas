@@ -49,6 +49,11 @@ func cmdReview(args []string) error {
 	if !e.pf.Repos()[repo] {
 		return fmt.Errorf("%s は portfolio にない", repo)
 	}
+	if why, err := prOwnProblem(e, repo, pr); err != nil {
+		return err
+	} else if why != "" {
+		return errors.New(why)
+	}
 	headSHA, err := prHead(repo, pr)
 	if err != nil {
 		return err
@@ -183,6 +188,11 @@ func cmdMerge(args []string) error {
 	}
 	if !e.pf.Repos()[repo] {
 		return fmt.Errorf("%s は portfolio にない", repo)
+	}
+	if why, err := prOwnProblem(e, repo, pr); err != nil {
+		return err
+	} else if why != "" {
+		return errors.New(why)
 	}
 	labels, err := gh.Labels(repo, pr)
 	if err != nil {

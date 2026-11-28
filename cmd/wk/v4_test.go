@@ -437,6 +437,7 @@ func TestTaskMergeProblem(t *testing.T) {
 func TestMergeNeedsVerify(t *testing.T) {
 	sha := strings.Repeat("b", 40)
 	v := v4Factory(t,
+		fakegh.Rule{Match: `^pr view 7 --repo Tester/alpha --json author`, Out: "Tester false\n"},
 		fakegh.Rule{Match: `^pr view 7 --repo Tester/alpha --json labels`, Out: `["wk:reviewed"]`},
 		fakegh.Rule{Match: `^pr view 7 --repo Tester/alpha --json headRefOid`, Out: sha + "\n"},
 		fakegh.Rule{Match: `^pr view 7 --repo Tester/alpha --json headRefName`, Out: "wk/t11\n"},
@@ -582,6 +583,7 @@ func TestInboxFails(t *testing.T) {
 func TestMergeTaskCheckFails(t *testing.T) {
 	sha := strings.Repeat("c", 40)
 	v := v4Factory(t,
+		fakegh.Rule{Match: `^pr view 7 --repo Tester/alpha --json author`, Out: "Tester false\n"},
 		fakegh.Rule{Match: `^pr view 7 --repo Tester/alpha --json labels`, Out: `["wk:reviewed"]`},
 		fakegh.Rule{Match: `^pr view 7 --repo Tester/alpha --json headRefOid`, Out: sha + "\n"},
 		fakegh.Rule{Match: `^pr view 7 --repo Tester/alpha --json headRefName`, Code: 1},

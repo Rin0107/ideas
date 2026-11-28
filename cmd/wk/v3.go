@@ -27,7 +27,7 @@ var localCommands = map[string]bool{"check": true, "sync": true, "guard-bash": t
 // readOnlyCommands は状態を読むだけのコマンド。状態のロックは読む間だけ持つ (CI やビルドを長く待つ review・merge・deploy が、
 // ほかの実行を止めないように)。deploy は書くときだけ e.update で取り直す (docs/DESIGN-v3.md §8)
 var readOnlyCommands = map[string]bool{"due": true, "status": true, "usage": true, "candidates": true,
-	"review": true, "merge": true, "deploy": true, "verify": true, "inbox": true}
+	"review": true, "merge": true, "deploy": true, "verify": true, "inbox": true, "comments": true}
 
 // stateMode は今のコマンドが状態の clone を使うか (run が決める)。loaded は load した env (run が最後に記録を push する)。
 // readOnlyCmd は読むだけのコマンドか。releaseState は状態のロックを外す (run がコマンドの終わりに呼ぶ)

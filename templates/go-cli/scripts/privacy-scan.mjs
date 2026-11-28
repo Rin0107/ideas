@@ -5,6 +5,7 @@
 //   node privacy-scan.mjs tree              今のファイル全部 (git ls-files)
 //   node privacy-scan.mjs range <rev>...    コミットの作者・メッセージ・足した行 (例: base..head、sha --not --remotes)
 //   node privacy-scan.mjs all               全履歴の全ファイルと全コミット (public にする前に)
+//   node privacy-scan.mjs text <file>       issue・PR・コメントの文を集めたファイル (wk publicize が渡す)
 //
 // 見つけたら場所と種類だけを出して 1 で終わる。値そのものは出さない (public の CI のログに残るため)。
 import { spawnSync } from "node:child_process";
@@ -138,8 +139,9 @@ export function main(argv) {
     scanCommits(revs, out);
     scanPatches(revs, out);
   } else if (mode === "all") all(out);
+  else if (mode === "text" && rest.length === 1) scanText("issue・PR の文", readFileSync(rest[0], "utf8"), out);
   else {
-    console.error("使い方: privacy-scan.mjs tree | range <rev>... | all");
+    console.error("使い方: privacy-scan.mjs tree | range <rev>... | all | text <file>");
     return 2;
   }
   if (out.length === 0) {

@@ -301,9 +301,12 @@ func cmdScaffold(args []string) error {
 				return err
 			}
 		}
-		if err := gh.CreateAndPush(repo, dir, plan.Description); err != nil {
+		if err := gh.CreateAndPush(repo, dir, plan.Description, true); err != nil {
 			return err
 		}
+	}
+	if err := securePublic(repo); err != nil {
+		return err
 	}
 	if len(plan.Topics) > 0 {
 		args := []string{"repo", "edit", repo}
@@ -618,10 +621,8 @@ func cmdShip(args []string) error {
 	if _, err := gh.GH("repo", "edit", p.Repo, "--visibility", "public", "--accept-visibility-change-consequences"); err != nil {
 		return err
 	}
-	// public になったら、鍵の push を GitHub の側で止める (secret scanning と push protection。public は無料)
-	if _, err := gh.GH("api", "-X", "PATCH", "repos/"+p.Repo,
-		"-f", "security_and_analysis[secret_scanning][status]=enabled",
-		"-f", "security_and_analysis[secret_scanning_push_protection][status]=enabled"); err != nil {
+	// public になったら、鍵の push を GitHub の側で止め、外の人の PR の CI を承認制にする
+	if err := securePublic(p.Repo); err != nil {
 		return err
 	}
 	p.Status, p.URL, p.Preview, p.Verdict = state.Shipped, *url, "", ""

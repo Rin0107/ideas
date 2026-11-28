@@ -204,7 +204,7 @@ func TestScaffold(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(f.apps, "alpha", "node_modules")); err == nil {
 		t.Fatal("node_modules を写した")
 	}
-	for _, want := range []string{"repo create Tester/alpha --private", "--add-topic go --add-topic wakuwaku-factory",
+	for _, want := range []string{"repo create Tester/alpha --public", "secret_scanning_push_protection", "actions/permissions/fork-pr-contributor-approval -f approval_policy=all_external_contributors", "--add-topic go --add-topic wakuwaku-factory",
 		"label create wk:attempt-3", "-X POST repos/Tester/alpha/milestones -f title=MVP", "issue create --repo Tester/alpha --title 星を描く"} {
 		if !f.gh.Called(want) {
 			t.Fatalf("%q が呼ばれていない:\n%s", want, strings.Join(f.gh.Calls(), "\n"))
@@ -268,6 +268,7 @@ func TestScaffoldErrors(t *testing.T) {
 		"雛形がない":           {setup: func(f *factory) { os.RemoveAll(filepath.Join(f.root, "templates")) }, want: "templates"},
 		"git が使えない":       {setup: func(f *factory) { f.t.Setenv("GIT_DIR", "/nonexistent") }, want: "git"},
 		"push できない":       {setup: func(f *factory) { os.RemoveAll(filepath.Join(f.remote, "Tester")) }, want: "push"},
+		"守りの設定を入れられない":    {rules: []fakegh.Rule{{Match: `fork-pr-contributor-approval`, Code: 1}}, want: "fork-pr-contributor-approval"},
 		"topics を付けられない":  {rules: []fakegh.Rule{{Match: `^repo edit`, Code: 1}}, want: "repo edit"},
 		"ラベルを作れない":        {rules: []fakegh.Rule{{Match: `^label create`, Code: 1}}, want: "label create"},
 		"マイルストーンが読めない":    {rules: []fakegh.Rule{{Match: `milestones --jq`, Code: 1}}, want: "milestones"},

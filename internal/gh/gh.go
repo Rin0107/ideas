@@ -125,11 +125,16 @@ func CloneMirror(repo, dir string) error {
 	return err
 }
 
-// CreateAndPush は private の repo を作り、dir の main を https で push する。
+// CreateAndPush は repo を作り (public か private)、dir の main を https で push する。
+// 工場のアプリは作っている間から public (2026-11-28)。配信用の repo は Cloudflare とつながるので private。
 // 前の試みで repo だけができて push が失敗していた (空の repo がある) ときは、push だけやり直す。
-func CreateAndPush(repo, dir, description string) error {
+func CreateAndPush(repo, dir, description string, public bool) error {
+	vis := "--private"
+	if public {
+		vis = "--public"
+	}
 	if _, err := GH("repo", "view", repo, "--json", "name"); err != nil {
-		if _, err := GH("repo", "create", repo, "--private", "--description", description); err != nil {
+		if _, err := GH("repo", "create", repo, vis, "--description", description); err != nil {
 			return err
 		}
 	} else if _, err := GH("api", "repos/"+repo+"/commits?per_page=1", "--jq", ".[0].sha"); err == nil {

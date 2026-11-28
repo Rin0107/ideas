@@ -71,43 +71,43 @@ func TestCreateAndPush(t *testing.T) {
 
 	f := fakegh.Install(t,
 		fakegh.Rule{Match: `^repo view o/new `, Code: 1},
-		fakegh.Rule{Match: `^repo create o/new --private`},
+		fakegh.Rule{Match: `^repo create o/new --public`},
 		fakegh.Rule{Match: `^repo view o/(empty|full|nopush) `},
 		fakegh.Rule{Match: `^api repos/o/full/commits`, Out: "abc"},
 		fakegh.Rule{Match: `^api repos/o/(empty|nopush)/commits`, Code: 1},
 		fakegh.Rule{Match: `^repo view o/denied `, Code: 1},
-		fakegh.Rule{Match: `^repo create o/denied`, Code: 1},
+		fakegh.Rule{Match: `^repo create o/denied --private`, Code: 1},
 	)
 	// 新しく作って push する
-	must(CreateAndPush("o/new", localRepo(t), "d"))
-	if !f.Called("repo create o/new --private --description d") {
+	must(CreateAndPush("o/new", localRepo(t), "d", true))
+	if !f.Called("repo create o/new --public --description d") {
 		t.Fatal(f.Calls())
 	}
 	if out, _ := Run(filepath.Join(base, "o", "new.git"), "git", "log", "--oneline", "main"); out == "" {
 		t.Fatal("push されていない")
 	}
 	// 前の試みで空の repo だけがある: push だけやり直す
-	must(CreateAndPush("o/empty", localRepo(t), "d"))
+	must(CreateAndPush("o/empty", localRepo(t), "d", true))
 	// 中身がある repo には上書きしない
-	if err := CreateAndPush("o/full", localRepo(t), "d"); err == nil || !strings.Contains(err.Error(), "中身もある") {
+	if err := CreateAndPush("o/full", localRepo(t), "d", true); err == nil || !strings.Contains(err.Error(), "中身もある") {
 		t.Fatal(err)
 	}
 	// 作れない
-	if CreateAndPush("o/denied", localRepo(t), "d") == nil {
-		t.Fatal("作れないのに成功")
+	if CreateAndPush("o/denied", localRepo(t), "d", false) == nil || !f.Called("repo create o/denied --private") {
+		t.Fatal("作れないのに成功", f.Calls())
 	}
 	// git の repo でない (認証の設定ができない)
-	if CreateAndPush("o/empty", t.TempDir(), "d") == nil {
+	if CreateAndPush("o/empty", t.TempDir(), "d", true) == nil {
 		t.Fatal("repo でないのに成功")
 	}
 	// remote がすでにある
 	d := localRepo(t)
 	gitRun(t, d, "remote", "add", "origin", "x")
-	if CreateAndPush("o/empty", d, "d") == nil {
+	if CreateAndPush("o/empty", d, "d", true) == nil {
 		t.Fatal("remote があるのに成功")
 	}
 	// push 先がない
-	if CreateAndPush("o/nopush", localRepo(t), "d") == nil {
+	if CreateAndPush("o/nopush", localRepo(t), "d", true) == nil {
 		t.Fatal("push 先がないのに成功")
 	}
 }

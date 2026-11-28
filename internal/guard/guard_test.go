@@ -1,6 +1,11 @@
 package guard
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
 
 func ctx() Context {
 	return Context{
@@ -20,6 +25,16 @@ func TestBashDenies(t *testing.T) {
 		"gh repo edit Rin0107/regex-crossword --visibility public",
 		"gh repo edit someone/else --add-topic x",
 		"gh pr merge 3 --squash",
+		// public の repo: ほかの人のコメントを読まない・個人情報を書かない・public にするのは人
+		"gh issue view 3 --repo Rin0107/regex-crossword --comments",
+		"gh pr view 3 --repo Rin0107/regex-crossword --json title,comments",
+		"gh api repos/Rin0107/regex-crossword/issues/3/comments",
+		"gh api repos/Rin0107/regex-crossword/pulls/3/reviews",
+		"wk publicize --repo Rin0107/regex-crossword",
+		"gh issue comment 3 --repo Rin0107/regex-crossword --body \"at /ho" + "me/hanako/src/app.ts:3\"",
+		"cd /w && gh pr create --repo Rin0107/regex-crossword --title x --body \"連絡は hanako@" + "mail.example.jp\"",
+		"gh release create v1 --repo Rin0107/regex-crossword --notes \"C:\\\\Us" + "ers\\\\taro\\\\x\"",
+		"gh issue create --repo Rin0107/regex-crossword --title x --body-file /nope/body.md",
 		"git push --force origin feature",
 		"git push origin +feature",
 		"git push origin :feature",
@@ -101,6 +116,10 @@ func TestBashAllows(t *testing.T) {
 		"gh issue list --repo cli/cli --label 'good first issue'",
 		"gh api repos/cli/cli/issues",
 		"gh issue edit 3 --repo Rin0107/ideas --add-label wk:incident",
+		"gh issue view 3 --repo Rin0107/regex-crossword",
+		"wk comments 3 --repo Rin0107/regex-crossword",
+		"cd /ho" + "me/hanako/src/x && npm test",
+		"gh pr create --repo Rin0107/regex-crossword --title x --body \"Co-Authored-By: Claude <noreply@anthropic.com> 例: /home/runner/work と a@example.com\"",
 		"npm ci && npm run verify",
 		"npm run e2e",
 		"cat factory.json",
@@ -151,6 +170,34 @@ func TestTouchesProtected(t *testing.T) {
 	got := TouchesProtected([]string{"README.md", ".github/workflows/ci.yml", "factory.json", "internal/guardx.go"},
 		[]string{"factory.json", ".github/"})
 	if len(got) != 2 {
+		t.Fatal(got)
+	}
+}
+
+// 本文のファイルも見る (相対パスは Root から)
+func TestBashPostBodyFile(t *testing.T) {
+	c := ctx()
+	c.Root = t.TempDir()
+	write := func(name, body string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(c.Root, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("ok.md", "AC-1 が落ちた (tests/unit/a.test.ts:3)\n")
+	write("ng.md", "ログ:\n  /Us"+"ers/hanako/src/a.ts\n")
+	if why := Bash("gh pr create --repo Rin0107/regex-crossword --title x --body-file ok.md", c); why != "" {
+		t.Fatal(why)
+	}
+	for _, cmd := range []string{
+		"gh pr create --repo Rin0107/regex-crossword --title x --body-file ng.md",
+		"gh issue comment 3 --repo Rin0107/regex-crossword -F \"" + filepath.Join(c.Root, "ng.md") + "\"",
+	} {
+		if why := Bash(cmd, c); !strings.Contains(why, "家のパス") {
+			t.Errorf("%s: %q", cmd, why)
+		}
+	}
+	if got := Personal("a@example.com b@users.noreply.github.com /home/$USER /home/<you>"); got != nil {
 		t.Fatal(got)
 	}
 }

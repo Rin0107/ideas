@@ -6,6 +6,7 @@ package guard
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -38,6 +39,10 @@ var denyRules = []rule{
 	r(`\bgh\s+repo\s+edit\b[^|;&]*--visibility`, "公開範囲の変更は wk ship で行う"),
 	r(`\bgh\s+repo\s+archive\b`, "archive は wk drop で行う"),
 	r(`\bgh\s+pr\s+merge\b`, "merge は wk merge で行う (CI と reviewer を待つため)"),
+	// public の repo (2026-11-28): コメントは誰でも書けるので、持ち主のものだけを wk comments で読む。public にするのは人だけ
+	r(`\bgh\s+(issue|pr)\s+view\b[^|;&]*(--comments|--json\s+\S*\b(comments|reviews)\b)`, "コメントは wk comments <issue> --repo <repo> で読む (public の repo では誰でも書ける。持ち主のものだけを読む)"),
+	r(`\bgh\s+api\b[^|;&]*/(comments|reviews)\b`, "コメントは wk comments <issue> --repo <repo> で読む (public の repo では誰でも書ける。持ち主のものだけを読む)"),
+	r(`\bwk\s+publicize\b`, "repo を public にするのは人だけ (wk publicize)"),
 	r(`\bgh\s+api\b[^|;&]*(-X|--method)\s*DELETE`, "API での削除は禁止"),
 	r(`\bgh\s+api\s+graphql\b[^|;&]*\bmutation\b`, "GraphQL での書き込みは禁止"),
 	r(`\bgh\s+(secret|variable)\b`, "secret・variable は触らない"),
@@ -95,12 +100,68 @@ var readOnly = map[string]bool{
 }
 var readOnlyGit = regexp.MustCompile(`^git\s+(-C\s+\S+\s+)?(diff|log|show|status|blame|ls-files|grep)\b`)
 
+// ghPost は issue・PR・リリースに文を書く gh のコマンド。bodyFile は本文のファイル
+var (
+	ghPost   = regexp.MustCompile(`\bgh\s+(issue|pr)\s+(create|comment|edit|review|close)\b|\bgh\s+release\s+(create|edit)\b`)
+	bodyFile = regexp.MustCompile(`(?:--body-file|--notes-file|\s-F)[\s=]+("[^"]+"|'[^']+'|\S+)`)
+	mailRe   = regexp.MustCompile(`[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}`)
+	mailOK   = regexp.MustCompile(`(?i)^(noreply@anthropic\.com|git@github\.com|noreply@github\.com)$|@(.*\.)?(users\.noreply\.github\.com|example\.(com|org|net)|example|test|invalid|localhost)$`)
+	homeRe   = regexp.MustCompile(`(?:(?:/home|/Users)/|[A-Za-z]:\\+Users\\+)([^/\\\s"'\x60:)]+)`)
+	homeOK   = regexp.MustCompile(`^(runner|user|username|you|me|node|ubuntu|vscode|name|USER|<[^>]*>|\$.*)$`)
+)
+
+// Personal は文の中の個人情報 (メールアドレス・家のパス) の種類を返す (scripts/privacy-scan.mjs と同じ決まり。名前はそちらだけが見る)。
+func Personal(text string) []string {
+	var found []string
+	for _, m := range mailRe.FindAllString(text, -1) {
+		if !mailOK.MatchString(m) {
+			found = append(found, "メールアドレス")
+			break
+		}
+	}
+	for _, m := range homeRe.FindAllStringSubmatch(text, -1) {
+		if !homeOK.MatchString(m[1]) {
+			found = append(found, "家のパス")
+			break
+		}
+	}
+	return found
+}
+
+// postProblem は issue・PR・リリースに書く文 (コマンドの中と本文のファイル) に個人情報があれば理由を返す。
+// public の repo の文は誰でも読め、消しても写しが残る
+func postProblem(cmd string, c Context) string {
+	loc := ghPost.FindStringIndex(cmd)
+	if loc == nil {
+		return ""
+	}
+	text := cmd[loc[0]:]
+	for _, m := range bodyFile.FindAllStringSubmatch(text, -1) {
+		f := strings.Trim(m[1], `"'`)
+		if !filepath.IsAbs(f) {
+			f = filepath.Join(c.Root, f)
+		}
+		b, err := os.ReadFile(f)
+		if err != nil {
+			return "本文のファイルを読めない (個人情報を確かめられない): " + m[1]
+		}
+		text += "\n" + string(b)
+	}
+	if found := Personal(text); len(found) > 0 {
+		return "issue・PR に個人情報 (" + strings.Join(found, "・") + ") を書かない。パスは repo からの相対にし、メールは書かない"
+	}
+	return ""
+}
+
 // Bash はコマンドを止めるべきなら理由を返す (止めないなら "")。
 func Bash(cmd string, c Context) string {
 	for _, rl := range denyRules {
 		if rl.re.MatchString(cmd) {
 			return rl.reason
 		}
+	}
+	if why := postProblem(cmd, c); why != "" {
+		return why
 	}
 	// gh で書き込む repo は、工場とポートフォリオの repo だけ (読むだけなら公開 OSS も可)
 	if ghCmd.MatchString(cmd) {

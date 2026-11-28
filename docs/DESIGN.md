@@ -272,6 +272,13 @@ cmd/wk, internal/      制御 CLI
 - **reviewer はセキュリティを必ず見る**: `harness/reviewers/sre.md` の最初の項目が「DATA.md と差分が合っているか、新しく持つ情報はないか」
 - **public にする前の点検** (`wk ship`): gitleaks を履歴全体に、DATA.md、CSP、外部送信の検査が通っていること
 
+### 7.5 作っている間から public (2026-11-28)
+private の repo の Actions の無料の分 (月 2,000 分) を 4 つのアプリで使い切り、CI が止まった。持ち主の指定で、工場のアプリの repo は作っている間から public にする (public の Actions は無料)。public は「出した (ship)」の意味ではなくなる。本番に出すのは今までどおり `wk deploy` / `wk ship`。代わりに次を守る:
+- **個人を特定できるものを入れない**: git は pre-push (nix-config の privacy-hooks) と CI の `scripts/privacy-scan.mjs`・gitleaks が見る。issue・PR・リリースに書く文は guard が見る (コマンドの中と `--body-file`。メールアドレス・家のパス)。private から public にするのは人だけの `wk publicize` で、全履歴 (PR の ref も) と、issue・PR・コメント・レビュー・リリースの文を全部見て、何かあれば public にしない
+- **ほかの人の PR は review も merge もしない**: `wk review` / `wk merge` は、作者が持ち主でない PR・fork から来た PR を断る。外の人の PR の CI は持ち主が承認するまで動かない (`approval_policy=all_external_contributors`)。repo に collaborator を足さない
+- **ほかの人の文をエージェントに読ませない**: public の repo では誰でもコメントを書ける。エージェントは `wk comments` (持ち主の本文とコメントだけ) で読み、`gh … --comments`・コメントの API は guard が止める。`wk inbox` は前から持ち主の issue だけ
+- 新しいアプリは `wk scaffold` が public で作り、secret scanning・push protection・PR の CI の承認を入れる。配信用の repo (`wakuwaku-site`) は Cloudflare とつながるので private のまま
+
 ---
 
 ## 8. ハーネス (人が見なくてよくするための仕組み)
