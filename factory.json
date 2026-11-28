@@ -16,7 +16,7 @@
   "max_mvp_issues": 3,
   "max_parallel": 2,
   "max_wip": 4,
-  "focus": ["00503-yume-nikki", "00504-yofukashi-seiza", "00505-ippyou-kudasai", "00506-kanarazu-hitori"],
+  "focus": ["00504-yofukashi-seiza","00505-ippyou-kudasai","00506-kanarazu-hitori"],
   "v4": {"enabled": true, "min_tasks": 20, "task_attempts": 2, "check_timeout_seconds": 600},
   "lock_ttl_minutes": 240,
   "max_consecutive_failures": 3,
