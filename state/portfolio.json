@@ -405,7 +405,8 @@
         "total": 2,
         "phase": 0
       },
-      "url": "",
+      "url": "https://ippyou-kudasai.wakuwaku-factory.workers.dev/",
+      "preview": "https://ippyou-kudasai.wakuwaku-factory.workers.dev/",
       "planned": "2026-11-28",
       "history": [
         {
@@ -422,6 +423,11 @@
           "date": "2026-11-28",
           "event": "planned",
           "note": "v0.2: 規約に同意してパスキーで始め、迷った二択を 10 秒で投げられる。ほかの人の二択に 1 枚ずつスワイプで票を返すと自分の二択が先に回り、票の割合を見て「こっちにした」で締められる。個人が分かることは端末とサーバーの両方で止める (task 21 件)"
+        },
+        {
+          "date": "2026-11-28",
+          "event": "deployed",
+          "note": "https://ippyou-kudasai.wakuwaku-factory.workers.dev/"
         }
       ]
     },
