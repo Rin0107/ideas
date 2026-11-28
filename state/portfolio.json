@@ -367,7 +367,8 @@
         "total": 6,
         "phase": 0
       },
-      "url": "",
+      "url": "https://yofukashi-seiza.wakuwaku-factory.workers.dev/",
+      "preview": "https://yofukashi-seiza.wakuwaku-factory.workers.dev/",
       "planned": "2026-11-27",
       "history": [
         {
@@ -384,6 +385,11 @@
           "date": "2026-11-28",
           "event": "planned",
           "note": "v0.2: 規約に同意して開くと、ログインなしで自分の星が真ん中に灯り、今起きている人の数とまばらな星が見え、真ん中の星の一言と地方が読める。自分も 25 字の一言を 1 つ置ける。個人が分かることは端末とサーバーの両方で止める (task 24 件)"
+        },
+        {
+          "date": "2026-11-28",
+          "event": "deployed",
+          "note": "https://yofukashi-seiza.wakuwaku-factory.workers.dev/"
         }
       ]
     },
