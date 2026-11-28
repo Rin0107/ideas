@@ -1,0 +1,728 @@
+{
+  "tasks": {
+    "10": {
+      "issue": 10,
+      "title": "一言の API (PUT・DELETE /api/word) に長さ・個人情報・同意・回数の検査",
+      "branch": "wk/t10",
+      "tests": {
+        "tests/unit/plan/v0.1-06-word-api.test.ts": "e15dd12287dd3e90dd56f31cc7ca4cf5e864d6da63007c5d1a1760d7422b4ecc",
+        "tests/unit/plan/worker-harness.ts": "212af7291e9ad6e463707182913b8e318ecb78013f1e2ce9e6b14db03de8d9de"
+      },
+      "paths": [
+        "src/worker/stars.ts",
+        "src/worker/index.ts",
+        "tests/unit/stars.test.ts",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "一言の API",
+          "run": "npx vitest run tests/unit/plan/v0.1-06-word-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        4,
+        9
+      ],
+      "plan": "2026-11-28"
+    },
+    "11": {
+      "issue": 11,
+      "title": "画面からサーバーを呼ぶ関数 (src/client.ts の stars) と端末に置くもの (src/device.ts)",
+      "branch": "wk/t11",
+      "tests": {
+        "tests/unit/plan/v0.1-07-client.test.ts": "58589f3c92372ce955e63d3a988838c80ef58531050f39a235197790835270d3"
+      },
+      "paths": [
+        "src/device.ts",
+        "src/client.ts",
+        "tests/unit/device.test.ts",
+        "tests/unit/client.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "画面からの呼び出しと端末の保存",
+          "run": "npx vitest run tests/unit/plan/v0.1-07-client.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        5
+      ],
+      "plan": "2026-11-28"
+    },
+    "12": {
+      "issue": 12,
+      "title": "まばらな空の決まり (src/sky.ts: 置き方・端のつながり・大きさ・明るさ・間引き)",
+      "branch": "wk/t12",
+      "tests": {
+        "tests/unit/plan/v0.1-08-sky-layout.test.ts": "7cdf7676191d040021dcde284b7b3c3fe154095b6566a48da173efba51f2dd6e"
+      },
+      "paths": [
+        "src/sky.ts",
+        "tests/unit/sky.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "まばらな空の決まり",
+          "run": "npx vitest run tests/unit/plan/v0.1-08-sky-layout.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-28"
+    },
+    "13": {
+      "issue": 13,
+      "title": "昼と夜 (src/sun.ts) と来てからの時間の言葉 (src/ago.ts)",
+      "branch": "wk/t13",
+      "tests": {
+        "tests/unit/plan/v0.1-09-sun.test.ts": "1ada2fbb085bd1f47229d63bff1c48cf629538b766c7faed575efc92ceee63cd"
+      },
+      "paths": [
+        "src/sun.ts",
+        "src/ago.ts",
+        "tests/unit/sun.test.ts",
+        "tests/unit/ago.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "昼と夜・時間の言葉",
+          "run": "npx vitest run tests/unit/plan/v0.1-09-sun.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        5
+      ],
+      "plan": "2026-11-28"
+    },
+    "14": {
+      "issue": 14,
+      "title": "App を作り直す: 初めてのときの同意と地方の画面 (src/Consent.tsx)。服の画面を外す",
+      "branch": "wk/t14",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "03b6daa53dd541552d9ba89de114e23401b495720ec59ac32489df1fd389b5b9",
+        "tests/unit/plan/v0.1-11-consent.test.tsx": "a7e4cc8cedd5b847ff5cb0dea818770604d53d91b6684d12de54286bf9048ebb"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/Consent.tsx",
+        "src/SkyScreen.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx",
+        "tests/unit/main.test.tsx",
+        "tests/unit/consent.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "同意と地方の画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-11-consent.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        5,
+        11
+      ],
+      "plan": "2026-11-28"
+    },
+    "15": {
+      "issue": 15,
+      "title": "利用規約とプライバシーポリシーの画面 (src/Legal.tsx)",
+      "branch": "wk/t15",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "03b6daa53dd541552d9ba89de114e23401b495720ec59ac32489df1fd389b5b9",
+        "tests/unit/plan/v0.1-10-legal.test.tsx": "25fb312d34dcda8fb9a6262d6a4b44c2f0681a31463cbf8966f13206fcebb3b3"
+      },
+      "paths": [
+        "src/Legal.tsx",
+        "src/Consent.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/legal.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "規約とポリシーの画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-10-legal.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        14
+      ],
+      "plan": "2026-11-28"
+    },
+    "16": {
+      "issue": 16,
+      "title": "空の画面 (src/SkyScreen.tsx): 人数・自分の星・まばらな星・明るさと大きさ",
+      "branch": "wk/t16",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "03b6daa53dd541552d9ba89de114e23401b495720ec59ac32489df1fd389b5b9",
+        "tests/unit/plan/v0.1-12-sky-screen.test.tsx": "0aa0c9fab36f8c4b72176d789fc0999aa3a8f34d6f6301b256a55d065634f6e0"
+      },
+      "paths": [
+        "src/SkyScreen.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/sky-screen.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "空の画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-12-sky-screen.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        11,
+        12,
+        14
+      ],
+      "plan": "2026-11-28"
+    },
+    "17": {
+      "issue": 17,
+      "title": "空をドラッグで動かす・端は反対側へ・「自分の星へ戻る」(◎)",
+      "branch": "wk/t17",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "03b6daa53dd541552d9ba89de114e23401b495720ec59ac32489df1fd389b5b9",
+        "tests/unit/plan/v0.1-13-drag.test.tsx": "a0cf807f44136f7e821e11139b279c08f32e7f136495883b6a338d8458554735"
+      },
+      "paths": [
+        "src/SkyScreen.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/sky-screen.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "空を動かす・戻る",
+          "run": "npx vitest run tests/unit/plan/v0.1-13-drag.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        16
+      ],
+      "plan": "2026-11-28"
+    },
+    "18": {
+      "issue": 18,
+      "title": "吹き出し: 真ん中の星の一言が自動で出る・押した星・「わたし」と「こんばんは」",
+      "branch": "wk/t18",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "03b6daa53dd541552d9ba89de114e23401b495720ec59ac32489df1fd389b5b9",
+        "tests/unit/plan/v0.1-14-bubble.test.tsx": "a3460ea8a975fadecb8f6cbfd755299a505022f492545807ff2c988b3d7c5eeb"
+      },
+      "paths": [
+        "src/SkyScreen.tsx",
+        "src/Bubble.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/bubble.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "吹き出し",
+          "run": "npx vitest run tests/unit/plan/v0.1-14-bubble.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        13,
+        17
+      ],
+      "plan": "2026-11-28"
+    },
+    "19": {
+      "issue": 19,
+      "title": "吹き出しが変に折り返さない (1 行の見出し・⋯ は右端・行の長さをそろえる)",
+      "branch": "wk/t19",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "03b6daa53dd541552d9ba89de114e23401b495720ec59ac32489df1fd389b5b9",
+        "tests/unit/plan/v0.1-15-bubble-style.test.tsx": "9cd71b0fea7d080ef5d66c3b51cf4a4b9f3b82c8ed9a1839d9cb51a08b9c8bab"
+      },
+      "paths": [
+        "src/Bubble.tsx",
+        "src/SkyScreen.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/bubble.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "吹き出しの形",
+          "run": "npx vitest run tests/unit/plan/v0.1-15-bubble-style.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        18
+      ],
+      "plan": "2026-11-28"
+    },
+    "20": {
+      "issue": 20,
+      "title": "⋯ のそばの小さなメニューで「非表示」・元に戻す",
+      "branch": "wk/t20",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "03b6daa53dd541552d9ba89de114e23401b495720ec59ac32489df1fd389b5b9",
+        "tests/unit/plan/v0.1-16-hide.test.tsx": "deade0d47ca304206f6049e04586d8e588220a9162ec4bc0cf00e24e71a7402b"
+      },
+      "paths": [
+        "src/Bubble.tsx",
+        "src/SkyScreen.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/bubble.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "非表示",
+          "run": "npx vitest run tests/unit/plan/v0.1-16-hide.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        19
+      ],
+      "plan": "2026-11-28"
+    },
+    "21": {
+      "issue": 21,
+      "title": "一言を置く欄 (25 字・字数・個人情報の検査・入れ替え・消す)",
+      "branch": "wk/t21",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "03b6daa53dd541552d9ba89de114e23401b495720ec59ac32489df1fd389b5b9",
+        "tests/unit/plan/v0.1-17-word-ui.test.tsx": "8d32e1d336802749bd178fc4b503d7ebb5ee1dd64cbcf5ce1c9b05624a3a5189"
+      },
+      "paths": [
+        "src/WordForm.tsx",
+        "src/SkyScreen.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/word-form.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "一言を置く",
+          "run": "npx vitest run tests/unit/plan/v0.1-17-word-ui.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        4,
+        18
+      ],
+      "plan": "2026-11-28"
+    },
+    "22": {
+      "issue": 22,
+      "title": "開いているあいだ星を灯し続け、空を新しくする (hello 2 分・sky 1 分)",
+      "branch": "wk/t22",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "03b6daa53dd541552d9ba89de114e23401b495720ec59ac32489df1fd389b5b9",
+        "tests/unit/plan/v0.1-18-heartbeat.test.tsx": "298833e342f94418dd2d8017057d436e33eed1a39e4d5d1b0b2daa57185732f2"
+      },
+      "paths": [
+        "src/SkyScreen.tsx",
+        "docs/runbook.md",
+        "tests/unit/sky-screen.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "灯し続ける",
+          "run": "npx vitest run tests/unit/plan/v0.1-18-heartbeat.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        16
+      ],
+      "plan": "2026-11-28"
+    },
+    "23": {
+      "issue": 23,
+      "title": "昼の空と雲 (data-sky・theme-color・「人がいます」)",
+      "branch": "wk/t23",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "03b6daa53dd541552d9ba89de114e23401b495720ec59ac32489df1fd389b5b9",
+        "tests/unit/plan/v0.1-19-day.test.tsx": "0249b72b0e963af6f557ab25bee9c44777ea66cd3a5c73b70d6f82495476df00"
+      },
+      "paths": [
+        "src/SkyScreen.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/sky-screen.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "昼の空と雲",
+          "run": "npx vitest run tests/unit/plan/v0.1-19-day.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        13,
+        16
+      ],
+      "plan": "2026-11-28"
+    },
+    "24": {
+      "issue": 24,
+      "title": "設定のシート: 地方を変える・規約とポリシー・非表示をすべて戻す",
+      "branch": "wk/t24",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "03b6daa53dd541552d9ba89de114e23401b495720ec59ac32489df1fd389b5b9",
+        "tests/unit/plan/v0.1-20-settings.test.tsx": "0742803e83ee7d9dc212cbd0a5ccb8b8f9012f0feaab29e32ed2e27a2825ef62"
+      },
+      "paths": [
+        "src/Settings.tsx",
+        "src/RegionPicker.tsx",
+        "src/Consent.tsx",
+        "src/SkyScreen.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/settings.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "設定のシート",
+          "run": "npx vitest run tests/unit/plan/v0.1-20-settings.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        15,
+        20
+      ],
+      "plan": "2026-11-28"
+    },
+    "25": {
+      "issue": 25,
+      "title": "画面の側から天気・おすすめ・写真の縮小・パスキーを片付ける",
+      "branch": "wk/t25",
+      "tests": {
+        "tests/unit/plan/v0.1-21-cleanup-client.test.ts": "daa50f6d19fe9e57946280df4b8fc0cc53729bfea4f500e41f650ee5e6ac10b1"
+      },
+      "paths": [
+        "src/weather.ts",
+        "src/recommend.ts",
+        "src/shrink.ts",
+        "src/passkey.ts",
+        "src/client.ts",
+        "src/App.tsx",
+        "tests/unit/weather.test.ts",
+        "tests/unit/recommend.test.ts",
+        "tests/unit/shrink.test.ts",
+        "tests/unit/client.test.ts",
+        "spec/recommend.smt2",
+        "DATA.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "画面の側の片付け",
+          "run": "npx vitest run tests/unit/plan/v0.1-21-cleanup-client.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        11,
+        14
+      ],
+      "plan": "2026-11-28"
+    },
+    "26": {
+      "issue": 26,
+      "title": "サーバーから服・コーデを片付ける (migrations/0003_drop_clothes.sql)",
+      "branch": "wk/t26",
+      "tests": {
+        "tests/unit/plan/v0.1-22-cleanup-server.test.ts": "c7d1c634f7b1287bb59a39f35541f16f1229671846c23e78e3704dc0b4f88249",
+        "tests/unit/plan/worker-harness.ts": "212af7291e9ad6e463707182913b8e318ecb78013f1e2ce9e6b14db03de8d9de"
+      },
+      "paths": [
+        "migrations/0003_drop_clothes.sql",
+        "src/worker/api.ts",
+        "src/worker/db.ts",
+        "tests/unit/worker.test.ts",
+        "tests/unit/db.test.ts",
+        "tests/unit/routes.test.ts",
+        "tests/unit/stars.test.ts",
+        "DATA.md",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "サーバーの片付け",
+          "run": "npx vitest run tests/unit/plan/v0.1-22-cleanup-server.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        10,
+        25
+      ],
+      "plan": "2026-11-28"
+    },
+    "27": {
+      "issue": 27,
+      "title": "ホームに追加したときの名前と色・端末の切り欠きを避ける",
+      "branch": "wk/t27",
+      "tests": {
+        "tests/unit/plan/v0.1-23-home-screen.test.ts": "cbf00cac6dd9c92dbf45ee33d03c75ee9e395e2daa3fed3e01aeafa507da45a3"
+      },
+      "paths": [
+        "public/manifest.webmanifest",
+        "index.html",
+        "src/style.css",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "ホーム画面の名前と色",
+          "run": "npx vitest run tests/unit/plan/v0.1-23-home-screen.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        16
+      ],
+      "plan": "2026-11-28"
+    },
+    "4": {
+      "issue": 4,
+      "title": "個人が分かる文を見つける関数 findPersonalInfo (src/pii.ts)",
+      "branch": "wk/t4",
+      "tests": {
+        "tests/unit/plan/v0.1-00-pii.test.ts": "4d58e85fb12813f2169dbefafdcf2f5616cce27143c78c1b36b4914ff86b7a74"
+      },
+      "paths": [
+        "src/pii.ts",
+        "tests/unit/pii.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "個人が分かる文の検査",
+          "run": "npx vitest run tests/unit/plan/v0.1-00-pii.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-28"
+    },
+    "5": {
+      "issue": 5,
+      "title": "地方の一覧・となり・明るさの段 (src/regions.ts) と規約の版 (src/terms.ts)",
+      "branch": "wk/t5",
+      "tests": {
+        "tests/unit/plan/v0.1-01-regions.test.ts": "1e37675ec48a0d0432ccee6bbb7a77f07adc802c09398cf92a11e13dcc336ea4"
+      },
+      "paths": [
+        "src/regions.ts",
+        "src/terms.ts",
+        "tests/unit/regions.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "地方と規約の版",
+          "run": "npx vitest run tests/unit/plan/v0.1-01-regions.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-28"
+    },
+    "6": {
+      "issue": 6,
+      "title": "星の表 (migrations/0002_stars.sql) と DATA.md",
+      "branch": "wk/t6",
+      "tests": {
+        "tests/unit/plan/v0.1-02-tables.test.ts": "c49c94831f501ed728fc8a21c5065c52f0b599e119f55e22ac484965f76ffd76"
+      },
+      "paths": [
+        "migrations/0002_stars.sql",
+        "DATA.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "星の表",
+          "run": "npx vitest run tests/unit/plan/v0.1-02-tables.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-28"
+    },
+    "7": {
+      "issue": 7,
+      "title": "星を置く Store 関数 (src/worker/db.ts: hello・sky・setWord・clearWord・回数)",
+      "branch": "wk/t7",
+      "tests": {
+        "tests/unit/plan/v0.1-03-store.test.ts": "a0d9a56c3117023aa20816121a0427bd837224d3312909bf06f236a99eb88bee"
+      },
+      "paths": [
+        "src/worker/db.ts",
+        "tests/unit/db.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "星の Store",
+          "run": "npx vitest run tests/unit/plan/v0.1-03-store.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        6
+      ],
+      "plan": "2026-11-28"
+    },
+    "8": {
+      "issue": 8,
+      "title": "星を灯す API (POST /api/hello、src/worker/stars.ts)",
+      "branch": "wk/t8",
+      "tests": {
+        "tests/unit/plan/v0.1-04-hello-api.test.ts": "cb04642c3485fb4a08515750a612e76bff71a9f167bff75a05ca14776c2189f0",
+        "tests/unit/plan/worker-harness.ts": "212af7291e9ad6e463707182913b8e318ecb78013f1e2ce9e6b14db03de8d9de"
+      },
+      "paths": [
+        "src/worker/stars.ts",
+        "src/worker/index.ts",
+        "tests/unit/stars.test.ts",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "星を灯す API",
+          "run": "npx vitest run tests/unit/plan/v0.1-04-hello-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        5,
+        7
+      ],
+      "plan": "2026-11-28"
+    },
+    "9": {
+      "issue": 9,
+      "title": "空を読む API (GET /api/sky)",
+      "branch": "wk/t9",
+      "tests": {
+        "tests/unit/plan/v0.1-05-sky-api.test.ts": "013a424d2ae89d1f29dbdfb097860c56b2008b153358a2ea0ef00b47f8ec2d4a",
+        "tests/unit/plan/worker-harness.ts": "212af7291e9ad6e463707182913b8e318ecb78013f1e2ce9e6b14db03de8d9de"
+      },
+      "paths": [
+        "src/worker/stars.ts",
+        "src/worker/index.ts",
+        "tests/unit/stars.test.ts",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "空を読む API",
+          "run": "npx vitest run tests/unit/plan/v0.1-05-sky-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        8
+      ],
+      "plan": "2026-11-28"
+    }
+  }
+}
