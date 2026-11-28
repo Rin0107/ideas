@@ -17,7 +17,7 @@
     "mutate": "sh scripts/limit.sh 3G 2 node scripts/mutate.mjs",
     "formal": "sh scripts/formal.sh",
     "db:local": "wrangler d1 migrations apply DB --local",
-    "bundle": "npm run build && sh scripts/limit.sh 2G 2 wrangler deploy --dry-run --outdir bundle && mv bundle/index.js bundle/worker.js"
+    "bundle": "npm run build && sh scripts/limit.sh 2G 2 wrangler deploy --dry-run --minify --outdir bundle && mv bundle/index.js bundle/worker.js"
   },
   "dependencies": {
     "@simplewebauthn/browser": "14.0.0",
