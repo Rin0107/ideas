@@ -415,8 +415,8 @@
     },
     {
       "idea": "00506-kanarazu-hitori",
-      "repo": "",
-      "status": "selected",
+      "repo": "Rin0107/kanarazu-hitori",
+      "status": "building",
       "stack": "web-db",
       "started": "2026-11-28",
       "milestone": "MVP",
@@ -431,6 +431,11 @@
           "date": "2026-11-28",
           "event": "selected",
           "note": "合計 19/25 (わくわく5・軽さ3・無料3・自分ごと4・Findy4) 持ち主が選んだ主力。1 対 1 の交換で「必ず一人に届く」を順番の仕組みで保証するのが核。雛形 web-db のパスキー・D1・写真の受け取りの上に作れる"
+        },
+        {
+          "date": "2026-11-28",
+          "event": "scaffolded",
+          "note": "Rin0107/kanarazu-hitori / issue 3 件"
         }
       ]
     }
