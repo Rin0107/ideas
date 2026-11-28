@@ -416,16 +416,17 @@
     {
       "idea": "00506-kanarazu-hitori",
       "repo": "Rin0107/kanarazu-hitori",
-      "status": "building",
+      "status": "iterating",
       "stack": "web-db",
       "started": "2026-11-28",
-      "milestone": "MVP",
-      "iteration": 0,
+      "milestone": "v0.2",
+      "iteration": 1,
       "ticks": {
         "total": 1,
         "phase": 0
       },
       "url": "",
+      "planned": "2026-11-28",
       "history": [
         {
           "date": "2026-11-28",
@@ -436,6 +437,11 @@
           "date": "2026-11-28",
           "event": "scaffolded",
           "note": "Rin0107/kanarazu-hitori / issue 3 件"
+        },
+        {
+          "date": "2026-11-28",
+          "event": "planned",
+          "note": "v0.2: 規約に同意してパスキーで始め、届いた誰かの作品を展示室で 1 点見て絵文字を 1 つ返すと、自分の作品が 1 人に回る。自分の作品ごとに何人に届いたかと絵文字の数が見える。個人が分かることは端末とサーバーの両方で止める (task 24 件)"
         }
       ]
     }

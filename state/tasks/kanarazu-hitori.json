@@ -1,0 +1,725 @@
+{
+  "tasks": {
+    "10": {
+      "issue": 10,
+      "title": "届いた作品の API (GET /api/gallery・POST gallery/:id/react) と、作品を読む仕様 (spec/Access.tla)",
+      "branch": "wk/t10",
+      "tests": {
+        "tests/unit/plan/v0.1-06-gallery-api.test.ts": "85cf9f9906c310942b5e27eb4c346125cd05c118d9384cdf6887f24eeab06365",
+        "tests/unit/plan/worker-harness.ts": "9edec5e6c3a61683a21d7078b6c46ed196d72ea8325dd9115420ef7f4ac60c95"
+      },
+      "paths": [
+        "src/worker/api.ts",
+        "spec/Access.tla",
+        "spec/Access.cfg",
+        "tests/unit/worker.test.ts",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "届いた作品の API",
+          "run": "npx vitest run tests/unit/plan/v0.1-06-gallery-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        9
+      ],
+      "plan": "2026-11-28"
+    },
+    "11": {
+      "issue": 11,
+      "title": "自分の作品の API (GET /api/works・DELETE /api/works/:id) と片付け (sweep)",
+      "branch": "wk/t11",
+      "tests": {
+        "tests/unit/plan/v0.1-07-mine-api.test.ts": "0d060a3773adf266260b8833c33e12d89b51028564ff16a916d2bee73ee4e2ef",
+        "tests/unit/plan/worker-harness.ts": "9edec5e6c3a61683a21d7078b6c46ed196d72ea8325dd9115420ef7f4ac60c95"
+      },
+      "paths": [
+        "src/worker/api.ts",
+        "docs/architecture.md",
+        "docs/runbook.md",
+        "tests/unit/worker.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "自分の作品の API",
+          "run": "npx vitest run tests/unit/plan/v0.1-07-mine-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        10
+      ],
+      "plan": "2026-11-28"
+    },
+    "12": {
+      "issue": 12,
+      "title": "通報の API (POST gallery/:id/report)。3 人で自動の非表示",
+      "branch": "wk/t12",
+      "tests": {
+        "tests/unit/plan/v0.1-08-report-api.test.ts": "228462cb494b28bf221398e5307362f4e7eec5920f2bb407456a3bce93628b77",
+        "tests/unit/plan/worker-harness.ts": "9edec5e6c3a61683a21d7078b6c46ed196d72ea8325dd9115420ef7f4ac60c95"
+      },
+      "paths": [
+        "src/worker/api.ts",
+        "docs/runbook.md",
+        "tests/unit/worker.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "通報の API",
+          "run": "npx vitest run tests/unit/plan/v0.1-08-report-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        10
+      ],
+      "plan": "2026-11-28"
+    },
+    "13": {
+      "issue": 13,
+      "title": "画面からサーバーを呼ぶ関数 (src/client.ts の api) に作品・届いた作品・反応・通報",
+      "branch": "wk/t13",
+      "tests": {
+        "tests/unit/plan/v0.1-09-client.test.ts": "ac912586a01c0e24146927cc539a740a4182822bad807465d60cdcb835afa9e3"
+      },
+      "paths": [
+        "src/client.ts",
+        "tests/unit/client.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "画面からの呼び出し",
+          "run": "npx vitest run tests/unit/plan/v0.1-09-client.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-28"
+    },
+    "14": {
+      "issue": 14,
+      "title": "利用規約とプライバシーポリシーの画面 (src/Legal.tsx)",
+      "branch": "wk/t14",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "553f9c74581113169e625de83772f7fcdbe452b38b99e95189797a9be5211aff",
+        "tests/unit/plan/v0.1-11-legal.test.tsx": "25130a064d6bd29ee6408f306d72f21257ede289573a86919637a5c929f4ab86"
+      },
+      "paths": [
+        "src/Legal.tsx",
+        "src/App.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/legal.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "規約とポリシーの画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-11-legal.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-28"
+    },
+    "15": {
+      "issue": 15,
+      "title": "同意の画面と下のタブ (届いた・出す・自分の作品)。服の画面を外す",
+      "branch": "wk/t15",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "553f9c74581113169e625de83772f7fcdbe452b38b99e95189797a9be5211aff",
+        "tests/unit/plan/v0.1-12-agree.test.tsx": "1fcaee01efc8104aecd92d4e478e099b3cdd29086c34fd0fd192ebd9012ad1a2"
+      },
+      "paths": [
+        "src/App.tsx",
+        "src/Agree.tsx",
+        "src/Home.tsx",
+        "src/style.css",
+        "tests/unit/app.test.tsx",
+        "tests/unit/main.test.tsx",
+        "tests/unit/home.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "同意の画面とタブ",
+          "run": "npx vitest run tests/unit/plan/v0.1-12-agree.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        7,
+        13,
+        14
+      ],
+      "plan": "2026-11-28"
+    },
+    "16": {
+      "issue": 16,
+      "title": "「出す」の画面 (src/PostForm.tsx): 種類・題 20 字・文章 400 字・URL",
+      "branch": "wk/t16",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "553f9c74581113169e625de83772f7fcdbe452b38b99e95189797a9be5211aff",
+        "tests/unit/plan/v0.1-13-post-form.test.tsx": "96499e76247a6fc1e7175b1a379d9fea94f8fe650d8057b564dea8cf8436173d"
+      },
+      "paths": [
+        "src/PostForm.tsx",
+        "src/Home.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/post-form.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "出すの画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-13-post-form.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        4,
+        15
+      ],
+      "plan": "2026-11-28"
+    },
+    "17": {
+      "issue": 17,
+      "title": "「出す」で絵を選ぶ: 端末で縮めて見せてから送る",
+      "branch": "wk/t17",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "553f9c74581113169e625de83772f7fcdbe452b38b99e95189797a9be5211aff",
+        "tests/unit/plan/v0.1-14-post-image.test.tsx": "da670248308460c459bde05962671b13ebb75d1d347cd8c6400c109007e1f323"
+      },
+      "paths": [
+        "src/PostForm.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/post-form.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "絵を出す",
+          "run": "npx vitest run tests/unit/plan/v0.1-14-post-image.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        16
+      ],
+      "plan": "2026-11-28"
+    },
+    "18": {
+      "issue": 18,
+      "title": "「届いた」の展示室 (src/Gallery.tsx): 暗い部屋の額に 1 点。絵も文章も額に",
+      "branch": "wk/t18",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "553f9c74581113169e625de83772f7fcdbe452b38b99e95189797a9be5211aff",
+        "tests/unit/plan/v0.1-15-gallery-view.test.tsx": "8dad20cb2bdb3db5bda91a6d2e6f7b88a25d31ba6e4414878975add861a92ff4"
+      },
+      "paths": [
+        "src/Gallery.tsx",
+        "src/Home.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/gallery.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "展示室",
+          "run": "npx vitest run tests/unit/plan/v0.1-15-gallery-view.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        13,
+        15
+      ],
+      "plan": "2026-11-28"
+    },
+    "19": {
+      "issue": 19,
+      "title": "絵文字を 1 つ押して返す (👏 ✨ 💛 🌱)。「届けました」と次の作品",
+      "branch": "wk/t19",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "553f9c74581113169e625de83772f7fcdbe452b38b99e95189797a9be5211aff",
+        "tests/unit/plan/v0.1-16-react.test.tsx": "30836ee88b39fa876a93ef351c6687b8b48854ec002dd8f7526793c2d4a1f8e5"
+      },
+      "paths": [
+        "src/Gallery.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/gallery.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "絵文字で返す",
+          "run": "npx vitest run tests/unit/plan/v0.1-16-react.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        18
+      ],
+      "plan": "2026-11-28"
+    },
+    "20": {
+      "issue": 20,
+      "title": "URL の作品: 額の紙に題とホスト名。開く前に「外のページに移ります」",
+      "branch": "wk/t20",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "553f9c74581113169e625de83772f7fcdbe452b38b99e95189797a9be5211aff",
+        "tests/unit/plan/v0.1-17-url-work.test.tsx": "5db74195868425af32e7c9dbc51cde7d4818341fb9ed08984fa63356cb90dfab"
+      },
+      "paths": [
+        "src/Gallery.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/gallery.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "URL の作品",
+          "run": "npx vitest run tests/unit/plan/v0.1-17-url-work.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        18
+      ],
+      "plan": "2026-11-28"
+    },
+    "21": {
+      "issue": 21,
+      "title": "「自分の作品」(src/MyWorks.tsx): 作品ごとに「N人に届いた」と絵文字の数",
+      "branch": "wk/t21",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "553f9c74581113169e625de83772f7fcdbe452b38b99e95189797a9be5211aff",
+        "tests/unit/plan/v0.1-18-my-works.test.tsx": "9f488daf0822a7cdaba89d52b588ac12638769efae48b932e041fa2278f765cd"
+      },
+      "paths": [
+        "src/MyWorks.tsx",
+        "src/Home.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/my-works.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "自分の作品",
+          "run": "npx vitest run tests/unit/plan/v0.1-18-my-works.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        13,
+        15
+      ],
+      "plan": "2026-11-28"
+    },
+    "22": {
+      "issue": 22,
+      "title": "自分の作品を消す (確かめてから)",
+      "branch": "wk/t22",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "553f9c74581113169e625de83772f7fcdbe452b38b99e95189797a9be5211aff",
+        "tests/unit/plan/v0.1-19-delete-work.test.tsx": "889e024988665b66dad39b52eed7341ee2d61c7f9f270155e36431c7ae9a57ba"
+      },
+      "paths": [
+        "src/MyWorks.tsx",
+        "src/style.css",
+        "tests/unit/my-works.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "作品を消す",
+          "run": "npx vitest run tests/unit/plan/v0.1-19-delete-work.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        21
+      ],
+      "plan": "2026-11-28"
+    },
+    "23": {
+      "issue": 23,
+      "title": "「自分の作品」の下の設定: パスキー・規約・ポリシー・お問い合わせ・ログアウト・アカウントを削除",
+      "branch": "wk/t23",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "553f9c74581113169e625de83772f7fcdbe452b38b99e95189797a9be5211aff",
+        "tests/unit/plan/v0.1-20-settings.test.tsx": "324bea373fda1345b022ca5cb5d23d92eb0b414d40ebaec32ccc715fb26b9dbe"
+      },
+      "paths": [
+        "src/MyWorks.tsx",
+        "src/App.tsx",
+        "src/Home.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/my-works.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "設定",
+          "run": "npx vitest run tests/unit/plan/v0.1-20-settings.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        14,
+        21
+      ],
+      "plan": "2026-11-28"
+    },
+    "24": {
+      "issue": 24,
+      "title": "届いた作品の「その他」から通報する",
+      "branch": "wk/t24",
+      "tests": {
+        "tests/unit/plan/app-harness.tsx": "553f9c74581113169e625de83772f7fcdbe452b38b99e95189797a9be5211aff",
+        "tests/unit/plan/v0.1-21-report-ui.test.tsx": "1e5e9e7df012ce887064d83b83708fa16f0d872a080af11a3666b12f2ca3cf73"
+      },
+      "paths": [
+        "src/Gallery.tsx",
+        "src/style.css",
+        "docs/design-system.md",
+        "tests/unit/gallery.test.tsx"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "通報の画面",
+          "run": "npx vitest run tests/unit/plan/v0.1-21-report-ui.test.tsx --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        19
+      ],
+      "plan": "2026-11-28"
+    },
+    "25": {
+      "issue": 25,
+      "title": "サーバーから服・コーデ・書き出しを片付ける (migrations/0003_drop_clothes.sql)。写真の検査は残す",
+      "branch": "wk/t25",
+      "tests": {
+        "tests/unit/plan/v0.1-22-cleanup-server.test.ts": "9a7003eb181610c0205b8fa68c99480aa30c658748bf0ac89bc69f79b07bd8d5"
+      },
+      "paths": [
+        "migrations/0003_drop_clothes.sql",
+        "src/worker/api.ts",
+        "src/worker/db.ts",
+        "tests/unit/worker.test.ts",
+        "tests/unit/db.test.ts",
+        "tests/unit/routes.test.ts",
+        "DATA.md",
+        "docs/architecture.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "サーバーの片付け",
+          "run": "npx vitest run tests/unit/plan/v0.1-22-cleanup-server.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        11,
+        12
+      ],
+      "plan": "2026-11-28"
+    },
+    "26": {
+      "issue": 26,
+      "title": "画面の側から天気・おすすめを片付ける。写真の縮小は残す",
+      "branch": "wk/t26",
+      "tests": {
+        "tests/unit/plan/v0.1-23-cleanup-client.test.ts": "0122d185a26dcb6884c837ff7451cdbdbb4a05bf310a6eb89b708f949164fd3d"
+      },
+      "paths": [
+        "src/weather.ts",
+        "src/recommend.ts",
+        "src/shrink.ts",
+        "src/client.ts",
+        "src/App.tsx",
+        "tests/unit/weather.test.ts",
+        "tests/unit/recommend.test.ts",
+        "tests/unit/client.test.ts",
+        "spec/recommend.smt2",
+        "DATA.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "画面の側の片付け",
+          "run": "npx vitest run tests/unit/plan/v0.1-23-cleanup-client.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        15
+      ],
+      "plan": "2026-11-28"
+    },
+    "27": {
+      "issue": 27,
+      "title": "ホームに追加したときの名前と暗い色・下のタブを切り欠きの上に",
+      "branch": "wk/t27",
+      "tests": {
+        "tests/unit/plan/v0.1-24-home-screen.test.ts": "c9545434f62fb99c9d17b46ba1a85788f9cea1b7ba88416647d830427432cf61"
+      },
+      "paths": [
+        "public/manifest.webmanifest",
+        "index.html",
+        "src/style.css",
+        "docs/design-system.md"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "ホーム画面の名前と色",
+          "run": "npx vitest run tests/unit/plan/v0.1-24-home-screen.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        15
+      ],
+      "plan": "2026-11-28"
+    },
+    "4": {
+      "issue": 4,
+      "title": "個人が分かる文を見つける関数 findPersonalInfo (src/pii.ts)",
+      "branch": "wk/t4",
+      "tests": {
+        "tests/unit/plan/v0.1-00-pii.test.ts": "f3e168fd6d68051e8051a4f0dae1ada6912375dbe6482cf3202f891e052c6d4e"
+      },
+      "paths": [
+        "src/pii.ts",
+        "tests/unit/pii.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "個人が分かる文の検査",
+          "run": "npx vitest run tests/unit/plan/v0.1-00-pii.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-28"
+    },
+    "5": {
+      "issue": 5,
+      "title": "作品と届け先の表 (migrations/0002_works.sql)・自動の呼び名 (src/nickname.ts)・プロフィールの Store 関数",
+      "branch": "wk/t5",
+      "tests": {
+        "tests/unit/plan/v0.1-01-tables.test.ts": "cade72e52479099499af9039a1652b9e57f3497192eabd5524e24b7f3cecd82f"
+      },
+      "paths": [
+        "src/nickname.ts",
+        "migrations/0002_works.sql",
+        "src/worker/db.ts",
+        "DATA.md",
+        "tests/unit/db.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "作品と届け先の表",
+          "run": "npx vitest run tests/unit/plan/v0.1-01-tables.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "plan": "2026-11-28"
+    },
+    "6": {
+      "issue": 6,
+      "title": "作品と届け先の Store 関数 (出す・届ける順番・返す・自分の作品・消す・通報・写真・片付け)",
+      "branch": "wk/t6",
+      "tests": {
+        "tests/unit/plan/v0.1-02-work-store.test.ts": "63ee47baaf9e29aea4d77f9c21816b342ed87536d71cf03c8b18ee04756c84c9"
+      },
+      "paths": [
+        "src/worker/db.ts",
+        "tests/unit/db.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "作品と届け先の Store",
+          "run": "npx vitest run tests/unit/plan/v0.1-02-work-store.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        5
+      ],
+      "plan": "2026-11-28"
+    },
+    "7": {
+      "issue": 7,
+      "title": "プロフィールと同意の API (GET /api/profile・POST /api/agree) と規約の版 (src/terms.ts)",
+      "branch": "wk/t7",
+      "tests": {
+        "tests/unit/plan/v0.1-03-profile-api.test.ts": "ef9db5f419f94d511e734e010bf68730b0e158fe0a15d8eb2fb8e1601f581a87",
+        "tests/unit/plan/worker-harness.ts": "9edec5e6c3a61683a21d7078b6c46ed196d72ea8325dd9115420ef7f4ac60c95"
+      },
+      "paths": [
+        "src/terms.ts",
+        "src/worker/api.ts",
+        "docs/architecture.md",
+        "tests/unit/worker.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "プロフィールと同意",
+          "run": "npx vitest run tests/unit/plan/v0.1-03-profile-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        5
+      ],
+      "plan": "2026-11-28"
+    },
+    "8": {
+      "issue": 8,
+      "title": "作品を出す API (POST /api/works) の文章と URL に、同意・長さ・個人情報・回数の検査",
+      "branch": "wk/t8",
+      "tests": {
+        "tests/unit/plan/v0.1-04-post-api.test.ts": "ba02256fda5c1c1292763c267e184fff93c2dd0502b9de6536df23e517b1804f",
+        "tests/unit/plan/worker-harness.ts": "9edec5e6c3a61683a21d7078b6c46ed196d72ea8325dd9115420ef7f4ac60c95"
+      },
+      "paths": [
+        "src/worker/api.ts",
+        "docs/architecture.md",
+        "tests/unit/worker.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "作品を出す API",
+          "run": "npx vitest run tests/unit/plan/v0.1-04-post-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        4,
+        6,
+        7
+      ],
+      "plan": "2026-11-28"
+    },
+    "9": {
+      "issue": 9,
+      "title": "絵の作品を出す (POST /api/works の kind: image) と、写真を読む道 (GET /api/works/:id/photo)",
+      "branch": "wk/t9",
+      "tests": {
+        "tests/unit/plan/v0.1-05-image-api.test.ts": "e00ddf35f8c1fd41fb175ed28ece38fb31a0f0adc18bea4acf977fd3de87211d",
+        "tests/unit/plan/worker-harness.ts": "9edec5e6c3a61683a21d7078b6c46ed196d72ea8325dd9115420ef7f4ac60c95"
+      },
+      "paths": [
+        "src/worker/api.ts",
+        "docs/architecture.md",
+        "tests/unit/worker.test.ts"
+      ],
+      "setup": "npm ci",
+      "checks": [
+        {
+          "name": "絵の作品",
+          "run": "npx vitest run tests/unit/plan/v0.1-05-image-api.test.ts --coverage.enabled=false"
+        },
+        {
+          "name": "全体",
+          "run": "npm run verify"
+        }
+      ],
+      "after": [
+        8
+      ],
+      "plan": "2026-11-28"
+    }
+  }
+}
