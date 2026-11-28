@@ -118,7 +118,11 @@
   "web_db": {
     "subdomain": "wakuwaku-factory",
     "d1": {
-      "Rin0107/kisekae-closet": "617d8c03-59d8-4a0e-903f-52e1a636ab4b"
+      "Rin0107/kisekae-closet": "617d8c03-59d8-4a0e-903f-52e1a636ab4b",
+      "Rin0107/yofukashi-seiza": "0923392f-4a89-4c6c-b9df-39bcb9367e79",
+      "Rin0107/ippyou-kudasai": "43c9639e-8e0d-4eec-b6fc-4aa8fa2b44dc",
+      "Rin0107/kanarazu-hitori": "5a6e00fd-b977-4610-870b-f35c63d6ba3a",
+      "Rin0107/yume-nikki": "933fcb7e-69f1-4942-b80f-730e98f175ee"
     }
   }
 }
